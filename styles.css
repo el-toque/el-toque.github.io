@@ -163,3 +163,16 @@ input,select,textarea{background:#1b1e22;border-color:#393c42;color:#f5f0e7}labe
 /* Imágenes opcionales de producto; la marca original permanece como respaldo. */
 .product-image-editor{display:flex;align-items:center;gap:14px;margin:12px 0 16px;padding:12px;border:1px solid var(--ei-line);border-radius:12px;background:#101113}.product-image-preview{width:112px;height:112px;flex:0 0 112px;overflow:hidden;border:1px solid #4a4030;border-radius:10px;background:#090a0b}.product-image-preview img,.shop-product-image{width:100%;height:100%;object-fit:cover;display:block}.product-image-default{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:radial-gradient(circle at 50% 35%,#4a4132,#181716 62%,#0b0c0d);color:#e9bd58}.product-image-default span{font-size:2rem;line-height:1}.product-image-default small{font-size:.55rem;letter-spacing:.18em;font-weight:850}.product-image-controls{min-width:0;flex:1}.product-image-controls input[type=file]{max-width:100%;font-size:.82rem}.product-image-controls p{margin:7px 0 0}.product-image-controls button{margin-top:8px}.shop-card-mark{overflow:hidden}.shop-card-mark .shop-product-image{object-fit:cover}
 @media(max-width:460px){.product-image-editor{align-items:flex-start;flex-direction:column}.product-image-preview{width:100%;height:150px;flex-basis:150px}}
+
+
+/* Tienda móvil: conservar dos tarjetas por fila, como en la referencia aprobada */
+@media(max-width:520px){
+  #shopTab .shop-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;width:100%;}
+  #shopTab .shop-card{min-width:0;padding:10px!important;display:flex;flex-direction:column;}
+  #shopTab .shop-card-mark{width:100%;height:auto;min-height:110px;aspect-ratio:1.45/1;overflow:hidden;}
+  #shopTab .shop-card-mark .shop-product-image{width:100%;height:100%;object-fit:cover;}
+  #shopTab .shop-card h3{font-size:.92rem;line-height:1.3;overflow-wrap:anywhere;}
+  #shopTab .shop-card p{font-size:.78rem;line-height:1.4;}
+  #shopTab .shop-card-bottom{gap:6px;flex-wrap:wrap;}
+  #shopTab .shop-card button{width:100%;padding:10px 8px;font-size:.82rem;}
+}
