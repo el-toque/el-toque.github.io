@@ -63,7 +63,7 @@ async function enter(authUser){
  let data=null,error=null;
  if(!navigator.onLine){const cached=await localGet("worker_profile_"+user.id),snapshot=await localGet("worker_snapshot_"+user.id);if(cached?.active&&cached.role==="worker"&&snapshot){profile=cached;products=snapshot.products||[];categories=snapshot.categories||[];workerAllocations=snapshot.workerAllocations||[];renderCategoryControls();renderProducts();renderShopProducts();data=cached;}else{showLogin();fail("loginError","Para entrar sin conexión debes haber iniciado sesión antes en este teléfono y tener el catálogo guardado.");return;}}
  else ({data,error}=await client.from("profiles").select("full_name,role,active").eq("id",user.id).single());
- if(navigator.onLine&&(error||!data||!data.active)){await client.auth.signOut();fail("loginError","Este usuario no tiene un perfil activo. Contacta al administrador.");return;}
+ if(navigator.onLine&&(error||!data||!data.active)){const detail=error?.message||(!data?"No se encontró el perfil de este usuario.":"El perfil está desactivado.");throw new Error("No se pudo cargar el perfil: "+detail);}
  if(navigator.onLine){profile=data;if(!admin())await localPut("worker_profile_"+user.id,data);}
  if(!navigator.onLine&&profile?.role!=="worker"){showLogin();fail("loginError","La administración requiere conexión a internet.");return;}
  data=profile;
@@ -84,7 +84,7 @@ $("loginForm").addEventListener("submit",async e=>{
   if(!data?.user)throw new Error("La autenticación no devolvió un usuario.");
   await enter(data.user);
   if(navigator.onLine&&!admin())await syncPendingSales();
- }catch(error){fail("loginError",error?.message||"No se pudo completar el inicio de sesión.");}
+ }catch(error){const message=error?.message||"No se pudo completar el inicio de sesión.";showLogin();fail("loginError","Error después de autenticar: "+message);console.error("[IPV login]",error);}
  finally{if(btn){btn.disabled=false;btn.textContent=original;}}
 });
 $("logoutBtn").addEventListener("click",()=>client.auth.signOut());
