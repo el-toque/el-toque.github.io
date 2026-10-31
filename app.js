@@ -48,10 +48,14 @@ async function init(){
  if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
  window.addEventListener("online",()=>{syncPendingSales();});window.addEventListener("offline",()=>{updatePendingBadge();});
  if(!cfg.url||!cfg.publishableKey){$("sessionLabel").textContent="CONFIGURACIÓN PENDIENTE";$("loginPanel").classList.remove("hidden");fail("loginError","Falta configurar config.js con la URL y la clave publicable del proyecto.");return}
- client=window.supabase.createClient(cfg.url,cfg.publishableKey);
- const {data:{session}}=await client.auth.getSession();
- if(session) {await enter(session.user);if(navigator.onLine)await syncPendingSales();} else showLogin();
- client.auth.onAuthStateChange((_event,session)=>{if(session) setTimeout(async()=>{await enter(session.user);if(navigator.onLine)await syncPendingSales();},0);else showLogin()});
+ try{
+  client=window.supabase.createClient(cfg.url,cfg.publishableKey);
+  client.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"||!session)showLogin();});
+  const {data,error}=await client.auth.getSession();
+  if(error)throw error;
+  if(data?.session){await enter(data.session.user);if(navigator.onLine)await syncPendingSales();}
+  else showLogin();
+ }catch(error){showLogin();fail("loginError","No se pudo iniciar la aplicación: "+(error?.message||"Error inesperado")+". Recarga la página e inténtalo de nuevo.");}
 }
 function showLogin(){user=null;profile=null;$("appPanel").classList.add("hidden");$("loginPanel").classList.remove("hidden");$("sessionLabel").textContent="SIN SESIÓN"}
 async function enter(authUser){
@@ -69,7 +73,20 @@ $("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden")
  if(admin()){document.querySelector('[data-tab="inventory"]').classList.add("active");showSection("inventory");}else{document.querySelector('[data-tab="shop"]').classList.add("active");showSection("shop");}
  await loadProducts();if(admin()){await Promise.all([loadSales(),loadReservations()]);await loadWorkers();}else{await loadWorkerAllocations();await loadDailySales();await cacheWorkerState();await updatePendingBadge();}
 }
-$("loginForm").addEventListener("submit",async e=>{e.preventDefault();fail("loginError","");const {error}=await client.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});if(error)fail("loginError",error.message)});
+$("loginForm").addEventListener("submit",async e=>{
+ e.preventDefault();fail("loginError","");
+ const btn=$("loginForm").querySelector('button[type="submit"]');
+ if(!client){fail("loginError","La aplicación todavía está cargando. Recarga la página.");return}
+ const original=btn?.textContent||"Entrar";if(btn){btn.disabled=true;btn.textContent="Verificando…";}
+ try{
+  const {data,error}=await client.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
+  if(error)throw error;
+  if(!data?.user)throw new Error("La autenticación no devolvió un usuario.");
+  await enter(data.user);
+  if(navigator.onLine&&!admin())await syncPendingSales();
+ }catch(error){fail("loginError",error?.message||"No se pudo completar el inicio de sesión.");}
+ finally{if(btn){btn.disabled=false;btn.textContent=original;}}
+});
 $("logoutBtn").addEventListener("click",()=>client.auth.signOut());
 function showSection(tab){["inventory","sales","reservations","workers","shop","daily"].forEach(t=>$(t+"Tab").classList.toggle("hidden",t!==tab));}
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","reservations","workers"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();loadCloseoutHistory();}if(b.dataset.tab==="shop")loadProducts();}));
