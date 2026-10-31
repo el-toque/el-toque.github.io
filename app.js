@@ -68,7 +68,7 @@ async function enter(authUser){
  if(!navigator.onLine&&profile?.role!=="worker"){showLogin();fail("loginError","La administración requiere conexión a internet.");return;}
  data=profile;
 $("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden");$("sessionLabel").textContent=admin()?"ADMINISTRADOR":"TRABAJADOR";$("welcome").textContent=`Hola, ${data.full_name||user.email} · ${data.role}`;
- $("addBtn").classList.toggle("hidden",!admin());$("manageCategoriesBtn").classList.toggle("hidden",!admin());$("workersNav").classList.toggle("hidden",!admin());$("adminTabs").classList.toggle("hidden",!admin());$("workerTabs").classList.toggle("hidden",admin());
+ $("addBtn").classList.toggle("hidden",!admin());$("exportInventory").classList.toggle("hidden",!admin());$("exportInventoryPdf").classList.toggle("hidden",!admin());$("manageCategoriesBtn").classList.toggle("hidden",!admin());$("workersNav").classList.toggle("hidden",!admin());$("adminTabs").classList.toggle("hidden",!admin());$("workerTabs").classList.toggle("hidden",admin());
  document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
  if(admin()){document.querySelector('[data-tab="inventory"]').classList.add("active");showSection("inventory");}else{document.querySelector('[data-tab="shop"]').classList.add("active");showSection("shop");}
  await loadProducts();if(admin()){await Promise.all([loadSales(),loadReservations()]);await loadWorkers();}else{await loadWorkerAllocations();await loadDailySales();await cacheWorkerState();await updatePendingBadge();}
@@ -110,6 +110,57 @@ function renderProducts(){
  $("reserveProduct").innerHTML=opts;
  if(!admin()){renderShopProducts();renderShopCart();}
 }
+
+async function buildInventoryExport(){
+ if(!admin()){toast("Esta exportación está disponible solo para el administrador.");return null;}
+ if(!navigator.onLine){toast("Necesitas conexión para consultar el inventario completo.");return null;}
+ const [pr,cr,wr,ar]=await Promise.all([
+  client.from("products").select("id,sku,name,description,price,stock,active,category_id").order("name"),
+  client.from("product_categories").select("id,name"),
+  client.from("profiles").select("id,full_name,role,active").eq("role","worker").order("full_name"),
+  client.from("worker_stock_allocations").select("worker_id,product_id,quantity_assigned,quantity_remaining")
+ ]);
+ for(const x of [pr,cr,wr,ar])if(x.error){toast("No se pudo preparar el inventario: "+x.error.message);return null;}
+ const ps=pr.data||[],cats=cr.data||[],workers=wr.data||[],allocs=ar.data||[];
+ const catMap=new Map(cats.map(x=>[x.id,x.name])),workerMap=new Map(workers.map(x=>[x.id,x.full_name||"Trabajador"])),soldMap=new Map(),map=new Map();
+ for(const p of ps)map.set(p.id,{p,allocs:[]});
+ for(const a of allocs)map.get(a.product_id)?.allocs.push(a);
+ for(let from=0;;from+=1000){
+  const {data,error}=await client.from("sales").select("id,sale_items(product_id,quantity)").eq("status","completed").order("created_at",{ascending:true}).range(from,from+999);
+  if(error){toast("No se pudo consultar el historial de ventas: "+error.message);return null;}
+  const page=data||[];for(const sale of page)for(const item of sale.sale_items||[])soldMap.set(item.product_id,(soldMap.get(item.product_id)||0)+Number(item.quantity||0));
+  if(page.length<1000)break;
+ }
+ const inventory=[],detail=[];
+ for(const {p,allocs:rows} of map.values()){
+  const warehouse=Number(p.stock)||0,assigned=rows.reduce((n,a)=>n+(Number(a.quantity_assigned)||0),0),remaining=rows.reduce((n,a)=>n+(Number(a.quantity_remaining)||0),0),consumed=rows.reduce((n,a)=>n+Math.max(0,(Number(a.quantity_assigned)||0)-(Number(a.quantity_remaining)||0)),0),sold=Number(soldMap.get(p.id)||0),price=Number(p.price)||0;
+  inventory.push({SKU:p.sku||"",Producto:p.name||"",Categoría:catMap.get(p.category_id)||"Sin categoría",Descripción:p.description||"","Precio unitario CUP":price,"Stock en almacén":warehouse,"Asignado históricamente":assigned,"Disponible en trabajadores":remaining,"Consumo de asignaciones":consumed,"Vendido histórico (ventas completadas)":sold,"Disponible total actual":warehouse+remaining,"Valor en almacén CUP":warehouse*price,"Valor disponible trabajadores CUP":remaining*price,"Valor total disponible CUP":(warehouse+remaining)*price,Estado:p.active?"Activo":"Desactivado"});
+  for(const a of rows){const aq=Number(a.quantity_assigned)||0,rem=Number(a.quantity_remaining)||0,w=workers.find(x=>x.id===a.worker_id);detail.push({Trabajador:workerMap.get(a.worker_id)||"Trabajador",Estado:w?.active?"Activo":"Desactivado",SKU:p.sku||"",Producto:p.name||"",Categoría:catMap.get(p.category_id)||"Sin categoría","Cantidad asignada":aq,"Cantidad restante":rem,"Consumo de asignación":Math.max(0,aq-rem),"Valor restante CUP":rem*price});}
+ }
+ const sum=(key)=>inventory.reduce((n,r)=>n+Number(r[key]||0),0);
+ const summary=[{Concepto:"Fecha de exportación",Valor:new Date().toLocaleString("es-ES")},{Concepto:"Cuenta administradora",Valor:profile?.full_name||user?.email||"Administrador"},{Concepto:"Correo de la cuenta",Valor:user?.email||"—"},{Concepto:"Productos registrados",Valor:inventory.length},{Concepto:"Productos activos",Valor:inventory.filter(r=>r.Estado==="Activo").length},{Concepto:"Unidades en almacén",Valor:sum("Stock en almacén")},{Concepto:"Unidades disponibles en trabajadores",Valor:sum("Disponible en trabajadores")},{Concepto:"Unidades disponibles totales",Valor:sum("Disponible total actual")},{Concepto:"Valor disponible en almacén (CUP)",Valor:sum("Valor en almacén CUP")},{Concepto:"Valor disponible en trabajadores (CUP)",Valor:sum("Valor disponible trabajadores CUP")},{Concepto:"Valor total disponible (CUP)",Valor:sum("Valor total disponible CUP")}];
+ return {inventory,detail,summary,stamp:new Date().toISOString().slice(0,10)};
+}
+$("exportInventory").addEventListener("click",async()=>{
+ const btn=$("exportInventory");btn.disabled=true;btn.textContent="Preparando Excel…";
+ try{const d=await buildInventoryExport();if(!d)return;if(!window.XLSX){toast("No se pudo cargar el módulo Excel. Comprueba tu conexión.");return;}
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d.summary),"Resumen");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d.inventory),"Inventario general");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d.detail),"Por trabajador");XLSX.writeFile(wb,"Inventario_IPV_"+d.stamp+".xlsx");toast("Inventario Excel preparado para guardar en tu teléfono.");
+ }catch(e){toast("No se pudo exportar: "+(e?.message||"Error inesperado"));}finally{btn.disabled=false;btn.textContent="Exportar inventario (.xlsx)";}
+});
+$("exportInventoryPdf").addEventListener("click",async()=>{
+ const btn=$("exportInventoryPdf");btn.disabled=true;btn.textContent="Preparando PDF…";
+ try{const d=await buildInventoryExport();if(!d)return;if(!window.jspdf?.jsPDF){toast("No se pudo cargar el módulo PDF. Comprueba tu conexión.");return;}
+  const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"}),sum=d.summary;
+  doc.setFontSize(18);doc.text("IPV Digital - Inventario principal",14,15);doc.setFontSize(9);doc.text("Cuenta: "+(profile?.full_name||user?.email||"Administrador")+" | Correo: "+(user?.email||"—")+" | Fecha: "+new Date().toLocaleString("es-ES"),14,22);
+  doc.text("Productos: "+sum[3].Valor+" | Almacén: "+sum[5].Valor+" uds. | Trabajadores: "+sum[6].Valor+" uds. | Disponibles: "+sum[7].Valor+" uds. | Valor: "+money(sum[10].Valor),14,29);
+  if(typeof doc.autoTable!=="function"){toast("No se pudo preparar la tabla PDF. Comprueba tu conexión.");return;}
+  doc.autoTable({startY:35,head:[["SKU","Producto","Categoría","Precio CUP","Almacén","Trabajadores","Total disp.","Vendido hist.","Estado","Valor disp. CUP"]],body:d.inventory.map(r=>[r.SKU,r.Producto,r.Categoría,Number(r["Precio unitario CUP"]).toFixed(2),String(r["Stock en almacén"]),String(r["Disponible en trabajadores"]),String(r["Disponible total actual"]),String(r["Vendido histórico (ventas completadas)"]),r.Estado,Number(r["Valor total disponible CUP"]).toFixed(2)]),styles:{fontSize:6.5,cellPadding:1.6,overflow:"linebreak"},headStyles:{fillColor:[35,30,20]},columnStyles:{1:{cellWidth:34},2:{cellWidth:22},7:{cellWidth:20}});
+  doc.addPage();doc.setFontSize(15);doc.text("Detalle de existencias por trabajador",14,16);
+  doc.autoTable({startY:22,head:[["Trabajador","Estado","SKU","Producto","Categoría","Asignado","Restante","Consumo asignación","Valor restante CUP"]],body:d.detail.map(r=>[r.Trabajador,r.Estado,r.SKU,r.Producto,r.Categoría,String(r["Cantidad asignada"]),String(r["Cantidad restante"]),String(r["Consumo de asignación"]),Number(r["Valor restante CUP"]).toFixed(2)]),styles:{fontSize:7,cellPadding:2,overflow:"linebreak"},headStyles:{fillColor:[35,30,20]},columnStyles:{3:{cellWidth:38}});
+  doc.save("Inventario_IPV_"+d.stamp+".pdf");toast("PDF del inventario preparado para guardar en tu teléfono.");
+ }catch(e){toast("No se pudo exportar: "+(e?.message||"Error inesperado"));}finally{btn.disabled=false;btn.textContent="Exportar inventario a PDF";}
+});
+
 $("search").addEventListener("input",renderProducts);
 $("addBtn").addEventListener("click",()=>openProduct());
 $("productsBody").addEventListener("click",async e=>{
