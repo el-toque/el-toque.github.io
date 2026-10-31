@@ -237,3 +237,10 @@ input,select,textarea{background:#1b1e22;border-color:#393c42;color:#f5f0e7}labe
 .receipt-line small{color:var(--ei-muted,#aaa)}
 .receipt-line>strong{color:var(--ei-gold,#e7bd5c);white-space:nowrap}
 @media(max-width:600px){.receipt-form{padding:12px}.receipt-line{grid-template-columns:minmax(0,1fr) auto;gap:8px}.receipt-line button{grid-column:1/-1;width:100%}.receipt-line-controls button{width:100%}}
+
+
+/* Permisos individuales del equipo */
+.permission-fieldset{display:grid;gap:9px;margin:14px 0;padding:13px;border:1px solid var(--ei-line,#303238);border-radius:10px}
+.permission-fieldset legend{padding:0 6px;color:var(--ei-gold,#e7bd5c);font-weight:800}
+.permission-fieldset label{display:flex;align-items:center;gap:9px;margin:0}
+.permission-fieldset input{width:18px;height:18px;flex:0 0 auto}
