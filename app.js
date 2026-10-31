@@ -70,8 +70,8 @@ async function enter(authUser){
 $("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden");$("sessionLabel").textContent=admin()?"ADMINISTRADOR":"TRABAJADOR";$("welcome").textContent=`Hola, ${data.full_name||user.email} · ${data.role}`;
  $("addBtn").classList.toggle("hidden",!admin());$("exportInventory").classList.toggle("hidden",!admin());$("exportInventoryPdf").classList.toggle("hidden",!admin());$("manageCategoriesBtn").classList.toggle("hidden",!admin());$("workersNav").classList.toggle("hidden",!admin());$("adminTabs").classList.toggle("hidden",!admin());$("workerTabs").classList.toggle("hidden",admin());
  document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
- if(admin()){document.querySelector('[data-tab="inventory"]').classList.add("active");showSection("inventory");}else{document.querySelector('[data-tab="shop"]').classList.add("active");showSection("shop");}
- await loadProducts();if(admin()){await Promise.all([loadSales(),loadReservations()]);await loadWorkers();}else{await loadWorkerAllocations();await loadDailySales();await cacheWorkerState();await updatePendingBadge();}
+ if(admin()){document.querySelector('[data-tab="dashboard"]').classList.add("active");showSection("dashboard");}else{document.querySelector('[data-tab="shop"]').classList.add("active");showSection("shop");}
+ await loadProducts();if(admin()){await Promise.all([loadSales(),loadReservations(),loadWorkers(),loadAdminDashboard(),loadAdminCloseouts()]);}else{await loadWorkerAllocations();await loadDailySales();await cacheWorkerState();await updatePendingBadge();}
 }
 $("loginForm").addEventListener("submit",async e=>{
  e.preventDefault();fail("loginError","");
@@ -91,11 +91,11 @@ $("loginForm").addEventListener("submit",async e=>{
  finally{if(btn){btn.disabled=false;btn.textContent=original;}}
 });
 $("logoutBtn").addEventListener("click",()=>client.auth.signOut());
-function showSection(tab){["inventory","sales","reservations","workers","shop","daily"].forEach(t=>$(t+"Tab").classList.toggle("hidden",t!==tab));}
-document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","reservations","workers"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();loadCloseoutHistory();}if(b.dataset.tab==="shop")loadProducts();}));
+function showSection(tab){["dashboard","inventory","sales","closeouts","reservations","workers","shop","daily"].forEach(t=>$(t+"Tab").classList.toggle("hidden",t!==tab));}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","reservations","workers"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();loadCloseoutHistory();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="closeouts")loadAdminCloseouts();}));
 async function loadProducts(){
  if(!navigator.onLine){const snap=user&&!admin()?await localGet("worker_snapshot_"+user.id):null;if(snap){products=snap.products||[];categories=snap.categories||[];workerAllocations=snap.workerAllocations||[];renderCategoryControls();renderProducts();}return;}
- const [{data,error},{data:categoryData,error:categoryError}]=await Promise.all([client.from("products").select("id,sku,name,description,price,stock,active,category_id,image_url").eq("active",true).order("name"),client.from("product_categories").select("id,name,active").eq("active",true).order("name")]);
+ const [{data,error},{data:categoryData,error:categoryError}]=await Promise.all([client.from("products").select("id,sku,name,description,price,stock,min_stock,active,category_id,image_url").eq("active",true).order("name"),client.from("product_categories").select("id,name,active").eq("active",true).order("name")]);
  if(categoryError){toast("No se pudieron cargar las categorías: "+categoryError.message);return}
  categories=categoryData||[];renderCategoryControls();
  if(error){toast("No se pudo cargar el inventario: "+error.message);return}
@@ -170,7 +170,7 @@ $("productsBody").addEventListener("click",async e=>{
  if(del){const p=products.find(x=>x.id===del.dataset.delete);if(p&&confirm(`¿Desactivar ${p.name}?`)){const {error}=await client.from("products").update({active:false}).eq("id",p.id);if(error)toast(error.message);else{toast("Producto desactivado");await loadProducts()}}}
 });
 function setProductImagePreview(url){const img=$("productImagePreview"),fallback=$("productImageFallback");if(url){img.src=url;img.classList.remove("hidden");fallback.classList.add("hidden");}else{img.removeAttribute("src");img.classList.add("hidden");fallback.classList.remove("hidden");}}
-function openProduct(p=null){$("productForm").reset();renderCategoryControls();$("productCategory").value=p?.category_id||"";$("productId").value=p?.id||"";$("dialogTitle").textContent=p?"Editar producto":"Añadir producto";$("name").value=p?.name||"";$("sku").value=p?.sku||"";$("price").value=p?.price??"";$("stock").value=p?.stock??0;$("description").value=p?.description||"";$("productImageClear").value="0";$("productImageFile").value="";setProductImagePreview(p?.image_url||"");fail("productError","");$("productDialog").showModal()}
+function openProduct(p=null){$("productForm").reset();renderCategoryControls();$("productCategory").value=p?.category_id||"";$("productId").value=p?.id||"";$("dialogTitle").textContent=p?"Editar producto":"Añadir producto";$("name").value=p?.name||"";$("sku").value=p?.sku||"";$("price").value=p?.price??"";$("stock").value=p?.stock??0;$("minStock").value=p?.min_stock??0;$("description").value=p?.description||"";$("productImageClear").value="0";$("productImageFile").value="";setProductImagePreview(p?.image_url||"");fail("productError","");$("productDialog").showModal()}
 $("productImageFile").addEventListener("change",()=>{const file=$("productImageFile").files?.[0];if(file){if(!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size>5*1024*1024){fail("productError","Usa JPG, PNG o WEBP de máximo 5 MB.");$("productImageFile").value="";return;}$("productImageClear").value="0";setProductImagePreview(URL.createObjectURL(file));fail("productError","");}});
 $("clearProductImage").addEventListener("click",()=>{$("productImageFile").value="";$("productImageClear").value="1";setProductImagePreview("");});
 $("closeDialog").onclick=$("cancelProduct").onclick=()=>$("productDialog").close();
@@ -178,7 +178,7 @@ $("productForm").addEventListener("submit",async e=>{
  e.preventDefault();const id=$("productId").value,desiredStock=Number($("stock").value),saveBtn=$("productForm").querySelector('button[type="submit"]');
  if(!Number.isInteger(desiredStock)||desiredStock<0){fail("productError","Las existencias deben ser un número entero igual o mayor que cero.");return}
  const existing=id?products.find(p=>p.id===id):null;
- const row={name:$("name").value.trim(),sku:$("sku").value.trim()||null,price:Number($("price").value),description:$("description").value.trim()||null,category_id:$("productCategory").value||null};
+ const minStock=Number($("minStock").value);if(!Number.isInteger(minStock)||minStock<0){fail("productError","El stock mínimo debe ser un entero igual o mayor que cero.");return}const row={name:$("name").value.trim(),sku:$("sku").value.trim()||null,price:Number($("price").value),min_stock:minStock,description:$("description").value.trim()||null,category_id:$("productCategory").value||null};
  saveBtn.disabled=true;fail("productError","");
  const imageFile=$("productImageFile").files?.[0]||null;let imageUrl=existing?.image_url||null;
  if($("productImageClear").value==="1")imageUrl=null;
@@ -327,12 +327,50 @@ $("exportDailyPdf").onclick=()=>{
  let nextY=(doc.lastAutoTable?.finalY||43)+10;doc.setFontSize(13);doc.text("Conteo físico de existencias",14,nextY);if(typeof doc.autoTable==="function"){doc.autoTable({startY:nextY+4,head:[["Producto","Asignado","Vendido","Debe quedar","Conteo físico","Diferencia"]],body:dailyStockRows.map(r=>[r.name,String(r.assigned),String(r.sold),String(r.expected),r.physical===null?"Pendiente":String(r.physical),r.difference===null?"Pendiente":String(r.difference)]),styles:{fontSize:8,cellPadding:2},headStyles:{fillColor:[7,85,164]}});}let billsY=(doc.lastAutoTable?.finalY||nextY+4)+10;if(billsY>175){doc.addPage();billsY=18;}doc.setFontSize(13);doc.text("Conteo de billetes",14,billsY);const billTotal=dailyBillDenominations.reduce((sum,value)=>sum+value*(Number(dailyBillCounts[value])||0),0);doc.autoTable({startY:billsY+4,head:[["Denominación","Cantidad de billetes","Importe"]],body:dailyBillDenominations.filter(value=>(Number(dailyBillCounts[value])||0)>0).map(value=>[value.toLocaleString("es-ES")+" CUP",String(Number(dailyBillCounts[value])||0),money(value*(Number(dailyBillCounts[value])||0))]),foot:[["TOTAL EFECTIVO CONTADO",String(dailyBillDenominations.reduce((sum,value)=>sum+(Number(dailyBillCounts[value])||0),0)),money(billTotal)]],styles:{fontSize:9,cellPadding:2},headStyles:{fillColor:[7,85,164]},footStyles:{fillColor:[238,231,214],textColor:[25,22,16],fontStyle:"bold"}});doc.save("Cuadre_IPV_"+new Date().toISOString().slice(0,10)+".pdf");toast("PDF preparado para guardar en tu teléfono.");
 };
 
+async function loadAdminDashboard(){
+ if(!admin()||!navigator.onLine)return;
+ const now=new Date(),todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()),tomorrow=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1),monthStart=new Date(now.getFullYear(),now.getMonth(),1),dayKey=localBusinessDate(todayStart);
+ const [salesResult,productsResult,allocResult,workersResult,closeResult]=await Promise.all([
+  client.from("sales").select("id,total,payment_method,worker_id,created_at,profiles(full_name),sale_items(quantity,products(name))").eq("status","completed").gte("created_at",monthStart.toISOString()).lt("created_at",tomorrow.toISOString()).order("created_at",{ascending:false}),
+  client.from("products").select("id,name,stock,min_stock,active").eq("active",true),
+  client.from("worker_stock_allocations").select("worker_id,product_id,quantity_remaining"),
+  client.from("profiles").select("id,full_name,active").eq("role","worker"),
+  client.from("daily_closeouts").select("worker_id,business_date").eq("business_date",dayKey)
+ ]);
+ for(const x of [salesResult,productsResult,allocResult,workersResult,closeResult])if(x.error){toast("No se pudo actualizar el resumen: "+x.error.message);return}
+ const sales=salesResult.data||[],productsData=productsResult.data||[],allocs=allocResult.data||[],workers=workersResult.data||[],closed=closeResult.data||[];
+ const today=sales.filter(x=>new Date(x.created_at)>=todayStart),monthTotal=sales.reduce((n,x)=>n+Number(x.total||0),0),todayCash=today.filter(x=>x.payment_method==="cash").reduce((n,x)=>n+Number(x.total||0),0),todayTransfer=today.filter(x=>x.payment_method==="transfer").reduce((n,x)=>n+Number(x.total||0),0);
+ const stockTotal=productsData.reduce((n,p)=>n+Number(p.stock||0),0),workerStock=allocs.reduce((n,a)=>n+Math.max(0,Number(a.quantity_remaining)||0),0),warehouse=Math.max(0,stockTotal-workerStock),activeWorkers=workers.filter(w=>w.active),closedIds=new Set(closed.map(c=>c.worker_id));
+ $("dashSalesToday").textContent=money(today.reduce((n,x)=>n+Number(x.total||0),0));$("dashSalesTodayCount").textContent=today.length+" operaciones";
+ $("dashSalesMonth").textContent=money(monthTotal);$("dashSalesMonthCount").textContent=sales.length+" operaciones";
+ $("dashCashToday").textContent=money(todayCash);$("dashTransferToday").textContent=money(todayTransfer);
+ $("dashStockTotal").textContent=stockTotal.toLocaleString("es-ES");$("dashWarehouse").textContent=warehouse.toLocaleString("es-ES");$("dashWorkersStock").textContent=workerStock.toLocaleString("es-ES");$("dashActiveWorkers").textContent=activeWorkers.length;$("dashCloseoutsPending").textContent="Cierres pendientes: "+activeWorkers.filter(w=>!closedIds.has(w.id)).length;
+ const top=new Map(),workerTotals=new Map();
+ for(const sale of sales){const wn=sale.profiles?.full_name||"Trabajador";const wg=workerTotals.get(sale.worker_id)||{name:wn,total:0,count:0};wg.total+=Number(sale.total)||0;wg.count++;workerTotals.set(sale.worker_id,wg);for(const item of sale.sale_items||[]){const name=item.products?.name||"Producto";top.set(name,(top.get(name)||0)+Number(item.quantity||0));}}
+ const topRows=[...top.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6);$("dashTopProducts").innerHTML=topRows.map(x=>'<div class="dashboard-row"><span>'+esc(x[0])+'</span><strong>'+x[1]+' uds.</strong></div>').join("")||'<p class="muted small">Todavía no hay ventas este mes.</p>';
+ const low=productsData.filter(p=>Number(p.min_stock||0)>0&&Number(p.stock||0)<=Number(p.min_stock||0)).sort((a,b)=>a.stock-b.stock);$("dashLowStock").innerHTML=low.map(p=>'<div class="dashboard-row"><span>'+esc(p.name)+'<small>'+p.stock+' disponibles · mínimo '+p.min_stock+'</small></span><strong class="low-stock-label">Reponer</strong></div>').join("")||'<p class="muted small">No hay productos por debajo del mínimo configurado.</p>';
+ const performance=[...workerTotals.values()].sort((a,b)=>b.total-a.total).slice(0,6);$("dashWorkerPerformance").innerHTML=performance.map(w=>'<div class="dashboard-row"><span>'+esc(w.name)+'<small>'+w.count+' ventas</small></span><strong>'+money(w.total)+'</strong></div>').join("")||'<p class="muted small">Todavía no hay ventas este mes.</p>';
+ $("dashboardUpdated").textContent="Actualizado: "+now.toLocaleString("es-ES");
+}
+async function loadAdminCloseouts(){
+ if(!admin()||!navigator.onLine)return;
+ const {data,error}=await client.from("daily_closeouts").select("id,worker_id,business_date,sales_count,cash_total,transfer_total,grand_total,cash_counted,cash_difference,closed_at,profiles(full_name)").order("business_date",{ascending:false}).limit(100);
+ if(error){toast("No se pudieron cargar los cuadres del equipo: "+error.message);return}
+ $("adminCloseoutsBody").innerHTML=(data||[]).map(c=>'<tr><td>'+esc(c.business_date)+'</td><td>'+esc(c.profiles?.full_name||"Trabajador")+'</td><td>'+(Number(c.sales_count)||0)+'</td><td>'+money(c.cash_total)+'</td><td>'+money(c.transfer_total)+'</td><td>'+(c.cash_counted===null?"No registrado":money(c.cash_counted))+'</td><td>'+(c.cash_difference===null?"—":money(c.cash_difference))+'</td><td>'+esc(c.id.slice(0,8))+'</td></tr>').join("");
+ $("adminCloseoutsEmpty").classList.toggle("hidden",!!(data||[]).length);
+}
+$("refreshDashboard").addEventListener("click",loadAdminDashboard);
+$("refreshAdminCloseouts").addEventListener("click",loadAdminCloseouts);
 let allAdminSales=[];
 async function loadSales(){
  if(!user)return;
- const {data,error}=await client.from("sales").select("id,worker_id,total,payment_method,transfer_code,status,created_at,profiles(full_name),sale_items(quantity,unit_price,products(name))").order("created_at",{ascending:false}).limit(1000);
- if(error){toast("Ventas: "+error.message);return}
- allAdminSales=data||[];
+ const rows=[];
+ for(let from=0;;from+=1000){
+  const {data,error}=await client.from("sales").select("id,worker_id,total,payment_method,transfer_code,status,created_at,profiles(full_name),sale_items(quantity,unit_price,products(name))").order("created_at",{ascending:false}).range(from,from+999);
+  if(error){toast("Ventas: "+error.message);return}
+  rows.push(...(data||[]));if(!data||data.length<1000)break;
+ }
+ allAdminSales=rows;
  const workerSelect=$("salesWorker"),selected=workerSelect.value;
  const names=new Map();
  allAdminSales.forEach(s=>{if(s.worker_id)names.set(s.worker_id,s.profiles?.full_name||"Trabajador");});
