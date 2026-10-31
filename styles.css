@@ -42,7 +42,7 @@ dialog{width:min(540px,calc(100% - 26px));max-height:90vh;overflow:auto;padding:
 .brand-mark img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
 
 /* Tienda EL TOQUE: estética negro, marfil y oro */
-#shopTab.shop-panel{padding:0;overflow:hidden;border:1px solid #ded4c0;background:#f7f4ed;box-shadow:0 14px 40px #1c160d12}
+#shopTab.shop-panel{padding:0;overflow:visible;border:1px solid #ded4c0;border-radius:16px;background:#f7f4ed;box-shadow:0 14px 40px #1c160d12}
 .shop-welcome{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:25px 28px;background:radial-gradient(circle at 82% 15%,#4b391b 0,#171613 38%,#090909 100%);color:#fff;border-bottom:3px solid #c99b3b}
 .shop-welcome .eyebrow{color:#e3bb63}.shop-welcome h2{margin:0;color:#fff;font-size:clamp(1.3rem,3vw,1.9rem);letter-spacing:-.035em}.shop-welcome p:last-child{margin:7px 0 0;color:#d2c9b8;font-size:.88rem}
 .shop-welcome-seal{width:66px;height:66px;flex:0 0 66px;display:grid;place-content:center;text-align:center;border:1.5px solid #d7ad54;border-radius:50%;color:#e6bf65;font-size:1.6rem;box-shadow:0 0 0 5px #d7ad5418}.shop-welcome-seal small{font-size:.48rem;letter-spacing:.13em;font-weight:850}
