@@ -109,7 +109,7 @@ function renderProducts(){
  $("productsBody").innerHTML=list.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.sku||"—")}</td><td>${money(p.price)}</td><td>${p.stock}</td><td>${admin()?`<button class="mini-btn" data-edit="${p.id}">Editar</button> <button class="mini-btn danger" data-delete="${p.id}">Desactivar</button>`:"—"}</td></tr>`).join("");
  $("inventoryEmpty").classList.toggle("hidden",list.length>0);
  const opts=products.map(p=>`<option value="${p.id}">${esc(p.name)} · ${p.stock} disp.</option>`).join("");
- $("reserveProduct").innerHTML=opts;
+ $("reserveProduct").innerHTML=opts;$("receiptProduct").innerHTML=opts;
  if(!admin()){renderShopProducts();renderShopCart();}
 }
 
@@ -380,15 +380,15 @@ $("refreshReceipts").addEventListener("click",loadReceipts);
 async function loadAdminDashboard(){
  if(!admin()||!navigator.onLine)return;
  const now=new Date(),todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()),tomorrow=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1),monthStart=new Date(now.getFullYear(),now.getMonth(),1),dayKey=localBusinessDate(todayStart);
- const [salesResult,productsResult,allocResult,workersResult,closeResult]=await Promise.all([
-  client.from("sales").select("id,total,payment_method,worker_id,created_at,profiles(full_name),sale_items(quantity,products(name))").eq("status","completed").gte("created_at",monthStart.toISOString()).lt("created_at",tomorrow.toISOString()).order("created_at",{ascending:false}),
+ const sales=[];for(let from=0;;from+=1000){const page=await client.from("sales").select("id,total,payment_method,worker_id,created_at,profiles(full_name),sale_items(quantity,products(name))").eq("status","completed").gte("created_at",monthStart.toISOString()).lt("created_at",tomorrow.toISOString()).order("created_at",{ascending:false}).range(from,from+999);if(page.error){toast("No se pudo actualizar el resumen: "+page.error.message);return}sales.push(...(page.data||[]));if(!page.data||page.data.length<1000)break;}
+ const [productsResult,allocResult,workersResult,closeResult]=await Promise.all([
   client.from("products").select("id,name,stock,min_stock,active").eq("active",true),
   client.from("worker_stock_allocations").select("worker_id,product_id,quantity_remaining"),
   client.from("profiles").select("id,full_name,active").eq("role","worker"),
   client.from("daily_closeouts").select("worker_id,business_date").eq("business_date",dayKey)
  ]);
- for(const x of [salesResult,productsResult,allocResult,workersResult,closeResult])if(x.error){toast("No se pudo actualizar el resumen: "+x.error.message);return}
- const sales=salesResult.data||[],productsData=productsResult.data||[],allocs=allocResult.data||[],workers=workersResult.data||[],closed=closeResult.data||[];
+ for(const x of [productsResult,allocResult,workersResult,closeResult])if(x.error){toast("No se pudo actualizar el resumen: "+x.error.message);return}
+ const productsData=productsResult.data||[],allocs=allocResult.data||[],workers=workersResult.data||[],closed=closeResult.data||[];
  const today=sales.filter(x=>new Date(x.created_at)>=todayStart),monthTotal=sales.reduce((n,x)=>n+Number(x.total||0),0),todayCash=today.filter(x=>x.payment_method==="cash").reduce((n,x)=>n+Number(x.total||0),0),todayTransfer=today.filter(x=>x.payment_method==="transfer").reduce((n,x)=>n+Number(x.total||0),0);
  const stockTotal=productsData.reduce((n,p)=>n+Number(p.stock||0),0),workerStock=allocs.reduce((n,a)=>n+Math.max(0,Number(a.quantity_remaining)||0),0),warehouse=Math.max(0,stockTotal-workerStock),activeWorkers=workers.filter(w=>w.active),closedIds=new Set(closed.map(c=>c.worker_id));
  $("dashSalesToday").textContent=money(today.reduce((n,x)=>n+Number(x.total||0),0));$("dashSalesTodayCount").textContent=today.length+" operaciones";
