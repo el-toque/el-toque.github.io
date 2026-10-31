@@ -98,11 +98,11 @@ function showSection(tab){["dashboard","inventory","purchases","sales","closeout
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","reservations","workers"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();loadCloseoutHistory();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="purchases"){loadProducts();loadSuppliers();loadReceipts();}if(b.dataset.tab==="activity")loadActivity();}));
 async function loadProducts(){
  if(!navigator.onLine){const snap=user&&!admin()?await localGet("worker_snapshot_"+user.id):null;if(snap){products=snap.products||[];categories=snap.categories||[];workerAllocations=snap.workerAllocations||[];renderCategoryControls();renderProducts();}return;}
- const [{data,error},{data:categoryData,error:categoryError}]=await Promise.all([client.from("products").select("id,sku,name,description,price,stock,min_stock,average_cost,active,category_id,image_url").eq("active",true).order("name"),client.from("product_categories").select("id,name,active").eq("active",true).order("name")]);
+ const [{data,error},{data:categoryData,error:categoryError}]=await Promise.all([client.from("products").select("id,sku,name,description,price,stock,min_stock,active,category_id,image_url").eq("active",true).order("name"),client.from("product_categories").select("id,name,active").eq("active",true).order("name")]);
  if(categoryError){toast("No se pudieron cargar las categorías: "+categoryError.message);return}
  categories=categoryData||[];renderCategoryControls();
  if(error){toast("No se pudo cargar el inventario: "+error.message);return}
- products=data||[];renderProducts();
+ products=data||[];if(admin()){const {data:costs,error:costError}=await client.from("product_costs").select("product_id,average_cost");if(costError){toast("No se pudieron cargar los costos de productos: "+costError.message);return}const costMap=new Map((costs||[]).map(x=>[x.product_id,Number(x.average_cost)||0]));products=products.map(p=>({...p,average_cost:costMap.get(p.id)||0}));}renderProducts();
 }
 function renderCategoryControls(){const select=$("productCategory");if(select){const chosen=select.value;select.innerHTML='<option value="">Sin categoría</option>'+categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("");select.value=chosen;}const filters=$("shopCategoryFilters");if(filters){filters.innerHTML=[`<button type="button" class="category-chip ${shopCategory==="all"?"active":""}" data-category="all">Todas</button>`,...categories.map(c=>`<button type="button" class="category-chip ${shopCategory===c.id?"active":""}" data-category="${c.id}">${esc(c.name)}</button>`)].join("");}}
 $("shopCategoryFilters").addEventListener("click",e=>{const b=e.target.closest("[data-category]");if(!b)return;shopCategory=b.dataset.category;renderCategoryControls();renderShopProducts()});
@@ -119,14 +119,15 @@ function renderProducts(){
 async function buildInventoryExport(){
  if(!admin()){toast("Esta exportación está disponible solo para el administrador.");return null;}
  if(!navigator.onLine){toast("Necesitas conexión para consultar el inventario completo.");return null;}
- const [pr,cr,wr,ar]=await Promise.all([
-  client.from("products").select("id,sku,name,description,price,stock,min_stock,average_cost,active,category_id").order("name"),
+ const [pr,cr,wr,ar,co]=await Promise.all([
+  client.from("products").select("id,sku,name,description,price,stock,min_stock,active,category_id").order("name"),
   client.from("product_categories").select("id,name"),
   client.from("profiles").select("id,full_name,role,active").eq("role","worker").order("full_name"),
-  client.from("worker_stock_allocations").select("worker_id,product_id,quantity_assigned,quantity_remaining")
+  client.from("worker_stock_allocations").select("worker_id,product_id,quantity_assigned,quantity_remaining"),
+  client.from("product_costs").select("product_id,average_cost")
  ]);
- for(const x of [pr,cr,wr,ar])if(x.error){toast("No se pudo preparar el inventario: "+x.error.message);return null;}
- const ps=pr.data||[],cats=cr.data||[],workers=wr.data||[],allocs=ar.data||[];
+ for(const x of [pr,cr,wr,ar,co])if(x.error){toast("No se pudo preparar el inventario: "+x.error.message);return null;}
+ const costMap=new Map((co.data||[]).map(x=>[x.product_id,Number(x.average_cost)||0]));const ps=(pr.data||[]).map(p=>({...p,average_cost:costMap.get(p.id)||0})),cats=cr.data||[],workers=wr.data||[],allocs=ar.data||[];
  const catMap=new Map(cats.map(x=>[x.id,x.name])),workerMap=new Map(workers.map(x=>[x.id,x.full_name||"Trabajador"])),soldMap=new Map(),map=new Map();
  for(const p of ps)map.set(p.id,{p,allocs:[]});
  for(const a of allocs)map.get(a.product_id)?.allocs.push(a);
@@ -382,7 +383,7 @@ $("refreshActivity").addEventListener("click",loadActivity);
 async function loadAdminDashboard(){
  if(!admin()||!navigator.onLine)return;
  const now=new Date(),todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()),tomorrow=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1),monthStart=new Date(now.getFullYear(),now.getMonth(),1),dayKey=localBusinessDate(todayStart);
- const sales=[];for(let from=0;;from+=1000){const page=await client.from("sales").select("id,total,payment_method,worker_id,created_at,profiles(full_name),sale_items(quantity,unit_price,unit_cost,products(name))").eq("status","completed").gte("created_at",monthStart.toISOString()).lt("created_at",tomorrow.toISOString()).order("created_at",{ascending:false}).range(from,from+999);if(page.error){toast("No se pudo actualizar el resumen: "+page.error.message);return}sales.push(...(page.data||[]));if(!page.data||page.data.length<1000)break;}
+ const sales=[];for(let from=0;;from+=1000){const page=await client.from("sales").select("id,total,payment_method,worker_id,created_at,profiles(full_name),sale_items(quantity,unit_price,products(name))").eq("status","completed").gte("created_at",monthStart.toISOString()).lt("created_at",tomorrow.toISOString()).order("created_at",{ascending:false}).range(from,from+999);if(page.error){toast("No se pudo actualizar el resumen: "+page.error.message);return}sales.push(...(page.data||[]));if(!page.data||page.data.length<1000)break;}
  const [productsResult,allocResult,workersResult,closeResult]=await Promise.all([
   client.from("products").select("id,name,stock,min_stock,active").eq("active",true),
   client.from("worker_stock_allocations").select("worker_id,product_id,quantity_remaining"),
@@ -395,10 +396,10 @@ async function loadAdminDashboard(){
  const stockTotal=productsData.reduce((n,p)=>n+Number(p.stock||0),0),workerStock=allocs.reduce((n,a)=>n+Math.max(0,Number(a.quantity_remaining)||0),0),allocatedByProduct=new Map();for(const a of allocs)allocatedByProduct.set(a.product_id,(allocatedByProduct.get(a.product_id)||0)+Math.max(0,Number(a.quantity_remaining)||0));const warehouse=productsData.reduce((n,p)=>n+Math.max(0,Number(p.stock||0)-(allocatedByProduct.get(p.id)||0)),0),activeWorkers=workers.filter(w=>w.active),closedIds=new Set(closed.map(c=>c.worker_id));
  $("dashSalesToday").textContent=money(today.reduce((n,x)=>n+Number(x.total||0),0));$("dashSalesTodayCount").textContent=today.length+" operaciones";
  $("dashSalesMonth").textContent=money(monthTotal);$("dashSalesMonthCount").textContent=sales.length+" operaciones";
- $("dashCashToday").textContent=money(todayCash);$("dashTransferToday").textContent=money(todayTransfer);$("dashGrossProfit").textContent=money(grossProfit);$("dashProfitCoverage").textContent=pricedLines+" de "+allLines+" líneas con costo de compra registrado";
+ $("dashCashToday").textContent=money(todayCash);$("dashTransferToday").textContent=money(todayTransfer);const {data:profitData,error:profitError}=await client.rpc("admin_profit_summary",{p_start:monthStart.toISOString(),p_end:tomorrow.toISOString()});if(profitError){toast("No se pudo calcular el margen bruto: "+profitError.message);return}$("dashGrossProfit").textContent=money(profitData?.gross_profit||0);$("dashProfitCoverage").textContent=(profitData?.priced_lines||0)+" de "+(profitData?.total_lines||0)+" líneas con costo de compra registrado";
  $("dashStockTotal").textContent=stockTotal.toLocaleString("es-ES");$("dashWarehouse").textContent=warehouse.toLocaleString("es-ES");$("dashWorkersStock").textContent=workerStock.toLocaleString("es-ES");$("dashActiveWorkers").textContent=activeWorkers.length;$("dashCloseoutsPending").textContent="Cierres pendientes: "+activeWorkers.filter(w=>w.worker_permissions?.can_close_day!==false&&!closedIds.has(w.id)).length;
- const top=new Map(),workerTotals=new Map();let grossProfit=0,pricedLines=0,allLines=0;
- for(const sale of sales){const wn=sale.profiles?.full_name||"Trabajador";const wg=workerTotals.get(sale.worker_id)||{name:wn,total:0,count:0};wg.total+=Number(sale.total)||0;wg.count++;workerTotals.set(sale.worker_id,wg);for(const item of sale.sale_items||[]){const name=item.products?.name||"Producto";top.set(name,(top.get(name)||0)+Number(item.quantity||0));allLines++;if(item.unit_cost!==null&&item.unit_cost!==undefined){grossProfit+=(Number(item.unit_price||0)-Number(item.unit_cost||0))*Number(item.quantity||0);pricedLines++;}}}
+ const top=new Map(),workerTotals=new Map();
+ for(const sale of sales){const wn=sale.profiles?.full_name||"Trabajador";const wg=workerTotals.get(sale.worker_id)||{name:wn,total:0,count:0};wg.total+=Number(sale.total)||0;wg.count++;workerTotals.set(sale.worker_id,wg);for(const item of sale.sale_items||[]){const name=item.products?.name||"Producto";top.set(name,(top.get(name)||0)+Number(item.quantity||0));}}
  const topRows=[...top.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6);$("dashTopProducts").innerHTML=topRows.map(x=>'<div class="dashboard-row"><span>'+esc(x[0])+'</span><strong>'+x[1]+' uds.</strong></div>').join("")||'<p class="muted small">Todavía no hay ventas este mes.</p>';
  const low=productsData.filter(p=>Number(p.min_stock||0)>0&&Number(p.stock||0)<=Number(p.min_stock||0)).sort((a,b)=>a.stock-b.stock);$("dashLowStock").innerHTML=low.map(p=>'<div class="dashboard-row"><span>'+esc(p.name)+'<small>'+p.stock+' disponibles · mínimo '+p.min_stock+'</small></span><strong class="low-stock-label">Reponer</strong></div>').join("")||'<p class="muted small">No hay productos por debajo del mínimo configurado.</p>';
  const performance=[...workerTotals.values()].sort((a,b)=>b.total-a.total).slice(0,6);$("dashWorkerPerformance").innerHTML=performance.map(w=>'<div class="dashboard-row"><span>'+esc(w.name)+'<small>'+w.count+' ventas</small></span><strong>'+money(w.total)+'</strong></div>').join("")||'<p class="muted small">Todavía no hay ventas este mes.</p>';
