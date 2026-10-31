@@ -374,7 +374,7 @@ async function loadActivity(){
  if(!admin())return;
  const {data,error}=await client.from("activity_log").select("id,actor_id,action,entity_type,entity_id,details,created_at,profiles(full_name)").order("created_at",{ascending:false}).limit(100);
  if(error){toast("No se pudo cargar la actividad: "+error.message);return}
- const labels={product_created:"Producto creado",product_updated:"Producto actualizado",sale_created:"Venta registrada",sale_cancelled:"Venta cancelada",stock_movement:"Movimiento de inventario",stock_assigned:"Existencias asignadas",stock_allocation_updated:"Asignación modificada",worker_profile_updated:"Trabajador actualizado",daily_closeout:"Jornada cerrada",stock_receipt:"Entrada de mercancía"};
+ const labels={product_created:"Producto creado",product_updated:"Producto actualizado",sale_created:"Venta registrada",sale_cancelled:"Venta cancelada",stock_movement:"Movimiento de inventario",stock_assigned:"Existencias asignadas",stock_allocation_updated:"Asignación modificada",worker_profile_updated:"Trabajador actualizado",worker_created:"Trabajador creado",daily_closeout:"Jornada cerrada",stock_receipt:"Entrada de mercancía"};
  $("activityBody").innerHTML=(data||[]).map(x=>'<tr><td>'+new Date(x.created_at).toLocaleString("es-ES")+'</td><td>'+esc(x.profiles?.full_name||"Sistema")+'</td><td>'+esc(labels[x.action]||x.action)+'</td><td>'+esc(x.entity_type)+' · '+esc(String(x.entity_id||"").slice(0,8))+'</td><td>'+esc(JSON.stringify(x.details||{}))+'</td></tr>').join("");
  $("activityEmpty").classList.toggle("hidden",!!(data||[]).length);
 }
