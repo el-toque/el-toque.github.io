@@ -40,7 +40,7 @@ async function syncPendingSales(){
   await updatePendingBadge();
   if(!(await pendingSales()).length){await loadProducts();await loadWorkerAllocations();await loadDailySales();}
  }catch(e){toast("No se pudo completar la sincronización. Las ventas siguen guardadas en este teléfono.");}
- finally{syncingPending=false;}
+ finally{syncingPending=false;await updatePendingBadge();}
 }
 async function cacheWorkerState(){if(!user||!profile||admin())return;await localPut("worker_profile_"+user.id,profile);await localPut("worker_snapshot_"+user.id,{products,categories,workerAllocations,saved_at:new Date().toISOString()});}
 const toast=msg=>{const el=$("toast");el.textContent=msg;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),2600)};
