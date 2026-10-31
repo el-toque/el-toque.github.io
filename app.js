@@ -50,7 +50,7 @@ async function init(){
  if(!cfg.url||!cfg.publishableKey){$("sessionLabel").textContent="CONFIGURACIÓN PENDIENTE";$("loginPanel").classList.remove("hidden");fail("loginError","Falta configurar config.js con la URL y la clave publicable del proyecto.");return}
  try{
   client=window.supabase.createClient(cfg.url,cfg.publishableKey);
-  client.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"||!session)showLogin();});
+  client.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showLogin();});
   const {data,error}=await client.auth.getSession();
   if(error)throw error;
   if(data?.session){await enter(data.session.user);if(navigator.onLine)await syncPendingSales();}
@@ -75,12 +75,14 @@ $("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden")
 }
 $("loginForm").addEventListener("submit",async e=>{
  e.preventDefault();fail("loginError","");
+ // Captura los datos antes de cualquier espera para no perder el autocompletado del teléfono.
+ const email=$("email").value.trim(),password=$("password").value;
  const btn=$("loginForm").querySelector('button[type="submit"]');
  if(!client&&initPromise){btn.disabled=true;btn.textContent="Iniciando aplicación…";await initPromise;}
  if(!client){if(btn){btn.disabled=false;btn.textContent="Entrar";}return}
  const original=btn?.textContent||"Entrar";if(btn){btn.disabled=true;btn.textContent="Verificando…";}
  try{
-  const {data,error}=await client.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
+  const {data,error}=await client.auth.signInWithPassword({email,password});
   if(error)throw error;
   if(!data?.user)throw new Error("La autenticación no devolvió un usuario.");
   await enter(data.user);
