@@ -235,8 +235,36 @@ $("exportDailyPdf").onclick=()=>{
  let nextY=(doc.lastAutoTable?.finalY||43)+10;doc.setFontSize(13);doc.text("Conteo físico de existencias",14,nextY);if(typeof doc.autoTable==="function"){doc.autoTable({startY:nextY+4,head:[["Producto","Asignado","Vendido","Debe quedar","Conteo físico","Diferencia"]],body:dailyStockRows.map(r=>[r.name,String(r.assigned),String(r.sold),String(r.expected),r.physical===null?"Pendiente":String(r.physical),r.difference===null?"Pendiente":String(r.difference)]),styles:{fontSize:8,cellPadding:2},headStyles:{fillColor:[7,85,164]}});}doc.save("Cuadre_IPV_"+new Date().toISOString().slice(0,10)+".pdf");toast("PDF preparado para guardar en tu teléfono.");
 };
 
-async function loadSales(){if(!user)return;const {data,error}=await client.from("sales").select("id,total,payment_method,transfer_code,status,created_at").order("created_at",{ascending:false}).limit(50);if(error){toast("Historial: "+error.message);return}$("salesBody").innerHTML=(data||[]).map(s=>`<tr><td>${new Date(s.created_at).toLocaleString("es-US")}</td><td>${money(s.total)}</td><td>${({cash:"CUP",card:"Tarjeta",transfer:"Transferencia"})[s.payment_method]}</td><td>${esc(s.transfer_code||"—")}</td><td>${esc(s.status)}</td></tr>`).join("")}
+let allAdminSales=[];
+async function loadSales(){
+ if(!user)return;
+ const {data,error}=await client.from("sales").select("id,worker_id,total,payment_method,transfer_code,status,created_at,profiles(full_name),sale_items(quantity,unit_price,products(name))").order("created_at",{ascending:false}).limit(1000);
+ if(error){toast("Ventas: "+error.message);return}
+ allAdminSales=data||[];
+ const workerSelect=$("salesWorker"),selected=workerSelect.value;
+ const names=new Map();
+ allAdminSales.forEach(s=>{if(s.worker_id)names.set(s.worker_id,s.profiles?.full_name||"Trabajador");});
+ workerSelect.innerHTML='<option value="">Todos los trabajadores</option>'+[...names.entries()].map(([id,name])=>'<option value="'+esc(id)+'">'+esc(name)+'</option>').join("");
+ workerSelect.value=selected;
+ renderAdminSales();
+}
+function renderAdminSales(){
+ const from=$("salesFrom").value,to=$("salesTo").value,worker=$("salesWorker").value;
+ const rows=allAdminSales.filter(s=>{
+  const day=String(s.created_at||"").slice(0,10);
+  return (!from||day>=from)&&(!to||day<=to)&&(!worker||s.worker_id===worker);
+ });
+ const groups=new Map();
+ rows.forEach(s=>{const id=s.worker_id||"unknown",g=groups.get(id)||{name:s.profiles?.full_name||"Trabajador",count:0,cash:0,transfer:0,total:0};g.count++;g.total+=Number(s.total)||0;if(s.payment_method==="transfer")g.transfer+=Number(s.total)||0;else g.cash+=Number(s.total)||0;groups.set(id,g);});
+ $("salesWorkerSummary").innerHTML=[...groups.values()].map(g=>'<article class="stat"><span>'+esc(g.name)+'</span><strong>'+g.count+' ventas</strong><small>CUP: '+money(g.cash)+' · Transferencias: '+money(g.transfer)+' · Total: '+money(g.total)+'</small></article>').join("")||'<p class="muted small">No hay ventas en este período.</p>';
+ $("salesBody").innerHTML=rows.map(s=>{
+  const items=(s.sale_items||[]).map(i=>esc(i.products?.name||"Producto")+" × "+(Number(i.quantity)||0)).join("<br>")||"—";
+  return '<tr><td>'+new Date(s.created_at).toLocaleString("es-ES")+'</td><td>'+esc(s.profiles?.full_name||"Trabajador")+'</td><td>'+items+'</td><td>'+money(s.total)+'</td><td>'+esc(({cash:"CUP",card:"Tarjeta",transfer:"Transferencia"})[s.payment_method]||s.payment_method||"—")+'</td><td>'+esc(s.transfer_code||"—")+'</td><td>'+esc(s.status||"—")+'</td></tr>';
+ }).join("");
+ $("salesEmpty").classList.toggle("hidden",rows.length>0);
+}
 $("refreshSales").onclick=loadSales;
+["salesFrom","salesTo","salesWorker"].forEach(id=>$(id).addEventListener("change",renderAdminSales));
 $("reserveBtn").onclick=async()=>{const qty=Number($("reserveQty").value),hours=Number($("reserveHours").value);if(!$("reserveProduct").value||!Number.isInteger(qty)||qty<1){fail("reserveMessage","Selecciona producto y cantidad válidos.");return}const {data,error}=await client.rpc("create_stock_reservation",{p_product_id:$("reserveProduct").value,p_quantity:qty,p_customer_phone:$("customerPhone").value.trim(),p_hours:hours});if(error){fail("reserveMessage",error.message);return}fail("reserveMessage","Reserva creada: "+data);await loadProducts();await loadReservations()};
 async function loadReservations(){if(!user)return;const {data,error}=await client.from("stock_reservations").select("id,product_id,quantity,customer_phone,expires_at,created_at,status,products(name)").eq("status","active").order("created_at",{ascending:false});if(error){toast("Reservas: "+error.message);return}$("reservationsBody").innerHTML=(data||[]).map(r=>`<tr><td>${new Date(r.created_at).toLocaleString("es-US")}</td><td>${esc(r.products?.name||"Producto")}</td><td>${r.quantity}</td><td>${esc(r.customer_phone)}</td><td>${new Date(r.expires_at).toLocaleString("es-US")}</td><td><button class="mini-btn danger" data-release="${r.id}">Liberar</button></td></tr>`).join("")}
 $("reservationsBody").onclick=async e=>{const b=e.target.closest("[data-release]");if(!b)return;const {data,error}=await client.rpc("release_stock_reservation",{p_reservation_id:b.dataset.release});if(error){toast(error.message);return}toast(data?"Reserva liberada":"La reserva ya no estaba activa");await loadProducts();await loadReservations()};
