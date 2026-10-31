@@ -71,7 +71,7 @@ $("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden")
  $("addBtn").classList.toggle("hidden",!admin());$("exportInventory").classList.toggle("hidden",!admin());$("exportInventoryPdf").classList.toggle("hidden",!admin());$("manageCategoriesBtn").classList.toggle("hidden",!admin());$("workersNav").classList.toggle("hidden",!admin());$("adminTabs").classList.toggle("hidden",!admin());$("workerTabs").classList.toggle("hidden",admin());
  document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
  if(admin()){document.querySelector('[data-tab="dashboard"]').classList.add("active");showSection("dashboard");}else{document.querySelector('[data-tab="shop"]').classList.add("active");showSection("shop");}
- await loadProducts();if(admin()){await Promise.all([loadSales(),loadReservations(),loadWorkers(),loadAdminDashboard(),loadAdminCloseouts()]);}else{await loadWorkerAllocations();await loadDailySales();await cacheWorkerState();await updatePendingBadge();}
+ await loadProducts();if(admin()){await Promise.all([loadSales(),loadReservations(),loadWorkers(),loadAdminDashboard(),loadAdminCloseouts(),loadSuppliers(),loadReceipts()]);}else{await loadWorkerAllocations();await loadDailySales();await cacheWorkerState();await updatePendingBadge();}
 }
 $("loginForm").addEventListener("submit",async e=>{
  e.preventDefault();fail("loginError","");
@@ -91,8 +91,8 @@ $("loginForm").addEventListener("submit",async e=>{
  finally{if(btn){btn.disabled=false;btn.textContent=original;}}
 });
 $("logoutBtn").addEventListener("click",()=>client.auth.signOut());
-function showSection(tab){["dashboard","inventory","sales","closeouts","reservations","workers","shop","daily"].forEach(t=>$(t+"Tab").classList.toggle("hidden",t!==tab));}
-document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","reservations","workers"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();loadCloseoutHistory();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="closeouts")loadAdminCloseouts();}));
+function showSection(tab){["dashboard","inventory","purchases","sales","closeouts","activity","reservations","workers","shop","daily"].forEach(t=>$(t+"Tab").classList.toggle("hidden",t!==tab));}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","reservations","workers"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();loadCloseoutHistory();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="purchases"){loadProducts();loadSuppliers();loadReceipts();}if(b.dataset.tab==="activity")loadActivity();}));
 async function loadProducts(){
  if(!navigator.onLine){const snap=user&&!admin()?await localGet("worker_snapshot_"+user.id):null;if(snap){products=snap.products||[];categories=snap.categories||[];workerAllocations=snap.workerAllocations||[];renderCategoryControls();renderProducts();}return;}
  const [{data,error},{data:categoryData,error:categoryError}]=await Promise.all([client.from("products").select("id,sku,name,description,price,stock,min_stock,active,category_id,image_url").eq("active",true).order("name"),client.from("product_categories").select("id,name,active").eq("active",true).order("name")]);
@@ -327,6 +327,56 @@ $("exportDailyPdf").onclick=()=>{
  let nextY=(doc.lastAutoTable?.finalY||43)+10;doc.setFontSize(13);doc.text("Conteo físico de existencias",14,nextY);if(typeof doc.autoTable==="function"){doc.autoTable({startY:nextY+4,head:[["Producto","Asignado","Vendido","Debe quedar","Conteo físico","Diferencia"]],body:dailyStockRows.map(r=>[r.name,String(r.assigned),String(r.sold),String(r.expected),r.physical===null?"Pendiente":String(r.physical),r.difference===null?"Pendiente":String(r.difference)]),styles:{fontSize:8,cellPadding:2},headStyles:{fillColor:[7,85,164]}});}let billsY=(doc.lastAutoTable?.finalY||nextY+4)+10;if(billsY>175){doc.addPage();billsY=18;}doc.setFontSize(13);doc.text("Conteo de billetes",14,billsY);const billTotal=dailyBillDenominations.reduce((sum,value)=>sum+value*(Number(dailyBillCounts[value])||0),0);doc.autoTable({startY:billsY+4,head:[["Denominación","Cantidad de billetes","Importe"]],body:dailyBillDenominations.filter(value=>(Number(dailyBillCounts[value])||0)>0).map(value=>[value.toLocaleString("es-ES")+" CUP",String(Number(dailyBillCounts[value])||0),money(value*(Number(dailyBillCounts[value])||0))]),foot:[["TOTAL EFECTIVO CONTADO",String(dailyBillDenominations.reduce((sum,value)=>sum+(Number(dailyBillCounts[value])||0),0)),money(billTotal)]],styles:{fontSize:9,cellPadding:2},headStyles:{fillColor:[7,85,164]},footStyles:{fillColor:[238,231,214],textColor:[25,22,16],fontStyle:"bold"}});doc.save("Cuadre_IPV_"+new Date().toISOString().slice(0,10)+".pdf");toast("PDF preparado para guardar en tu teléfono.");
 };
 
+let receiptDraft=[];
+async function loadSuppliers(){
+ if(!admin())return;
+ const {data,error}=await client.from("suppliers").select("id,name,active").eq("active",true).order("name");
+ if(error){toast("No se pudieron cargar los proveedores: "+error.message);return}
+ $("receiptSupplier").innerHTML='<option value="">Selecciona un proveedor</option>'+(data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join("");
+}
+function renderReceiptLines(){
+ $("receiptLines").innerHTML=receiptDraft.map((x,i)=>{const p=products.find(z=>z.id===x.product_id);return '<div class="receipt-line"><div><strong>'+esc(p?.name||"Producto")+'</strong><small>'+x.quantity+' unidades × '+money(x.unit_cost)+'</small></div><strong>'+money(x.quantity*x.unit_cost)+'</strong><button type="button" class="mini-btn danger" data-receipt-remove="'+i+'">Quitar</button></div>'}).join("")||'<p class="muted small">Añade los productos de esta compra.</p>';
+ const total=receiptDraft.reduce((n,x)=>n+x.quantity*x.unit_cost,0);$("receiptMessage").textContent=receiptDraft.length?("Total de compra: "+money(total)):"";
+}
+$("addReceiptLine").addEventListener("click",()=>{
+ const productId=$("receiptProduct").value,quantity=Number($("receiptQuantity").value),unitCost=Number($("receiptUnitCost").value);
+ if(!productId||!Number.isInteger(quantity)||quantity<1||!Number.isFinite(unitCost)||unitCost<0){fail("receiptMessage","Selecciona un producto e introduce cantidad y costo válidos.");return}
+ if(receiptDraft.some(x=>x.product_id===productId)){fail("receiptMessage","Ese producto ya está en esta entrada. Modifica la cantidad antes de añadirlo otra vez.");return}
+ receiptDraft.push({product_id:productId,quantity,unit_cost:unitCost});renderReceiptLines();
+});
+$("receiptLines").addEventListener("click",e=>{const b=e.target.closest("[data-receipt-remove]");if(!b)return;receiptDraft.splice(Number(b.dataset.receiptRemove),1);renderReceiptLines();});
+$("receiptForm").addEventListener("submit",async e=>{
+ e.preventDefault();if(!admin())return;if(!receiptDraft.length){fail("receiptMessage","Añade al menos un producto.");return}
+ const newName=$("receiptNewSupplier").value.trim();let supplierId=$("receiptSupplier").value||null;
+ if(!supplierId&&!newName){fail("receiptMessage","Selecciona un proveedor o escribe uno nuevo.");return}
+ const btn=$("saveReceipt");btn.disabled=true;fail("receiptMessage","Registrando entrada…");
+ try{
+  if(newName){const {data,error}=await client.from("suppliers").insert({name:newName}).select("id").single();if(error)throw error;supplierId=data.id;}
+  const {data,error}=await client.rpc("admin_receive_stock",{p_supplier_id:supplierId,p_supplier_name:newName,p_reference:$("receiptReference").value.trim(),p_notes:$("receiptNotes").value.trim(),p_items:receiptDraft});
+  if(error)throw error;
+  receiptDraft=[];$("receiptForm").reset();renderReceiptLines();toast("Entrada registrada. Inventario actualizado. Folio: "+data);
+  await Promise.all([loadProducts(),loadSuppliers(),loadReceipts(),loadAdminDashboard()]);
+ }catch(error){fail("receiptMessage",error?.message||"No se pudo registrar la entrada.");}
+ finally{btn.disabled=false;}
+});
+async function loadReceipts(){
+ if(!admin())return;
+ const {data,error}=await client.from("stock_receipts").select("id,supplier_name,reference,received_at,total_cost,profiles(full_name),stock_receipt_items(quantity,products(name))").order("received_at",{ascending:false}).limit(50);
+ if(error){toast("No se pudo cargar el historial de entradas: "+error.message);return}
+ $("receiptsBody").innerHTML=(data||[]).map(r=>{const items=(r.stock_receipt_items||[]).map(x=>(x.products?.name||"Producto")+" × "+x.quantity).join(", ");return '<tr><td>'+new Date(r.received_at).toLocaleString("es-ES")+'</td><td>'+esc(r.supplier_name)+'</td><td>'+esc(r.reference||"—")+'</td><td>'+esc(items)+'</td><td>'+money(r.total_cost)+'</td><td>'+esc(r.profiles?.full_name||"—")+'</td></tr>'}).join("");
+ $("receiptsEmpty").classList.toggle("hidden",!!(data||[]).length);
+}
+$("refreshReceipts").addEventListener("click",loadReceipts);
+async function loadActivity(){
+ if(!admin())return;
+ const {data,error}=await client.from("activity_log").select("id,actor_id,action,entity_type,entity_id,details,created_at,profiles(full_name)").order("created_at",{ascending:false}).limit(100);
+ if(error){toast("No se pudo cargar la actividad: "+error.message);return}
+ const labels={product_created:"Producto creado",product_updated:"Producto actualizado",sale_created:"Venta registrada",stock_movement:"Movimiento de inventario",stock_assigned:"Existencias asignadas",stock_allocation_updated:"Asignación modificada",worker_profile_updated:"Trabajador actualizado",daily_closeout:"Jornada cerrada"};
+ $("activityBody").innerHTML=(data||[]).map(x=>'<tr><td>'+new Date(x.created_at).toLocaleString("es-ES")+'</td><td>'+esc(x.profiles?.full_name||"Sistema")+'</td><td>'+esc(labels[x.action]||x.action)+'</td><td>'+esc(x.entity_type)+' · '+esc(String(x.entity_id||"").slice(0,8))+'</td><td>'+esc(JSON.stringify(x.details||{}))+'</td></tr>').join("");
+ $("activityEmpty").classList.toggle("hidden",!!(data||[]).length);
+}
+$("refreshActivity").addEventListener("click",loadActivity);
+$("refreshReceipts").addEventListener("click",loadReceipts);
 async function loadAdminDashboard(){
  if(!admin()||!navigator.onLine)return;
  const now=new Date(),todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()),tomorrow=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1),monthStart=new Date(now.getFullYear(),now.getMonth(),1),dayKey=localBusinessDate(todayStart);
