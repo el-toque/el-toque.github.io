@@ -391,7 +391,7 @@ async function loadAdminDashboard(){
  for(const x of [productsResult,allocResult,workersResult,closeResult])if(x.error){toast("No se pudo actualizar el resumen: "+x.error.message);return}
  const productsData=productsResult.data||[],allocs=allocResult.data||[],workers=workersResult.data||[],closed=closeResult.data||[];
  const today=sales.filter(x=>new Date(x.created_at)>=todayStart),monthTotal=sales.reduce((n,x)=>n+Number(x.total||0),0),todayCash=today.filter(x=>x.payment_method==="cash").reduce((n,x)=>n+Number(x.total||0),0),todayTransfer=today.filter(x=>x.payment_method==="transfer").reduce((n,x)=>n+Number(x.total||0),0);
- const stockTotal=productsData.reduce((n,p)=>n+Number(p.stock||0),0),workerStock=allocs.reduce((n,a)=>n+Math.max(0,Number(a.quantity_remaining)||0),0),warehouse=Math.max(0,stockTotal-workerStock),activeWorkers=workers.filter(w=>w.active),closedIds=new Set(closed.map(c=>c.worker_id));
+ const stockTotal=productsData.reduce((n,p)=>n+Number(p.stock||0),0),workerStock=allocs.reduce((n,a)=>n+Math.max(0,Number(a.quantity_remaining)||0),0),allocatedByProduct=new Map();for(const a of allocs)allocatedByProduct.set(a.product_id,(allocatedByProduct.get(a.product_id)||0)+Math.max(0,Number(a.quantity_remaining)||0));const warehouse=productsData.reduce((n,p)=>n+Math.max(0,Number(p.stock||0)-(allocatedByProduct.get(p.id)||0)),0),activeWorkers=workers.filter(w=>w.active),closedIds=new Set(closed.map(c=>c.worker_id));
  $("dashSalesToday").textContent=money(today.reduce((n,x)=>n+Number(x.total||0),0));$("dashSalesTodayCount").textContent=today.length+" operaciones";
  $("dashSalesMonth").textContent=money(monthTotal);$("dashSalesMonthCount").textContent=sales.length+" operaciones";
  $("dashCashToday").textContent=money(todayCash);$("dashTransferToday").textContent=money(todayTransfer);
@@ -436,7 +436,7 @@ function renderAdminSales(){
   return (!from||day>=from)&&(!to||day<=to)&&(!worker||s.worker_id===worker);
  });
  const groups=new Map();
- rows.forEach(s=>{const id=s.worker_id||"unknown",g=groups.get(id)||{name:s.profiles?.full_name||"Trabajador",count:0,cash:0,transfer:0,total:0};g.count++;g.total+=Number(s.total)||0;if(s.payment_method==="transfer")g.transfer+=Number(s.total)||0;else g.cash+=Number(s.total)||0;groups.set(id,g);});
+ rows.filter(s=>s.status==="completed").forEach(s=>{const id=s.worker_id||"unknown",g=groups.get(id)||{name:s.profiles?.full_name||"Trabajador",count:0,cash:0,transfer:0,total:0};g.count++;g.total+=Number(s.total)||0;if(s.payment_method==="transfer")g.transfer+=Number(s.total)||0;else g.cash+=Number(s.total)||0;groups.set(id,g);});
  $("salesWorkerSummary").innerHTML=[...groups.values()].map(g=>'<article class="stat"><span>'+esc(g.name)+'</span><strong>'+g.count+' ventas</strong><small>CUP: '+money(g.cash)+' · Transferencias: '+money(g.transfer)+' · Total: '+money(g.total)+'</small></article>').join("")||'<p class="muted small">No hay ventas en este período.</p>';
  $("salesBody").innerHTML=rows.map(s=>{
   const items=(s.sale_items||[]).map(i=>esc(i.products?.name||"Producto")+" × "+(Number(i.quantity)||0)).join("<br>")||"—";
