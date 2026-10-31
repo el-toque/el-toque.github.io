@@ -155,11 +155,14 @@ function localBusinessDate(d=new Date()){const y=d.getFullYear(),m=String(d.getM
 let dailyExportRows=[];
 let dailyStockRows=[];
 let dailyStockCounts=new Map();
+let dailyBillCounts={};
+const dailyBillDenominations=[5000,2000,1000,500,200,100,50,20,10,5,3,1];
 let activeCloseout=null;
 async function loadDailySales(){if(!user||admin())return;if(!navigator.onLine){$("dailyCloseStatus").textContent="Sin conexión: el cuadre requiere datos actualizados del servidor. Las ventas guardadas siguen pendientes de sincronizar.";await updatePendingBadge();return;}const now=new Date(),start=new Date(now.getFullYear(),now.getMonth(),now.getDate()),end=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1);$("dailyDate").textContent=start.toLocaleDateString("es-ES",{weekday:"long",year:"numeric",month:"long",day:"numeric"});const {data,error}=await client.from("sales").select("id,total,payment_method,transfer_code,created_at,status,sale_items(product_id,quantity,unit_price,products(name))").eq("status","completed").gte("created_at",start.toISOString()).lt("created_at",end.toISOString()).order("created_at",{ascending:false});if(error){toast("No se pudo cargar el cuadre: "+error.message);return}const dayKey=localBusinessDate(start);
  const {data:closed,error:closeErr}=await client.from("daily_closeouts").select("id,business_date,sales_count,cash_total,transfer_total,grand_total,closed_at").eq("business_date",dayKey).maybeSingle();
  if(closeErr){toast("No se pudo consultar el cierre: "+closeErr.message);return}
  activeCloseout=closed||null;
+ dailyBillCounts=(await localGet("daily_bill_counts_"+user.id+"_"+dayKey))||{};renderDailyBillCounts();
  const closeBtn=$("closeDaily");closeBtn.disabled=!!activeCloseout||!navigator.onLine;closeBtn.textContent=activeCloseout?"Jornada cerrada":"Cerrar y bloquear día";
  $("dailyCloseStatus").textContent=activeCloseout?`Cierre confirmado el ${new Date(activeCloseout.closed_at).toLocaleString("es-ES")}. Esta jornada está bloqueada.`:"Jornada abierta: al cerrar se guardará una copia definitiva y no se podrán registrar más ventas con esta fecha.";
  const {data:counts,error:countsErr}=await client.from("worker_daily_stock_counts").select("product_id,expected_quantity,physical_quantity,counted_at").eq("worker_id",user.id).eq("business_date",dayKey);
@@ -176,6 +179,30 @@ function renderDailyStockCounts(){
  const pending=dailyStockRows.filter(r=>r.physical===null).length;
  $("dailyStockStatus").textContent=pending?`${pending} producto(s) pendiente(s) de contar.`:"Conteo físico guardado para todos los productos.";
 }
+function renderDailyBillCounts(){
+ const body=$("dailyBillsBody");if(!body)return;
+ body.innerHTML=dailyBillDenominations.map(value=>{const quantity=Math.max(0,Number(dailyBillCounts[value])||0);return `<tr><td><strong>${value.toLocaleString("es-ES")} CUP</strong></td><td><input class="daily-bill-input" type="number" min="0" step="1" inputmode="numeric" data-bill-denomination="${value}" value="${quantity}" aria-label="Cantidad de billetes de ${value} CUP" ${activeCloseout?"disabled":""}></td><td>${money(value*quantity)}</td></tr>`}).join("");
+ const total=dailyBillDenominations.reduce((sum,value)=>sum+value*(Number(dailyBillCounts[value])||0),0);
+ $("dailyBillsTotal").textContent=money(total);
+ $("dailyBillsStatus").textContent=activeCloseout?"Jornada cerrada: el conteo de billetes está bloqueado.":"El conteo se conserva en este teléfono para la cuenta y la fecha actuales.";
+}
+$("dailyBillsBody").addEventListener("input",e=>{
+ const input=e.target.closest("[data-bill-denomination]");if(!input)return;
+ const denomination=Number(input.dataset.billDenomination),quantity=input.value===""?0:Number(input.value);
+ if(!Number.isInteger(quantity)||quantity<0)return;
+ dailyBillCounts[denomination]=quantity;
+ const row=input.closest("tr");if(row)row.cells[2].textContent=money(denomination*quantity);
+ const total=dailyBillDenominations.reduce((sum,value)=>sum+value*(Number(dailyBillCounts[value])||0),0);
+ $("dailyBillsTotal").textContent=money(total);
+});
+$("dailyBillsBody").addEventListener("change",async e=>{
+ const input=e.target.closest("[data-bill-denomination]");if(!input)return;
+ const quantity=input.value===""?0:Number(input.value);
+ if(!Number.isInteger(quantity)||quantity<0){toast("Introduce una cantidad entera igual o mayor que cero.");return;}
+ dailyBillCounts[Number(input.dataset.billDenomination)]=quantity;
+ try{await localPut("daily_bill_counts_"+user.id+"_"+localBusinessDate(),dailyBillCounts);}
+ catch(error){toast("No se pudo guardar el conteo de billetes en este teléfono.");}
+});
 $("dailyStockBody").addEventListener("change",async e=>{
  const input=e.target.closest("[data-stock-count]");if(!input)return;const quantity=Number(input.value);if(!Number.isInteger(quantity)||quantity<0){toast("Introduce una cantidad entera igual o mayor que cero.");return;}
  const row=dailyStockRows.find(r=>r.product_id===input.dataset.stockCount);if(!row)return;input.disabled=true;
@@ -218,6 +245,7 @@ $("exportDaily").onclick=()=>{
  const summary=[{"Concepto":"Cuenta","Valor":accountName},{"Concepto":"Correo de la cuenta","Valor":accountEmail},{"Concepto":"Tipo de cuenta","Valor":accountRole},{"Concepto":"Fecha de exportación","Valor":new Date().toLocaleString("es-ES")},{"Concepto":"Cantidad de ventas","Valor":dailyExportRows.length},{"Concepto":"Total CUP","Valor":cash},{"Concepto":"Total Transferencias","Valor":transfer},{"Concepto":"Total vendido","Valor":cash+transfer}];
  const stockDetail=dailyStockRows.map(r=>({Producto:r.name,Asignado:r.assigned,Vendido:r.sold,"Debe quedar":r.expected,"Conteo físico":r.physical===null?"Pendiente":r.physical,Diferencia:r.difference===null?"Pendiente":r.difference}));
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(detail),"Detalle de ventas");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(summary),"Resumen");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(stockDetail),"Conteo físico");
+ const billDetail=dailyBillDenominations.map(value=>({"Denominación":value+" CUP","Cantidad de billetes":Number(dailyBillCounts[value])||0,"Importe CUP":value*(Number(dailyBillCounts[value])||0)}));const billTotal=dailyBillDenominations.reduce((sum,value)=>sum+value*(Number(dailyBillCounts[value])||0),0);billDetail.push({"Denominación":"TOTAL EFECTIVO CONTADO","Cantidad de billetes":dailyBillDenominations.reduce((sum,value)=>sum+(Number(dailyBillCounts[value])||0),0),"Importe CUP":billTotal});XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(billDetail),"Conteo de billetes");
  const stamp=new Date().toISOString().slice(0,10);XLSX.writeFile(wb,`Cuadre_IPV_${stamp}.xlsx`);toast("Archivo Excel preparado para guardar en tu teléfono.");
 };
 
@@ -244,7 +272,7 @@ $("exportDailyPdf").onclick=()=>{
  }
  if(typeof doc.autoTable!=="function"){toast("No se pudo preparar la tabla PDF. Comprueba tu conexión.");return}
  doc.autoTable({startY:43,head:[["Hora","Productos y cantidades","Importe","Pago","Código transferencia","Folio"]],body,styles:{fontSize:8,cellPadding:2,overflow:"linebreak"},headStyles:{fillColor:[7,85,164]},columnStyles:{1:{cellWidth:75},5:{cellWidth:45}}});
- let nextY=(doc.lastAutoTable?.finalY||43)+10;doc.setFontSize(13);doc.text("Conteo físico de existencias",14,nextY);if(typeof doc.autoTable==="function"){doc.autoTable({startY:nextY+4,head:[["Producto","Asignado","Vendido","Debe quedar","Conteo físico","Diferencia"]],body:dailyStockRows.map(r=>[r.name,String(r.assigned),String(r.sold),String(r.expected),r.physical===null?"Pendiente":String(r.physical),r.difference===null?"Pendiente":String(r.difference)]),styles:{fontSize:8,cellPadding:2},headStyles:{fillColor:[7,85,164]}});}doc.save("Cuadre_IPV_"+new Date().toISOString().slice(0,10)+".pdf");toast("PDF preparado para guardar en tu teléfono.");
+ let nextY=(doc.lastAutoTable?.finalY||43)+10;doc.setFontSize(13);doc.text("Conteo físico de existencias",14,nextY);if(typeof doc.autoTable==="function"){doc.autoTable({startY:nextY+4,head:[["Producto","Asignado","Vendido","Debe quedar","Conteo físico","Diferencia"]],body:dailyStockRows.map(r=>[r.name,String(r.assigned),String(r.sold),String(r.expected),r.physical===null?"Pendiente":String(r.physical),r.difference===null?"Pendiente":String(r.difference)]),styles:{fontSize:8,cellPadding:2},headStyles:{fillColor:[7,85,164]}});}let billsY=(doc.lastAutoTable?.finalY||nextY+4)+10;if(billsY>175){doc.addPage();billsY=18;}doc.setFontSize(13);doc.text("Conteo de billetes",14,billsY);const billTotal=dailyBillDenominations.reduce((sum,value)=>sum+value*(Number(dailyBillCounts[value])||0),0);doc.autoTable({startY:billsY+4,head:[["Denominación","Cantidad de billetes","Importe"]],body:dailyBillDenominations.map(value=>[value.toLocaleString("es-ES")+" CUP",String(Number(dailyBillCounts[value])||0),money(value*(Number(dailyBillCounts[value])||0))]),foot:[["TOTAL EFECTIVO CONTADO",String(dailyBillDenominations.reduce((sum,value)=>sum+(Number(dailyBillCounts[value])||0),0)),money(billTotal)]],styles:{fontSize:9,cellPadding:2},headStyles:{fillColor:[7,85,164]},footStyles:{fillColor:[238,231,214],textColor:[25,22,16],fontStyle:"bold"}});doc.save("Cuadre_IPV_"+new Date().toISOString().slice(0,10)+".pdf");toast("PDF preparado para guardar en tu teléfono.");
 };
 
 let allAdminSales=[];
