@@ -275,9 +275,9 @@ $("closeDaily").onclick=async()=>{
  toast("Jornada cerrada y guardada. Folio: "+data);await loadDailySales();await loadCloseoutHistory();
 };
 async function loadCloseoutHistory(){
- const {data,error}=await client.from("daily_closeouts").select("id,business_date,sales_count,cash_total,transfer_total,grand_total,closed_at").order("business_date",{ascending:false}).limit(30);
+ const {data,error}=await client.from("daily_closeouts").select("id,business_date,sales_count,cash_total,transfer_total,grand_total,cash_counted,cash_difference,closed_at").order("business_date",{ascending:false}).limit(30);
  if(error){toast("No se pudo cargar el historial de cierres: "+error.message);return}
- $("closeoutHistoryBody").innerHTML=(data||[]).map(c=>`<tr><td>${esc(c.business_date)}</td><td>${new Date(c.closed_at).toLocaleString("es-ES")}</td><td>${c.sales_count}</td><td>${money(c.cash_total)}</td><td>${money(c.transfer_total)}</td><td>${money(c.grand_total)}</td><td>${esc(c.id)}</td></tr>`).join("");
+ $("closeoutHistoryBody").innerHTML=(data||[]).map(c=>`<tr><td>${esc(c.business_date)}</td><td>${new Date(c.closed_at).toLocaleString("es-ES")}</td><td>${c.sales_count}</td><td>${money(c.cash_total)}</td><td>${money(c.transfer_total)}</td><td>${money(c.grand_total)}</td><td>${c.cash_counted===null?"—":money(c.cash_counted)}</td><td>${c.cash_difference===null?"—":money(c.cash_difference)}</td><td>${esc(c.id)}</td></tr>`).join("");
  $("closeoutHistoryEmpty").classList.toggle("hidden",!!(data||[]).length);
 }
 $("refreshDaily").onclick=async()=>{await loadDailySales();await loadCloseoutHistory();};
@@ -372,12 +372,11 @@ async function loadActivity(){
  if(!admin())return;
  const {data,error}=await client.from("activity_log").select("id,actor_id,action,entity_type,entity_id,details,created_at,profiles(full_name)").order("created_at",{ascending:false}).limit(100);
  if(error){toast("No se pudo cargar la actividad: "+error.message);return}
- const labels={product_created:"Producto creado",product_updated:"Producto actualizado",sale_created:"Venta registrada",stock_movement:"Movimiento de inventario",stock_assigned:"Existencias asignadas",stock_allocation_updated:"Asignación modificada",worker_profile_updated:"Trabajador actualizado",daily_closeout:"Jornada cerrada"};
+ const labels={product_created:"Producto creado",product_updated:"Producto actualizado",sale_created:"Venta registrada",sale_cancelled:"Venta cancelada",stock_movement:"Movimiento de inventario",stock_assigned:"Existencias asignadas",stock_allocation_updated:"Asignación modificada",worker_profile_updated:"Trabajador actualizado",daily_closeout:"Jornada cerrada",stock_receipt:"Entrada de mercancía"};
  $("activityBody").innerHTML=(data||[]).map(x=>'<tr><td>'+new Date(x.created_at).toLocaleString("es-ES")+'</td><td>'+esc(x.profiles?.full_name||"Sistema")+'</td><td>'+esc(labels[x.action]||x.action)+'</td><td>'+esc(x.entity_type)+' · '+esc(String(x.entity_id||"").slice(0,8))+'</td><td>'+esc(JSON.stringify(x.details||{}))+'</td></tr>').join("");
  $("activityEmpty").classList.toggle("hidden",!!(data||[]).length);
 }
 $("refreshActivity").addEventListener("click",loadActivity);
-$("refreshReceipts").addEventListener("click",loadReceipts);
 async function loadAdminDashboard(){
  if(!admin()||!navigator.onLine)return;
  const now=new Date(),todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()),tomorrow=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1),monthStart=new Date(now.getFullYear(),now.getMonth(),1),dayKey=localBusinessDate(todayStart);
@@ -385,7 +384,7 @@ async function loadAdminDashboard(){
  const [productsResult,allocResult,workersResult,closeResult]=await Promise.all([
   client.from("products").select("id,name,stock,min_stock,active").eq("active",true),
   client.from("worker_stock_allocations").select("worker_id,product_id,quantity_remaining"),
-  client.from("profiles").select("id,full_name,active").eq("role","worker"),
+  client.from("profiles").select("id,full_name,active,worker_permissions").eq("role","worker"),
   client.from("daily_closeouts").select("worker_id,business_date").eq("business_date",dayKey)
  ]);
  for(const x of [productsResult,allocResult,workersResult,closeResult])if(x.error){toast("No se pudo actualizar el resumen: "+x.error.message);return}
@@ -395,7 +394,7 @@ async function loadAdminDashboard(){
  $("dashSalesToday").textContent=money(today.reduce((n,x)=>n+Number(x.total||0),0));$("dashSalesTodayCount").textContent=today.length+" operaciones";
  $("dashSalesMonth").textContent=money(monthTotal);$("dashSalesMonthCount").textContent=sales.length+" operaciones";
  $("dashCashToday").textContent=money(todayCash);$("dashTransferToday").textContent=money(todayTransfer);
- $("dashStockTotal").textContent=stockTotal.toLocaleString("es-ES");$("dashWarehouse").textContent=warehouse.toLocaleString("es-ES");$("dashWorkersStock").textContent=workerStock.toLocaleString("es-ES");$("dashActiveWorkers").textContent=activeWorkers.length;$("dashCloseoutsPending").textContent="Cierres pendientes: "+activeWorkers.filter(w=>!closedIds.has(w.id)).length;
+ $("dashStockTotal").textContent=stockTotal.toLocaleString("es-ES");$("dashWarehouse").textContent=warehouse.toLocaleString("es-ES");$("dashWorkersStock").textContent=workerStock.toLocaleString("es-ES");$("dashActiveWorkers").textContent=activeWorkers.length;$("dashCloseoutsPending").textContent="Cierres pendientes: "+activeWorkers.filter(w=>w.worker_permissions?.can_close_day!==false&&!closedIds.has(w.id)).length;
  const top=new Map(),workerTotals=new Map();
  for(const sale of sales){const wn=sale.profiles?.full_name||"Trabajador";const wg=workerTotals.get(sale.worker_id)||{name:wn,total:0,count:0};wg.total+=Number(sale.total)||0;wg.count++;workerTotals.set(sale.worker_id,wg);for(const item of sale.sale_items||[]){const name=item.products?.name||"Producto";top.set(name,(top.get(name)||0)+Number(item.quantity||0));}}
  const topRows=[...top.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6);$("dashTopProducts").innerHTML=topRows.map(x=>'<div class="dashboard-row"><span>'+esc(x[0])+'</span><strong>'+x[1]+' uds.</strong></div>').join("")||'<p class="muted small">Todavía no hay ventas este mes.</p>';
