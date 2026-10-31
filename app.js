@@ -383,7 +383,7 @@ $("refreshActivity").addEventListener("click",loadActivity);
 async function loadAdminDashboard(){
  if(!admin()||!navigator.onLine)return;
  const now=new Date(),todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()),tomorrow=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1),monthStart=new Date(now.getFullYear(),now.getMonth(),1),dayKey=localBusinessDate(todayStart);
- const sales=[];for(let from=0;;from+=1000){const page=await client.from("sales").select("id,total,payment_method,worker_id,created_at,profiles(full_name),sale_items(quantity,unit_price,products(name))").eq("status","completed").gte("created_at",monthStart.toISOString()).lt("created_at",tomorrow.toISOString()).order("created_at",{ascending:false}).range(from,from+999);if(page.error){toast("No se pudo actualizar el resumen: "+page.error.message);return}sales.push(...(page.data||[]));if(!page.data||page.data.length<1000)break;}
+ const sales=[];for(let from=0;;from+=1000){const page=await client.from("sales").select("id,total,payment_method,worker_id,created_at,profiles!sales_worker_id_fkey(full_name),sale_items(quantity,unit_price,products(name))").eq("status","completed").gte("created_at",monthStart.toISOString()).lt("created_at",tomorrow.toISOString()).order("created_at",{ascending:false}).range(from,from+999);if(page.error){toast("No se pudo actualizar el resumen: "+page.error.message);return}sales.push(...(page.data||[]));if(!page.data||page.data.length<1000)break;}
  const [productsResult,allocResult,workersResult,closeResult]=await Promise.all([
   client.from("products").select("id,name,stock,min_stock,active").eq("active",true),
   client.from("worker_stock_allocations").select("worker_id,product_id,quantity_remaining"),
@@ -419,7 +419,7 @@ async function loadSales(){
  if(!user)return;
  const rows=[];
  for(let from=0;;from+=1000){
-  const {data,error}=await client.from("sales").select("id,worker_id,total,payment_method,transfer_code,status,cancel_reason,created_at,profiles(full_name),sale_items(quantity,unit_price,products(name))").order("created_at",{ascending:false}).range(from,from+999);
+  const {data,error}=await client.from("sales").select("id,worker_id,total,payment_method,transfer_code,status,cancel_reason,created_at,profiles!sales_worker_id_fkey(full_name),sale_items(quantity,unit_price,products(name))").order("created_at",{ascending:false}).range(from,from+999);
   if(error){toast("Ventas: "+error.message);return}
   rows.push(...(data||[]));if(!data||data.length<1000)break;
  }
