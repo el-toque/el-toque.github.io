@@ -176,3 +176,9 @@ input,select,textarea{background:#1b1e22;border-color:#393c42;color:#f5f0e7}labe
   #shopTab .shop-card-bottom{gap:6px;flex-wrap:wrap;}
   #shopTab .shop-card button{width:100%;padding:10px 8px;font-size:.82rem;}
 }
+
+
+/* Rebote del contador y del importe del pedido al añadir productos */
+#shopTab .shop-bottom-summary>span.do-bounce,#shopTab .shop-bottom-summary strong.do-bounce{animation:shopBottomBounce .52s cubic-bezier(.2,.85,.25,1.35)}
+@keyframes shopBottomBounce{0%{transform:scale(.72)}38%{transform:scale(1.22)}62%{transform:scale(.91)}82%{transform:scale(1.06)}100%{transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){#shopTab .shop-bottom-summary>span.do-bounce,#shopTab .shop-bottom-summary strong.do-bounce{animation:none}}
