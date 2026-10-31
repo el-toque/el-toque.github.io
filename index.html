@@ -18,7 +18,7 @@
 <main class="wrap">
 <section id="loginPanel" class="panel auth-panel">
   <p class="eyebrow">ACCESO SEGURO</p><h1>Iniciar sesión</h1><p class="muted">Entra con el usuario creado para IPV Digital.</p>
-  <form id="loginForm"><label>Correo electrónico<input id="email" type="email" autocomplete="username" required></label><label>Contraseña<input id="password" type="password" autocomplete="current-password" required></label><button class="primary full" type="submit">Entrar</button><p id="loginError" class="form-error" role="alert"></p></form>
+  <form id="loginForm" autocomplete="on"><label>Correo electrónico<input id="email" name="username" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required></label><label>Contraseña<input id="password" name="current-password" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required></label><button class="primary full" type="submit">Entrar</button><p id="loginError" class="form-error" role="alert"></p></form>
 </section>
 <section id="appPanel" class="hidden">
   <section class="hero hero-left"><div><p class="eyebrow">PANEL DE CONTROL</p><h1>IPV Digital</h1><p id="welcome" class="muted">Inventario compartido y ventas</p></div><button id="logoutBtn" class="secondary">Cerrar sesión</button></section>
