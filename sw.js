@@ -1,4 +1,4 @@
-const CACHE_NAME = "ipv-digital-shell-v9";
+const CACHE_NAME = "ipv-digital-shell-v10";
 const APP_FILES = ["./", "./index.html", "./styles.css", "./app.js", "./config.js", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png"];
 const CDN_FILES = [
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
