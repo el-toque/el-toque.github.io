@@ -12,18 +12,19 @@ async function localGet(key){const db=await offlineDB();return new Promise((reso
 async function localPut(key,value){const db=await offlineDB();return new Promise((resolve,reject)=>{const tx=db.transaction("records","readwrite");tx.objectStore("records").put(value,key);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
 async function localDelete(key){const db=await offlineDB();return new Promise((resolve,reject)=>{const tx=db.transaction("records","readwrite");tx.objectStore("records").delete(key);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
 async function pendingSales(){return (await localGet("pending_sales"))||[];}
-async function updatePendingBadge(){const n=(await pendingSales()).length;const status=$("offlineStatus");if(status){status.textContent=n?`${n} venta(s) pendiente(s) de sincronizar`:(navigator.onLine?"Conectado":"Sin conexión");status.classList.toggle("pending",n>0);}const close=$("closeDaily");if(close){const pendingCounts=Array.isArray(dailyStockRows)?dailyStockRows.filter(x=>x.physical===null).length:0;close.disabled=!!activeCloseout||n>0||!navigator.onLine||pendingCounts>0||!workerPermission("can_close_day");close.title=n?"Sincroniza las ventas pendientes antes de cerrar":pendingCounts?"Completa el conteo físico de todos los productos antes de cerrar":"";}for(const id of ["exportDaily","exportDailyPdf","refreshDaily"]){const b=$(id);if(b){b.disabled=!navigator.onLine;b.title=navigator.onLine?"":"Necesitas conexión para consultar el cuadre actualizado";}}return n;}
+async function updatePendingBadge(){const queue=await pendingSales(),n=queue.length;const status=$("offlineStatus");if(status){status.textContent=n?`${n} venta(s) pendiente(s) de sincronizar`:(navigator.onLine?"Conectado":"Sin conexión");status.classList.toggle("pending",n>0);}const syncBtn=$("syncPendingBtn");if(syncBtn){syncBtn.classList.toggle("hidden",n===0);syncBtn.disabled=!navigator.onLine||syncingPending;syncBtn.textContent=syncingPending?"Sincronizando…":"Sincronizar ventas pendientes";}const close=$("closeDaily");if(close){const pendingCounts=Array.isArray(dailyStockRows)?dailyStockRows.filter(x=>x.physical===null).length:0;close.disabled=!!activeCloseout||n>0||!navigator.onLine||pendingCounts>0||!workerPermission("can_close_day");close.title=n?"Sincroniza las ventas pendientes antes de cerrar":pendingCounts?"Completa el conteo físico de todos los productos antes de cerrar":"";}for(const id of ["exportDaily","exportDailyPdf","refreshDaily"]){const b=$(id);if(b){b.disabled=!navigator.onLine;b.title=navigator.onLine?"":"Necesitas conexión para consultar el cuadre actualizado";}}return n;}
 async function saveOfflineSale(items,method,code,id=crypto.randomUUID()){
  const queue=await pendingSales();
  if(queue.some(x=>x.id===id))return queue.find(x=>x.id===id);
  // Evita consumir dos veces las mismas unidades asignadas mientras no hay servidor.
  for(const line of items){const allocation=workerAllocations.find(a=>a.product_id===line.product_id);if(!allocation||Number(allocation.quantity_remaining)<Number(line.quantity))throw new Error("Existencia local insuficiente para completar la venta.");}
- const entry={id,items:items.map(x=>({product_id:x.product_id,quantity:x.quantity})),payment_method:method,transfer_code:method==="transfer"?code:null,business_date:localBusinessDate(),created_at:new Date().toISOString(),status:"pending"};
+ const entry={id,worker_id:user?.id||null,items:items.map(x=>({product_id:x.product_id,quantity:x.quantity})),payment_method:method,transfer_code:method==="transfer"?code:null,business_date:localBusinessDate(),created_at:new Date().toISOString(),status:"pending"};
  queue.push(entry);await localPut("pending_sales",queue);
  for(const line of entry.items){const allocation=workerAllocations.find(a=>a.product_id===line.product_id);allocation.quantity_remaining-=line.quantity;}
  await cacheWorkerState();await updatePendingBadge();renderShopProducts();return entry;
 }
 let syncingPending=false;
+$("syncPendingBtn").addEventListener("click",syncPendingSales);
 async function syncPendingSales(){
  if(syncingPending||!navigator.onLine||!client||!user||admin())return;
  syncingPending=true;
@@ -31,6 +32,7 @@ async function syncPendingSales(){
   let queue=await pendingSales();if(!queue.length){await updatePendingBadge();return;}
   for(const entry of [...queue]){
    if(!navigator.onLine)break;
+   if(entry.worker_id&&entry.worker_id!==user.id){toast("Hay ventas pendientes de otra cuenta. Entra con la cuenta que las registró para sincronizarlas.");break;}
    const {data,error}=await client.rpc("create_sale",{p_items:entry.items,p_payment_method:entry.payment_method,p_idempotency_key:entry.id,p_notes:null,p_transfer_code:entry.transfer_code,p_business_date:entry.business_date});
    if(error){entry.last_error=error.message;entry.status="error";queue=queue.map(x=>x.id===entry.id?entry:x);await localPut("pending_sales",queue);toast("Una venta sigue pendiente: "+error.message);break;}
    queue=queue.filter(x=>x.id!==entry.id);await localPut("pending_sales",queue);toast("Venta pendiente sincronizada. Folio: "+data);
