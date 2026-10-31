@@ -107,7 +107,7 @@ $("shopCategoryFilters").addEventListener("click",e=>{const b=e.target.closest("
 function renderProducts(){
  const q=$("search").value.trim().toLowerCase(),list=products.filter(p=>(p.name+" "+(p.sku||"")).toLowerCase().includes(q));
  $("productCount").textContent=products.length;$("unitCount").textContent=products.reduce((a,p)=>a+p.stock,0);$("stockValue").textContent=money(products.reduce((a,p)=>a+Number(p.price)*p.stock,0));
- $("productsBody").innerHTML=list.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.sku||"—")}</td><td>${money(p.price)}</td><td>${p.stock}</td><td>${admin()?`<button class="mini-btn" data-edit="${p.id}">Editar</button> <button class="mini-btn danger" data-delete="${p.id}">Desactivar</button>`:"—"}</td></tr>`).join("");
+ $("productsBody").innerHTML=list.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.sku||"—")}</td><td>${money(p.price)}</td><td>${p.stock}</td><td>${Number(p.min_stock||0)>0?Number(p.min_stock):"—"}${Number(p.min_stock||0)>0&&Number(p.stock)<=Number(p.min_stock)?' <strong class="low-stock-label">Reponer</strong>':""}</td><td>${admin()?`<button class="mini-btn" data-edit="${p.id}">Editar</button> <button class="mini-btn danger" data-delete="${p.id}">Desactivar</button>`:"—"}</td></tr>`).join("");
  $("inventoryEmpty").classList.toggle("hidden",list.length>0);
  const opts=products.map(p=>`<option value="${p.id}">${esc(p.name)} · ${p.stock} disp.</option>`).join("");
  $("reserveProduct").innerHTML=opts;$("receiptProduct").innerHTML=opts;
@@ -118,7 +118,7 @@ async function buildInventoryExport(){
  if(!admin()){toast("Esta exportación está disponible solo para el administrador.");return null;}
  if(!navigator.onLine){toast("Necesitas conexión para consultar el inventario completo.");return null;}
  const [pr,cr,wr,ar]=await Promise.all([
-  client.from("products").select("id,sku,name,description,price,stock,active,category_id").order("name"),
+  client.from("products").select("id,sku,name,description,price,stock,min_stock,active,category_id").order("name"),
   client.from("product_categories").select("id,name"),
   client.from("profiles").select("id,full_name,role,active").eq("role","worker").order("full_name"),
   client.from("worker_stock_allocations").select("worker_id,product_id,quantity_assigned,quantity_remaining")
@@ -137,7 +137,7 @@ async function buildInventoryExport(){
  const inventory=[],detail=[];
  for(const {p,allocs:rows} of map.values()){
   const totalStock=Math.max(0,Number(p.stock)||0),assigned=rows.reduce((n,a)=>n+(Number(a.quantity_assigned)||0),0),remaining=rows.reduce((n,a)=>n+Math.max(0,Number(a.quantity_remaining)||0),0),warehouse=Math.max(0,totalStock-remaining),consumed=rows.reduce((n,a)=>n+Math.max(0,(Number(a.quantity_assigned)||0)-(Number(a.quantity_remaining)||0)),0),sold=Number(soldMap.get(p.id)||0),price=Number(p.price)||0;
-  inventory.push({SKU:p.sku||"",Producto:p.name||"",Categoría:catMap.get(p.category_id)||"Sin categoría",Descripción:p.description||"","Precio unitario CUP":price,"Stock en almacén":warehouse,"Asignado históricamente":assigned,"Disponible en trabajadores":remaining,"Consumo de asignaciones":consumed,"Vendido histórico (ventas completadas)":sold,"Disponible total actual":totalStock,"Valor en almacén CUP":warehouse*price,"Valor disponible trabajadores CUP":remaining*price,"Valor total disponible CUP":totalStock*price,Estado:p.active?"Activo":"Desactivado"});
+  inventory.push({SKU:p.sku||"",Producto:p.name||"",Categoría:catMap.get(p.category_id)||"Sin categoría",Descripción:p.description||"","Precio unitario CUP":price,"Stock mínimo":Number(p.min_stock)||0,"Alerta de reposición":Number(p.min_stock)>0&&totalStock<=Number(p.min_stock)?"Reponer":"Normal","Stock en almacén":warehouse,"Asignado históricamente":assigned,"Disponible en trabajadores":remaining,"Consumo de asignaciones":consumed,"Vendido histórico (ventas completadas)":sold,"Disponible total actual":totalStock,"Valor en almacén CUP":warehouse*price,"Valor disponible trabajadores CUP":remaining*price,"Valor total disponible CUP":totalStock*price,Estado:p.active?"Activo":"Desactivado"});
   for(const a of rows){const aq=Number(a.quantity_assigned)||0,rem=Number(a.quantity_remaining)||0,w=workers.find(x=>x.id===a.worker_id);detail.push({_workerId:a.worker_id,Trabajador:workerMap.get(a.worker_id)||"Trabajador",Estado:w?.active?"Activo":"Desactivado",SKU:p.sku||"",Producto:p.name||"",Categoría:catMap.get(p.category_id)||"Sin categoría","Cantidad asignada":aq,"Cantidad restante":rem,"Consumo de asignación":Math.max(0,aq-rem),"Valor restante CUP":rem*price});}
  }
  const sum=(key)=>inventory.reduce((n,r)=>n+Number(r[key]||0),0);
