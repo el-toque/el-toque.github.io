@@ -186,3 +186,26 @@ input,select,textarea{background:#1b1e22;border-color:#393c42;color:#f5f0e7}labe
 
 /* Cuadre diario: conteo de billetes por denominación */
 .daily-bills-section{margin:18px 0;padding:18px;border:1px solid var(--ei-line,#303238);border-radius:13px;background:var(--ei-card,#111316)}.daily-bills-table{width:100%;max-width:760px}.daily-bills-table th,.daily-bills-table td{padding:10px 13px}.daily-bills-table td:nth-child(2){width:190px}.daily-bill-input{width:100%;max-width:150px;min-width:90px;margin:0}.daily-bills-table tfoot th{background:#2b2417;color:#f1c45c;font-size:.95rem}.daily-bills-table tfoot th:last-child{font-size:1.1rem;text-align:right}.daily-bill-input:disabled{opacity:.65;cursor:not-allowed}@media(max-width:520px){.daily-bills-section{padding:12px}.daily-bills-table th,.daily-bills-table td{padding:8px 6px;font-size:.82rem}.daily-bills-table td:nth-child(2){width:115px}.daily-bill-input{min-width:75px;padding:9px 6px}}
+
+
+/* Conteo de billetes: tres columnas visibles en móviles sin desplazamiento horizontal */
+.daily-bills-table{width:100%;min-width:0;max-width:760px;table-layout:fixed}
+.daily-bills-table th,.daily-bills-table td{overflow-wrap:anywhere}
+.daily-bills-table th:nth-child(1),.daily-bills-table td:nth-child(1){width:24%}
+.daily-bills-table th:nth-child(2),.daily-bills-table td:nth-child(2){width:38%}
+.daily-bills-table th:nth-child(3),.daily-bills-table td:nth-child(3){width:38%}
+.daily-bills-table td:nth-child(2){width:38%}
+.daily-bills-table .daily-bill-input{display:block;width:100%;max-width:100%;min-width:0}
+.daily-bills-table tfoot th{overflow-wrap:normal}
+@media(max-width:520px){
+  .daily-bills-section{padding:10px}
+  .daily-bills-section .table-wrap{overflow-x:hidden}
+  .daily-bills-table{min-width:0;width:100%;table-layout:fixed}
+  .daily-bills-table th,.daily-bills-table td{padding:7px 4px;font-size:.76rem;line-height:1.25}
+  .daily-bills-table th:nth-child(1),.daily-bills-table td:nth-child(1){width:23%;white-space:nowrap}
+  .daily-bills-table th:nth-child(2),.daily-bills-table td:nth-child(2){width:39%}
+  .daily-bills-table th:nth-child(3),.daily-bills-table td:nth-child(3){width:38%}
+  .daily-bills-table .daily-bill-input{width:100%;min-width:0;max-width:100%;min-height:36px;padding:6px 4px;font-size:.82rem}
+  .daily-bills-table tfoot th{font-size:.75rem}
+  .daily-bills-table tfoot th:last-child{font-size:.82rem;text-align:right;overflow-wrap:anywhere}
+}
