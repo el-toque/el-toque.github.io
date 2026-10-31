@@ -182,3 +182,7 @@ input,select,textarea{background:#1b1e22;border-color:#393c42;color:#f5f0e7}labe
 #shopTab .shop-bottom-summary>span.do-bounce,#shopTab .shop-bottom-summary strong.do-bounce{animation:shopBottomBounce .52s cubic-bezier(.2,.85,.25,1.35)}
 @keyframes shopBottomBounce{0%{transform:scale(.72)}38%{transform:scale(1.22)}62%{transform:scale(.91)}82%{transform:scale(1.06)}100%{transform:scale(1)}}
 @media(prefers-reduced-motion:reduce){#shopTab .shop-bottom-summary>span.do-bounce,#shopTab .shop-bottom-summary strong.do-bounce{animation:none}}
+
+
+/* Cuadre diario: conteo de billetes por denominación */
+.daily-bills-section{margin:18px 0;padding:18px;border:1px solid var(--ei-line,#303238);border-radius:13px;background:var(--ei-card,#111316)}.daily-bills-table{width:100%;max-width:760px}.daily-bills-table th,.daily-bills-table td{padding:10px 13px}.daily-bills-table td:nth-child(2){width:190px}.daily-bill-input{width:100%;max-width:150px;min-width:90px;margin:0}.daily-bills-table tfoot th{background:#2b2417;color:#f1c45c;font-size:.95rem}.daily-bills-table tfoot th:last-child{font-size:1.1rem;text-align:right}.daily-bill-input:disabled{opacity:.65;cursor:not-allowed}@media(max-width:520px){.daily-bills-section{padding:12px}.daily-bills-table th,.daily-bills-table td{padding:8px 6px;font-size:.82rem}.daily-bills-table td:nth-child(2){width:115px}.daily-bill-input{min-width:75px;padding:9px 6px}}
