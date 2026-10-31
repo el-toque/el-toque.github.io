@@ -29,7 +29,7 @@
   <section id="inventoryTab" class="panel">
     <div class="toolbar"><div><h2>Productos</h2><p class="muted small">Existencias compartidas en tiempo real al actualizar.</p></div><div class="toolbar-actions"><input id="search" type="search" placeholder="Buscar producto…"><button id="manageCategoriesBtn" class="secondary hidden">Categorías</button><button id="addBtn" class="primary hidden">＋ Producto</button><button id="exportInventory" class="secondary hidden">Exportar inventario (.xlsx)</button><button id="exportInventoryPdf" class="secondary hidden">Exportar inventario a PDF</button></div></div>
     <div class="stats"><article class="stat"><span>Productos activos</span><strong id="productCount">0</strong></article><article class="stat"><span>Unidades</span><strong id="unitCount">0</strong></article><article class="stat"><span>Valor estimado</span><strong id="stockValue">$0.00</strong></article></div>
-    <div class="table-wrap"><table><thead><tr><th>Producto</th><th>SKU</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr></thead><tbody id="productsBody"></tbody></table></div><p id="inventoryEmpty" class="empty hidden">No hay productos.</p>
+    <div class="table-wrap"><table><thead><tr><th>Producto</th><th>SKU</th><th>Precio</th><th>Stock total</th><th>Mínimo</th><th>Acciones</th></tr></thead><tbody id="productsBody"></tbody></table></div><p id="inventoryEmpty" class="empty hidden">No hay productos.</p>
   </section>
   <section id="salesTab" class="panel hidden">
     <div class="toolbar"><div><p class="eyebrow">CONTROL DE OPERACIONES</p><h2>Ventas por trabajador</h2><p class="muted small">Consulta el rendimiento y el detalle de cada venta registrada por el equipo.</p></div><button id="refreshSales" class="secondary">Actualizar</button></div>
