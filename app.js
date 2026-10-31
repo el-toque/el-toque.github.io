@@ -234,7 +234,7 @@ function renderDailyStockCounts(){
 }
 function renderDailyBillCounts(){
  const body=$("dailyBillsBody");if(!body)return;
- body.innerHTML=dailyBillDenominations.map(value=>{const quantity=Math.max(0,Number(dailyBillCounts[value])||0);return `<tr><td><strong>${value.toLocaleString("es-ES")} CUP</strong></td><td><input class="daily-bill-input" type="number" min="0" step="1" inputmode="numeric" data-bill-denomination="${value}" value="${quantity}" aria-label="Cantidad de billetes de ${value} CUP" ${activeCloseout?"disabled":""}></td><td>${money(value*quantity)}</td></tr>`}).join("");
+ body.innerHTML=dailyBillDenominations.map(value=>{const quantity=Math.max(0,Number(dailyBillCounts[value])||0);return `<tr><td><strong>${value.toLocaleString("es-ES")} CUP</strong></td><td><input class="daily-bill-input" type="number" min="0" step="1" inputmode="numeric" data-bill-denomination="${value}" value="${quantity}" aria-label="Cantidad de billetes de ${value} CUP" ${activeCloseout||!workerPermission("can_close_day")?"disabled":""}></td><td>${money(value*quantity)}</td></tr>`}).join("");
  const total=dailyBillDenominations.reduce((sum,value)=>sum+value*(Number(dailyBillCounts[value])||0),0);
  $("dailyBillsTotal").textContent=money(total);
  $("dailyBillsStatus").textContent=activeCloseout?"Jornada cerrada: el conteo de billetes está bloqueado.":"El conteo se conserva en este teléfono para la cuenta y la fecha actuales.";
