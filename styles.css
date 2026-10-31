@@ -209,3 +209,19 @@ input,select,textarea{background:#1b1e22;border-color:#393c42;color:#f5f0e7}labe
   .daily-bills-table tfoot th{font-size:.75rem}
   .daily-bills-table tfoot th:last-child{font-size:.82rem;text-align:right;overflow-wrap:anywhere}
 }
+
+
+/* Panel de resumen del negocio */
+.dashboard-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:18px}
+.dashboard-card{min-width:0;padding:16px;border:1px solid var(--ei-line,#303238);border-radius:13px;background:var(--ei-card,#151719)}
+.dashboard-card h3{margin:0 0 12px;color:var(--ei-text,#eee);font-size:1rem}
+.dashboard-list{display:grid;gap:9px}
+.dashboard-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--ei-line,#303238);font-size:.86rem}
+.dashboard-row:last-child{border-bottom:0}
+.dashboard-row>span{min-width:0;display:grid;gap:3px}
+.dashboard-row small{color:var(--ei-muted,#aaa);font-size:.75rem}
+.dashboard-row strong{flex:0 0 auto;text-align:right;color:var(--ei-gold,#e7bd5c)}
+.low-stock-label{color:#e8a0a0!important;font-size:.78rem}
+#dashboardTab .stats .stat strong{overflow-wrap:anywhere}
+@media(max-width:900px){.dashboard-columns{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.dashboard-columns{grid-template-columns:1fr}.dashboard-card{padding:13px}#dashboardTab .stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
