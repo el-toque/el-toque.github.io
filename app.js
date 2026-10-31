@@ -4,7 +4,7 @@ const cfg=window.IPV_CONFIG||{};
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0)+" CUP";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-let client=null,user=null,profile=null,products=[],cart=[],categories=[],shopCategory="all",workerAllocations=[];
+let client=null,initPromise=null,user=null,profile=null,products=[],cart=[],categories=[],shopCategory="all",workerAllocations=[];
 // Almacenamiento local duradero para sesión de trabajador, catálogo y ventas pendientes.
 const OFFLINE_DB="ipv_digital_offline_v1";
 function offlineDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(OFFLINE_DB,1);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains("records"))db.createObjectStore("records");};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
@@ -76,7 +76,8 @@ $("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden")
 $("loginForm").addEventListener("submit",async e=>{
  e.preventDefault();fail("loginError","");
  const btn=$("loginForm").querySelector('button[type="submit"]');
- if(!client){fail("loginError","La aplicación todavía está cargando. Recarga la página.");return}
+ if(!client&&initPromise){btn.disabled=true;btn.textContent="Iniciando aplicación…";await initPromise;}
+ if(!client){if(btn){btn.disabled=false;btn.textContent="Entrar";}return}
  const original=btn?.textContent||"Entrar";if(btn){btn.disabled=true;btn.textContent="Verificando…";}
  try{
   const {data,error}=await client.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
@@ -328,7 +329,7 @@ $("editWorkerForm").addEventListener("submit",async e=>{
  try{const {data:{session}}=await client.auth.getSession();const payload={id:$("editWorkerId").value,full_name:$("editWorkerName").value.trim(),email:$("editWorkerEmail").value.trim(),password:$("editWorkerPassword").value,active:$("editWorkerActive").checked};const response=await fetch(cfg.url+"/functions/v1/update-worker",{method:"POST",headers:{"Content-Type":"application/json","apikey":cfg.publishableKey,"Authorization":"Bearer "+session.access_token},body:JSON.stringify(payload)});const result=await response.json();if(!response.ok)throw new Error(result.error||"No se pudieron guardar los cambios");$("editWorkerDialog").close();toast("Datos del trabajador actualizados");await loadWorkers();
  }catch(err){fail("editWorkerMessage",err.message)}finally{btn.disabled=false}
 });
-init();
+initPromise=init();
 })();
 
 // Retroalimentación táctil breve en botones compatibles con vibración.
