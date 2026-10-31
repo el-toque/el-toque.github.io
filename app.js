@@ -417,7 +417,7 @@ async function loadSales(){
  if(!user)return;
  const rows=[];
  for(let from=0;;from+=1000){
-  const {data,error}=await client.from("sales").select("id,worker_id,total,payment_method,transfer_code,status,created_at,profiles(full_name),sale_items(quantity,unit_price,products(name))").order("created_at",{ascending:false}).range(from,from+999);
+  const {data,error}=await client.from("sales").select("id,worker_id,total,payment_method,transfer_code,status,cancel_reason,created_at,profiles(full_name),sale_items(quantity,unit_price,products(name))").order("created_at",{ascending:false}).range(from,from+999);
   if(error){toast("Ventas: "+error.message);return}
   rows.push(...(data||[]));if(!data||data.length<1000)break;
  }
@@ -440,10 +440,21 @@ function renderAdminSales(){
  $("salesWorkerSummary").innerHTML=[...groups.values()].map(g=>'<article class="stat"><span>'+esc(g.name)+'</span><strong>'+g.count+' ventas</strong><small>CUP: '+money(g.cash)+' · Transferencias: '+money(g.transfer)+' · Total: '+money(g.total)+'</small></article>').join("")||'<p class="muted small">No hay ventas en este período.</p>';
  $("salesBody").innerHTML=rows.map(s=>{
   const items=(s.sale_items||[]).map(i=>esc(i.products?.name||"Producto")+" × "+(Number(i.quantity)||0)).join("<br>")||"—";
-  return '<tr><td>'+new Date(s.created_at).toLocaleString("es-ES")+'</td><td>'+esc(s.profiles?.full_name||"Trabajador")+'</td><td>'+items+'</td><td>'+money(s.total)+'</td><td>'+esc(({cash:"CUP",card:"Tarjeta",transfer:"Transferencia"})[s.payment_method]||s.payment_method||"—")+'</td><td>'+esc(s.transfer_code||"—")+'</td><td>'+esc(s.status||"—")+'</td></tr>';
+  return '<tr><td>'+new Date(s.created_at).toLocaleString("es-ES")+'</td><td>'+esc(s.profiles?.full_name||"Trabajador")+'</td><td>'+items+'</td><td>'+money(s.total)+'</td><td>'+esc(({cash:"CUP",card:"Tarjeta",transfer:"Transferencia"})[s.payment_method]||s.payment_method||"—")+'</td><td>'+esc(s.transfer_code||"—")+'</td><td>'+esc(s.status||"—")+(s.cancel_reason?'<small>'+esc(s.cancel_reason)+'</small>':"")+'</td><td>'+(s.status==="completed"?'<button class="mini-btn danger" data-cancel-sale="'+s.id+'">Cancelar</button>':"—")+'</td></tr>';
  }).join("");
  $("salesEmpty").classList.toggle("hidden",rows.length>0);
 }
+$("salesBody").addEventListener("click",async e=>{
+ const b=e.target.closest("[data-cancel-sale]");if(!b)return;
+ const sale=allAdminSales.find(x=>x.id===b.dataset.cancelSale);if(!sale||sale.status!=="completed")return;
+ const reason=prompt("Indica el motivo de la cancelación de esta venta:");if(reason===null)return;
+ if(reason.trim().length<4){toast("Escribe un motivo de al menos 4 caracteres.");return}
+ if(!confirm("¿Confirmas cancelar la venta? Las unidades volverán a las existencias del trabajador y quedará un registro permanente."))return;
+ b.disabled=true;const {data,error}=await client.rpc("admin_cancel_sale",{p_sale_id:sale.id,p_reason:reason.trim()});
+ if(error){b.disabled=false;toast("No se pudo cancelar: "+error.message);return}
+ toast("Venta cancelada y existencias restituidas.");
+ await Promise.all([loadSales(),loadProducts(),loadAdminDashboard(),loadActivity()]);
+});
 $("refreshSales").onclick=loadSales;
 ["salesFrom","salesTo","salesWorker"].forEach(id=>$(id).addEventListener("change",renderAdminSales));
 $("reserveBtn").onclick=async()=>{const qty=Number($("reserveQty").value),hours=Number($("reserveHours").value);if(!$("reserveProduct").value||!Number.isInteger(qty)||qty<1){fail("reserveMessage","Selecciona producto y cantidad válidos.");return}const {data,error}=await client.rpc("create_stock_reservation",{p_product_id:$("reserveProduct").value,p_quantity:qty,p_customer_phone:$("customerPhone").value.trim(),p_hours:hours});if(error){fail("reserveMessage",error.message);return}fail("reserveMessage","Reserva creada: "+data);await loadProducts();await loadReservations()};
