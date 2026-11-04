@@ -74,7 +74,7 @@ $("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden")
  $("addBtn").classList.toggle("hidden",!admin());$("exportInventory").classList.toggle("hidden",!admin());$("exportInventoryPdf").classList.toggle("hidden",!admin());$("manageCategoriesBtn").classList.toggle("hidden",!admin());$("workersNav").classList.toggle("hidden",!admin());$("adminTabs").classList.toggle("hidden",!admin());$("workerTabs").classList.toggle("hidden",admin());if(!admin()){document.querySelector('[data-tab="daily"]').classList.toggle("hidden",!workerPermission("can_view_own_closeout"));$("shopSellBtn").disabled=!workerPermission("can_sell");}
  document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
  if(admin()){document.querySelector('[data-tab="dashboard"]').classList.add("active");showSection("dashboard");}else{document.querySelector('[data-tab="shop"]').classList.add("active");showSection("shop");}
- await loadProducts();if(admin()){await Promise.all([loadSales(),loadReservations(),loadWorkers(),loadAdminDashboard(),loadAdminCloseouts(),loadSuppliers(),loadReceipts()]);}else{await loadWorkerAllocations();if(workerPermission("can_view_own_closeout")){await loadDailySales();await loadCloseoutHistory();}await cacheWorkerState();await updatePendingBadge();}
+ await loadProducts();if(admin()){await Promise.all([loadSales(),loadReservations(),loadWorkers(),loadAdminDashboard(),loadAdminCloseouts(),loadSuppliers(),loadReceipts()]);}else{await loadWorkerAllocations();if(workerPermission("can_view_own_closeout")){await loadDailySales();}await cacheWorkerState();await updatePendingBadge();}
 }
 $("loginForm").addEventListener("submit",async e=>{
  e.preventDefault();fail("loginError","");
@@ -214,7 +214,7 @@ let dailyStockCounts=new Map();
 let dailyBillCounts={};
 const dailyBillDenominations=[5000,2000,1000,500,200,100,50,20,10,5,3,1];
 let activeCloseout=null;
-async function loadDailySales(){if(!user||admin())return;if(!navigator.onLine){$("dailyCloseStatus").textContent="Sin conexión: el cuadre requiere datos actualizados del servidor. Las ventas guardadas siguen pendientes de sincronizar.";await updatePendingBadge();return;}const now=new Date(),start=new Date(now.getFullYear(),now.getMonth(),now.getDate()),end=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1);$("dailyDate").textContent=start.toLocaleDateString("es-ES",{weekday:"long",year:"numeric",month:"long",day:"numeric"});const {data,error}=await client.from("sales").select("id,total,payment_method,transfer_code,created_at,status,sale_items(product_id,quantity,unit_price,products(name))").eq("status","completed").gte("created_at",start.toISOString()).lt("created_at",end.toISOString()).order("created_at",{ascending:false});if(error){toast("No se pudo cargar el cuadre: "+error.message);return}const dayKey=localBusinessDate(start);
+async function loadDailySales(){if(!user||admin())return;const dayKey=localBusinessDate();dailyBillCounts=(await localGet("daily_bill_counts_"+user.id+"_"+dayKey))||{};renderDailyBillCounts();return;if(!navigator.onLine){$("dailyCloseStatus").textContent="Sin conexión: el cuadre requiere datos actualizados del servidor. Las ventas guardadas siguen pendientes de sincronizar.";await updatePendingBadge();return;}const now=new Date(),start=new Date(now.getFullYear(),now.getMonth(),now.getDate()),end=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1);$("dailyDate").textContent=start.toLocaleDateString("es-ES",{weekday:"long",year:"numeric",month:"long",day:"numeric"});const {data,error}=await client.from("sales").select("id,total,payment_method,transfer_code,created_at,status,sale_items(product_id,quantity,unit_price,products(name))").eq("status","completed").gte("created_at",start.toISOString()).lt("created_at",end.toISOString()).order("created_at",{ascending:false});if(error){toast("No se pudo cargar el cuadre: "+error.message);return}const dayKey=localBusinessDate(start);
  const {data:closed,error:closeErr}=await client.from("daily_closeouts").select("id,business_date,sales_count,cash_total,transfer_total,grand_total,cash_counted,cash_difference,bill_counts,stock_snapshot,closed_at").eq("business_date",dayKey).maybeSingle();
  if(closeErr){toast("No se pudo consultar el cierre: "+closeErr.message);return}
  activeCloseout=closed||null;
@@ -283,7 +283,7 @@ async function loadCloseoutHistory(){
  $("closeoutHistoryBody").innerHTML=(data||[]).map(c=>`<tr><td>${esc(c.business_date)}</td><td>${new Date(c.closed_at).toLocaleString("es-ES")}</td><td>${c.sales_count}</td><td>${money(c.cash_total)}</td><td>${money(c.transfer_total)}</td><td>${money(c.grand_total)}</td><td>${c.cash_counted===null?"—":money(c.cash_counted)}</td><td>${c.cash_difference===null?"—":money(c.cash_difference)}</td><td>${esc(c.id)}</td></tr>`).join("");
  $("closeoutHistoryEmpty").classList.toggle("hidden",!!(data||[]).length);
 }
-$("refreshDaily").onclick=async()=>{await loadDailySales();await loadCloseoutHistory();};
+$("refreshDaily")?.addEventListener("click",async()=>{await loadDailySales();});
 $("exportDaily").onclick=()=>{
  if(!dailyExportRows.length){toast("No hay ventas de hoy para exportar.");return}
  if(!window.XLSX){toast("No se pudo cargar el módulo de Excel. Comprueba tu conexión e inténtalo de nuevo.");return}
