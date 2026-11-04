@@ -54,11 +54,10 @@ async function init(){
  try{
   client=window.supabase.createClient(cfg.url,cfg.publishableKey);
   client.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showLogin();});
-  const {data,error}=await client.auth.getSession();
-  if(error)throw error;
-  if(data?.session){await enter(data.session.user);if(navigator.onLine)await syncPendingSales();}
-  else showLogin();
- }catch(error){showLogin();fail("loginError","No se pudo iniciar la aplicación: "+(error?.message||"Error inesperado")+". Recarga la página e inténtalo de nuevo.");}
+  // No bloquear el formulario intentando restaurar una sesión anterior.
+  showLogin();
+  $("sessionLabel").textContent="LISTO PARA ACCEDER";
+ }catch(error){showLogin();fail("loginError","No se pudo preparar el acceso: "+(error?.message||"Error inesperado")+". Recarga la página e inténtalo de nuevo.");}
 }
 function showLogin(){user=null;profile=null;$("appPanel").classList.add("hidden");$("loginPanel").classList.remove("hidden");$("sessionLabel").textContent="SIN SESIÓN"}
 async function enter(authUser){
