@@ -4,7 +4,7 @@ const cfg=window.IPV_CONFIG||{};
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0)+" CUP";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-let client=null,initPromise=null,user=null,profile=null,products=[],cart=[],categories=[],shopCategory="all",workerAllocations=[];
+let client=null,initPromise=null,user=null,profile=null,loginInProgress=false,products=[],cart=[],categories=[],shopCategory="all",workerAllocations=[];
 // Almacenamiento local duradero para sesión de trabajador, catálogo y ventas pendientes.
 const OFFLINE_DB="ipv_digital_offline_v1";
 function offlineDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(OFFLINE_DB,1);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains("records"))db.createObjectStore("records");};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
@@ -53,7 +53,7 @@ async function init(){
  if(!cfg.url||!cfg.publishableKey){$("sessionLabel").textContent="CONFIGURACIÓN PENDIENTE";$("loginPanel").classList.remove("hidden");fail("loginError","Falta configurar config.js con la URL y la clave publicable del proyecto.");return}
  try{
   client=window.supabase.createClient(cfg.url,cfg.publishableKey);
-  client.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT")showLogin();});
+  client.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT"&&!loginInProgress)showLogin();});
   // No bloquear el formulario intentando restaurar una sesión anterior.
   showLogin();
   $("sessionLabel").textContent="LISTO PARA ACCEDER";
@@ -84,15 +84,16 @@ $("loginForm").addEventListener("submit",async e=>{
  if(!client){if(btn){btn.disabled=false;btn.textContent="Entrar";}return}
  const original=btn?.textContent||"Entrar";if(btn){btn.disabled=true;btn.textContent="Verificando…";}
  try{
+  loginInProgress=true;
   const {data,error}=await client.auth.signInWithPassword({email,password});
   if(error)throw error;
   if(!data?.user)throw new Error("La autenticación no devolvió un usuario.");
   await enter(data.user);
   if(navigator.onLine&&!admin())await syncPendingSales();
- }catch(error){const message=error?.message||"No se pudo completar el inicio de sesión.";showLogin();fail("loginError","Error después de autenticar: "+message);console.error("[IPV login]",error);}
- finally{if(btn){btn.disabled=false;btn.textContent=original;}}
+ }catch(error){const message=error?.message||"No se pudo completar el inicio de sesión.";showLogin();$("email").value=email;$("password").value=password;fail("loginError","No se pudo completar el acceso: "+message);console.error("[IPV login]",error);}
+ finally{loginInProgress=false;if(btn){btn.disabled=false;btn.textContent=original;}}
 });
-$("logoutBtn").addEventListener("click",()=>client.auth.signOut());
+$("logoutBtn").addEventListener("click",async()=>{try{await client.auth.signOut();showLogin();}catch(error){toast("No se pudo cerrar la sesión: "+(error?.message||"Error inesperado"));}});
 function showSection(tab){["dashboard","inventory","purchases","sales","closeouts","activity","reservations","workers","shop","daily"].forEach(t=>$(t+"Tab").classList.toggle("hidden",t!==tab));}
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","reservations","workers"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();loadCloseoutHistory();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="purchases"){loadProducts();loadSuppliers();loadReceipts();}if(b.dataset.tab==="activity")loadActivity();}));
 async function loadProducts(){
