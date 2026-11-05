@@ -39,7 +39,7 @@ async function load(){
    rows=(last.rows||[]).map(r=>row(r.product,r.final,0,0,r.price));
  } else if(last?.shift_no===1&&last.business_date===day){
    throw new Error("El Turno 1 de hoy ya fue cerrado. Corresponde trabajar con el Turno 2.");
- } else rows=Array.from({length:20},()=>row());
+ } else {\n   const {data:allocs,error:allocError}=await db.from("worker_stock_allocations").select("quantity_remaining,products(name,price)").eq("worker_id",session.user.id);\n   if(allocError)throw allocError;\n   const seeded=(allocs||[]).map(a=>row(a.products?.name||"",Number(a.quantity_remaining)||0,0,0,Number(a.products?.price)||0));\n   rows=seeded.length?seeded:Array.from({length:20},()=>row());\n }
  const saved=localStorage.getItem(key());
  if(saved){try{const draft=JSON.parse(saved);if(Array.isArray(draft)&&draft.length)rows=draft;}catch(_){}}
  if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));
