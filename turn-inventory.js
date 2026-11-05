@@ -43,7 +43,7 @@ async function load(){
  const saved=localStorage.getItem(key());
  if(saved){try{const draft=JSON.parse(saved);if(Array.isArray(draft)&&draft.length)rows=draft;}catch(_){}}
  if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));
- closure=null;setMeta();render();
+ closure=null;setMeta();$("turnDocumentNo").textContent="N°"+String((last?.closure_no||0)+1).padStart(2,"0");render();
  $("closeTurnBtn").disabled=false;
  status("Puedes editar las celdas habilitadas. Las columnas calculadas están protegidas.");
  await history();
@@ -92,7 +92,7 @@ $("closeTurnBtn")?.addEventListener("click",async()=>{
   if(!payload.length)throw new Error("Añade al menos un producto antes de cerrar.");
   for(const r of payload){if([r.start,r.entry,r.sold,r.price].some(n=>!Number.isFinite(n)||n<0)||r.sold>r.start+r.entry)throw new Error("Revisa "+r.product+": Vendido no puede superar Disponible y no se admiten valores negativos.");}
   const {data,error}=await db.rpc("close_worker_turn",{p_rows:payload,p_business_date:dateKey()});if(error)throw error;
-  closure=data;const date=data.business_date,number=data.closure_no;
+  closure=data;const date=data.business_date,number=data.closure_no;$("turnDocumentNo").textContent="N°"+String(number).padStart(2,"0");
   exportData(data.rows,number,data.shift_no,date);
   localStorage.removeItem(key());
   status("Turno cerrado correctamente. Documento N°"+String(number).padStart(2,"0")+". Total: "+money(data.total)+".");
