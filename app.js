@@ -103,7 +103,7 @@ function showSection(tab){["dashboard","inventory","purchases","sales","closeout
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","reservations","workers"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="purchases"){loadProducts();loadSuppliers();loadReceipts();}if(b.dataset.tab==="activity")loadActivity();}));
 async function ensureTurnContext(){
  const day=localBusinessDate();
- const {data,error}=await client.rpc("get_last_worker_turn",{p_business_date:day});
+ const {data,error}=await client.rpc("get_last_worker_turn_v2",{p_business_date:day});
  if(error)throw error;
  if(!data?.is_my_turn)throw new Error("Este no es el turno activo. Actualiza IPV o espera el cierre del otro trabajador.");
  const context={businessDate:day,sessionNo:Number(data.session_no)||1,shift:Number((user?.email||"").toLowerCase()==="dependiente1@eltoque.com"?1:2)};
