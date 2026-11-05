@@ -45,25 +45,14 @@ function exportCurrent(format){
 }
 function setMeta(){ const d=new Date(businessDate+"T12:00:00"); $("turnShift").textContent=shiftLabel();$("turnDate").textContent=d.toLocaleDateString("es-ES",{weekday:"long",year:"numeric",month:"long",day:"numeric"}); }
 async function load(){
- const {data:last,error}=await db.rpc("get_last_worker_turn");
+ const day=dateKey();
+ const {data:last,error}=await db.rpc("get_last_worker_turn",{p_business_date:day});
  if(error)throw error;
- let day=dateKey();
- if(shift===2){
-   if(!last||last.shift_no!==1)throw new Error("El Turno 2 estará disponible cuando se haya cerrado el Turno 1.");
-   day=last.business_date;
-   rows=(last.rows||[]).map(r=>row(r.product,r.final,0,0,r.price));
- } else if(last?.shift_no===2){
-   const next=new Date(last.business_date+"T12:00:00");
-   next.setDate(next.getDate()+1);
-   day=next.getFullYear()+"-"+String(next.getMonth()+1).padStart(2,"0")+"-"+String(next.getDate()).padStart(2,"0");
-   rows=(last.rows||[]).map(r=>row(r.product,r.final,0,0,r.price));
- } else if(last?.shift_no===1){
-   if(last.business_date===day)throw new Error("El Turno 1 de hoy ya fue cerrado. Corresponde trabajar con el Turno 2.");
-   throw new Error("Falta cerrar el Turno 2 de la fecha "+last.business_date+". No se puede iniciar otro día hasta completar ese cierre.");
- } else {
-   rows=Array.from({length:20},()=>row());
- }
- businessDate=day;
+ if(!last?.is_my_turn)throw new Error("Este no es el turno activo. El otro trabajador debe completar su cierre.");
+ businessDate=day;sessionNo=Number(last.session_no)||1;
+ window.IPV_TURN_CONTEXT={businessDate,sessionNo,shift};
+ rows=(last.last_rows||[]).map(r=>row(r.product,r.final,0,0,r.price));
+ if(!rows.length)rows=Array.from({length:20},()=>row());
  if(navigator.onLine){
   const {data:live,error:liveError}=await db.rpc("worker_get_turn_inventory",{p_business_date:businessDate,p_session_no:sessionNo});
   if(liveError)throw liveError;
@@ -72,9 +61,9 @@ async function load(){
  const saved=localStorage.getItem(key());
  if(!rows.some(r=>r.product.trim())&&saved){try{const draft=JSON.parse(saved);if(Array.isArray(draft)&&draft.length)rows=draft;}catch(_){}}
  if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));
- closure=null;setMeta();$("turnDocumentNo").textContent="N°"+String((last?.last_closure_no||0)+1).padStart(2,"0");render();
+ closure=null;setMeta();$("turnDocumentNo").textContent="N°"+String((last.last_closure_no||0)+1).padStart(2,"0");render();
  $("closeTurnBtn").disabled=false;
- status("Puedes editar las celdas habilitadas. Las columnas calculadas están protegidas.");
+ status("Sesión "+sessionNo+" activa. Puedes editar las celdas habilitadas.");
  await persistRows();
  await history();
 }
