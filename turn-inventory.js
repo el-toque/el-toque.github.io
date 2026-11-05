@@ -55,7 +55,7 @@ async function load(){
  rows=(last.last_rows||[]).map(r=>row(r.product,r.final,0,0,r.price));
  if(!rows.length)rows=Array.from({length:20},()=>row());
  if(navigator.onLine){
-  const {data:live,error:liveError}=await db.rpc("worker_get_turn_inventory",{p_business_date:businessDate,p_session_no:sessionNo});
+  const {data:live,error:liveError}=await db.rpc("worker_get_turn_inventory_v2",{p_business_date:businessDate,p_session_no:sessionNo});
   if(liveError)throw liveError;
   if(Array.isArray(live)&&live.length)rows=live.map(x=>row(x.product_name,x.start_qty,x.entry_qty,x.sold_qty,x.price));
  }
@@ -133,5 +133,5 @@ $("closeTurnBtn")?.addEventListener("click",async()=>{
 });
 const observer=new MutationObserver(()=>{if($("appPanel")?.classList.contains("hidden")){ready=false;session=null;shift=0;rows=[];}else init();});
 observer.observe($("appPanel"),{attributes:true,attributeFilter:["class"]});
-window.addEventListener("online",init);window.addEventListener("ipv:turn-inventory-refresh",async()=>{if(!session||!navigator.onLine)return;try{const {data,error}=await db.rpc("worker_get_turn_inventory",{p_business_date:businessDate,p_session_no:sessionNo});if(error)throw error;if(Array.isArray(data)){rows=data.map(x=>row(x.product_name,x.start_qty,x.entry_qty,x.sold_qty,x.price));if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));render();await saveDraft();}}catch(e){status("No se pudo actualizar la tabla tras la venta: "+e.message);}});document.addEventListener("visibilitychange",()=>{if(!document.hidden)init();});
+window.addEventListener("online",init);window.addEventListener("ipv:turn-inventory-refresh",async()=>{if(!session||!navigator.onLine)return;try{const {data,error}=await db.rpc("worker_get_turn_inventory_v2",{p_business_date:businessDate,p_session_no:sessionNo});if(error)throw error;if(Array.isArray(data)){rows=data.map(x=>row(x.product_name,x.start_qty,x.entry_qty,x.sold_qty,x.price));if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));render();await saveDraft();}}catch(e){status("No se pudo actualizar la tabla tras la venta: "+e.message);}});document.addEventListener("visibilitychange",()=>{if(!document.hidden)init();});
 })();
