@@ -53,7 +53,7 @@ async function init(){
  if(!cfg.url||!cfg.publishableKey){$("sessionLabel").textContent="CONFIGURACIÓN PENDIENTE";$("loginPanel").classList.remove("hidden");fail("loginError","Falta configurar config.js con la URL y la clave publicable del proyecto.");return}
  try{
   client=window.supabase.createClient(cfg.url,cfg.publishableKey);
-  client.auth.onAuthStateChange((event)=>{if(event==="SIGNED_OUT"&&!loginInProgress)showLogin();});
+  client.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"&&!session&&!loginInProgress&&user){showLogin();fail("loginError","La sesión se cerró. Vuelve a iniciar sesión.");}});
   // No bloquear el formulario intentando restaurar una sesión anterior.
   showLogin();
   $("sessionLabel").textContent="LISTO PARA ACCEDER";
@@ -77,6 +77,8 @@ $("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden")
 }
 $("loginForm").addEventListener("submit",async e=>{
  e.preventDefault();fail("loginError","");
+ // Bloquea los cambios de pantalla por eventos de autenticación durante todo el intento.
+ loginInProgress=true;
  // Captura los datos antes de cualquier espera para no perder el autocompletado del teléfono.
  const email=$("email").value.trim(),password=$("password").value;
  const btn=$("loginForm").querySelector('button[type="submit"]');
@@ -84,7 +86,6 @@ $("loginForm").addEventListener("submit",async e=>{
  if(!client){if(btn){btn.disabled=false;btn.textContent="Entrar";}return}
  const original=btn?.textContent||"Entrar";if(btn){btn.disabled=true;btn.textContent="Verificando…";}
  try{
-  loginInProgress=true;
   const {data,error}=await client.auth.signInWithPassword({email,password});
   if(error)throw error;
   if(!data?.user)throw new Error("La autenticación no devolvió un usuario.");
