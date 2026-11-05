@@ -17,7 +17,7 @@ function render(){
  <td><input data-field="entry" type="number" min="0" step="1" inputmode="decimal" value="${r.entry}"></td>
  <td class="calculated">${c.available}</td>
  <td class="calculated">${c.final}</td>
- <td><input data-field="sold" type="number" min="0" step="1" inputmode="decimal" value="${r.sold}"></td>
+ <td class="calculated sold" aria-label="Vendido protegido">${r.sold}</td>
  <td><input data-field="price" type="number" min="0" step="0.01" inputmode="decimal" value="${r.price}"></td>
  <td class="calculated amount">${money(c.amount)}</td>
  </tr>`;}).join("");
