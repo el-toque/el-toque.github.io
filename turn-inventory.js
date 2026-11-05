@@ -41,9 +41,13 @@ async function load(){
    if(last.business_date===day)throw new Error("El Turno 1 de hoy ya fue cerrado. Corresponde trabajar con el Turno 2.");
    throw new Error("Falta cerrar el Turno 2 de la fecha "+last.business_date+". No se puede iniciar otro día hasta completar ese cierre.");
  } else {
-   const {data:allocs,error:allocError}=await db.from("worker_stock_allocations").select("quantity_remaining,products(name,price)").eq("worker_id",session.user.id);
+   const {data:allocs,error:allocError}=await db.from("worker_stock_allocations").select("product_id,quantity_remaining").eq("worker_id",session.user.id);
    if(allocError)throw allocError;
-   const seeded=(allocs||[]).map(a=>row(a.products?.name||"",Number(a.quantity_remaining)||0,0,0,Number(a.products?.price)||0));
+   const ids=(allocs||[]).map(a=>a.product_id);
+   const {data:catalog,error:catalogError}=ids.length?await db.from("products").select("id,name,price").in("id",ids):{data:[],error:null};
+   if(catalogError)throw catalogError;
+   const byId=new Map((catalog||[]).map(p=>[p.id,p]));
+   const seeded=(allocs||[]).map(a=>{const p=byId.get(a.product_id);return row(p?.name||"",Number(a.quantity_remaining)||0,0,0,Number(p?.price)||0);}).filter(r=>r.product);
    rows=seeded.length?seeded:Array.from({length:20},()=>row());
  }
  const saved=localStorage.getItem(key());
