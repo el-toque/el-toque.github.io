@@ -37,8 +37,9 @@ async function load(){
    rows=(last.rows||[]).map(r=>row(r.product,r.final,0,0,r.price));
  } else if(last?.shift_no===2){
    rows=(last.rows||[]).map(r=>row(r.product,r.final,0,0,r.price));
- } else if(last?.shift_no===1&&last.business_date===day){
-   throw new Error("El Turno 1 de hoy ya fue cerrado. Corresponde trabajar con el Turno 2.");
+ } else if(last?.shift_no===1){
+   if(last.business_date===day)throw new Error("El Turno 1 de hoy ya fue cerrado. Corresponde trabajar con el Turno 2.");
+   throw new Error("Falta cerrar el Turno 2 de la fecha "+last.business_date+". No se puede iniciar otro día hasta completar ese cierre.");
  } else {
    const {data:allocs,error:allocError}=await db.from("worker_stock_allocations").select("quantity_remaining,products(name,price)").eq("worker_id",session.user.id);
    if(allocError)throw allocError;
