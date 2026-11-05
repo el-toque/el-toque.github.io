@@ -37,7 +37,7 @@ async function syncPendingSales(){
     ? await client.rpc("worker_turn_create_sale",{p_items:entry.items.map(x=>({turn_item_id:x.product_id,quantity:x.quantity})),p_payment_method:entry.payment_method,p_idempotency_key:entry.id,p_transfer_code:entry.transfer_code,p_business_date:entry.business_date})
     : await client.rpc("create_sale",{p_items:entry.items,p_payment_method:entry.payment_method,p_idempotency_key:entry.id,p_notes:null,p_transfer_code:entry.transfer_code,p_business_date:entry.business_date});
    if(error){entry.last_error=error.message;entry.status="error";queue=queue.map(x=>x.id===entry.id?entry:x);await localPut("pending_sales",queue);toast("Una venta sigue pendiente: "+error.message);break;}
-   queue=queue.filter(x=>x.id!==entry.id);await localPut("pending_sales",queue);toast("Venta pendiente sincronizada. Folio: "+data);
+   queue=queue.filter(x=>x.id!==entry.id);await localPut("pending_sales",queue);if(entry.turn_inventory)window.dispatchEvent(new Event("ipv:turn-inventory-refresh"));toast("Venta pendiente sincronizada. Folio: "+data);
   }
   await updatePendingBadge();
   if(!(await pendingSales()).length){await loadProducts();await loadWorkerAllocations();await loadDailySales();}
@@ -239,7 +239,7 @@ async function loadDailySales(){if(!user||admin())return;const dayKey=localBusin
  for(const sale of (data||[]))for(const item of (sale.sale_items||[]))soldByProduct.set(item.product_id,(soldByProduct.get(item.product_id)||0)+Number(item.quantity||0));
  dailyStockRows=workerAllocations.map(a=>{const p=products.find(x=>x.id===a.product_id);if(!p)return null;const expected=Number(a.quantity_remaining)||0;const sold=Number(a.quantity_assigned||0)-expected;const saved=dailyStockCounts.get(a.product_id);const validSaved=saved&&Number(saved.expected_quantity)===expected;return {product_id:a.product_id,name:p.name,assigned:Number(a.quantity_assigned)||expected+sold,sold,expected,physical:validSaved?Number(saved.physical_quantity):null,difference:validSaved?Number(saved.physical_quantity)-expected:null};}).filter(Boolean);
  renderDailyStockCounts();
- const rows=data||[];dailyExportRows=rows;const cash=rows.filter(x=>x.payment_method==="cash").reduce((a,x)=>a+Number(x.total),0),transfer=rows.filter(x=>x.payment_method==="transfer").reduce((a,x)=>a+Number(x.total),0),total=cash+transfer;$("dailyCount").textContent=rows.length;$("dailyCash").textContent=money(cash);$("dailyTransfer").textContent=money(transfer);$("dailyTotal").textContent=money(total);$("dailySalesBody").innerHTML=rows.map(x=>{const items=(x.sale_items||[]).map(i=>`${esc(i.product_name||i.product_name||i.products?.name||"Producto")} × ${Number(i.quantity)||0}`).join("<br>")||"—";return `<tr><td>${new Date(x.created_at).toLocaleTimeString("es-ES")}</td><td>${items}</td><td>${money(x.total)}</td><td>${x.payment_method==="cash"?"CUP":"Transferencia"}</td><td>${esc(x.transfer_code||"—")}</td></tr>`}).join("");$("dailyEmpty").classList.toggle("hidden",rows.length>0);await updatePendingBadge();}
+ const rows=data||[];dailyExportRows=rows;const cash=rows.filter(x=>x.payment_method==="cash").reduce((a,x)=>a+Number(x.total),0),transfer=rows.filter(x=>x.payment_method==="transfer").reduce((a,x)=>a+Number(x.total),0),total=cash+transfer;$("dailyCount").textContent=rows.length;$("dailyCash").textContent=money(cash);$("dailyTransfer").textContent=money(transfer);$("dailyTotal").textContent=money(total);$("dailySalesBody").innerHTML=rows.map(x=>{const items=(x.sale_items||[]).map(i=>`${esc(i.product_name||i.products?.name||"Producto")} × ${Number(i.quantity)||0}`).join("<br>")||"—";return `<tr><td>${new Date(x.created_at).toLocaleTimeString("es-ES")}</td><td>${items}</td><td>${money(x.total)}</td><td>${x.payment_method==="cash"?"CUP":"Transferencia"}</td><td>${esc(x.transfer_code||"—")}</td></tr>`}).join("");$("dailyEmpty").classList.toggle("hidden",rows.length>0);await updatePendingBadge();}
 function renderDailyStockCounts(){
  const body=$("dailyStockBody");if(!body)return;
  body.innerHTML=dailyStockRows.map(r=>{const value=r.physical===null?"":r.physical;const diff=r.difference===null?"Pendiente":(r.difference>0?"+":"")+r.difference;return `<tr><td>${esc(r.name)}</td><td>${r.assigned}</td><td>${r.sold}</td><td><strong>${r.expected}</strong></td><td><input class="daily-physical-input" type="number" min="0" step="1" inputmode="numeric" data-stock-count="${r.product_id}" value="${value}" aria-label="Conteo físico de ${esc(r.name)}" ${activeCloseout||!workerPermission("can_count_stock")?"disabled":""}></td><td>${diff}</td></tr>`}).join("")||'<tr><td colspan="6">No tienes productos asignados.</td></tr>';
@@ -334,7 +334,7 @@ const exportDailyPdfButton=$("exportDailyPdf");if(exportDailyPdfButton)exportDai
  const body=[];
  for(const sale of dailyExportRows){
   const when=new Date(sale.created_at);
-  const products=(sale.sale_items||[]).map(i=>(i.product_name||i.product_name||i.products?.name||"Producto")+" × "+(Number(i.quantity)||0)).join(", ")||"—";
+  const products=(sale.sale_items||[]).map(i=>(i.product_name||i.products?.name||"Producto")+" × "+(Number(i.quantity)||0)).join(", ")||"—";
   body.push([when.toLocaleTimeString("es-ES"),products,Number(sale.total||0).toFixed(2)+" CUP",sale.payment_method==="cash"?"CUP":"Transferencia",sale.transfer_code||"—",String(sale.id||"")]);
  }
  if(typeof doc.autoTable!=="function"){toast("No se pudo preparar la tabla PDF. Comprueba tu conexión.");return}
@@ -452,7 +452,7 @@ function renderAdminSales(){
  rows.filter(s=>s.status==="completed").forEach(s=>{const id=s.worker_id||"unknown",g=groups.get(id)||{name:s.profiles?.full_name||"Trabajador",count:0,cash:0,transfer:0,total:0};g.count++;g.total+=Number(s.total)||0;if(s.payment_method==="transfer")g.transfer+=Number(s.total)||0;else g.cash+=Number(s.total)||0;groups.set(id,g);});
  $("salesWorkerSummary").innerHTML=[...groups.values()].map(g=>'<article class="stat"><span>'+esc(g.name)+'</span><strong>'+g.count+' ventas</strong><small>CUP: '+money(g.cash)+' · Transferencias: '+money(g.transfer)+' · Total: '+money(g.total)+'</small></article>').join("")||'<p class="muted small">No hay ventas en este período.</p>';
  $("salesBody").innerHTML=rows.map(s=>{
-  const items=(s.sale_items||[]).map(i=>esc(i.product_name||i.product_name||i.products?.name||"Producto")+" × "+(Number(i.quantity)||0)).join("<br>")||"—";
+  const items=(s.sale_items||[]).map(i=>esc(i.product_name||i.products?.name||"Producto")+" × "+(Number(i.quantity)||0)).join("<br>")||"—";
   return '<tr><td>'+new Date(s.created_at).toLocaleString("es-ES")+'</td><td>'+esc(s.profiles?.full_name||"Trabajador")+'</td><td>'+items+'</td><td>'+money(s.total)+'</td><td>'+esc(({cash:"CUP",card:"Tarjeta",transfer:"Transferencia"})[s.payment_method]||s.payment_method||"—")+'</td><td>'+esc(s.transfer_code||"—")+'</td><td>'+esc(s.status||"—")+(s.cancel_reason?'<small>'+esc(s.cancel_reason)+'</small>':"")+'</td><td>'+(s.status==="completed"?'<button class="mini-btn danger" data-cancel-sale="'+s.id+'">Cancelar</button>':"—")+'</td></tr>';
  }).join("");
  $("salesEmpty").classList.toggle("hidden",rows.length>0);
