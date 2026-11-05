@@ -118,7 +118,7 @@ $("closeTurnBtn")?.addEventListener("click",async()=>{
  }catch(e){status("No se pudo cerrar: "+(e.message||"Error inesperado"));$("closeTurnBtn").disabled=false;}
  finally{working=false;}
 });
-const observer=new MutationObserver(()=>{if(!$("appPanel")?.classList.contains("hidden"))init();});
+const observer=new MutationObserver(()=>{if($("appPanel")?.classList.contains("hidden")){ready=false;session=null;shift=0;rows=[];}else init();});
 observer.observe($("appPanel"),{attributes:true,attributeFilter:["class"]});
 window.addEventListener("online",init);document.addEventListener("visibilitychange",()=>{if(!document.hidden)init();});
 })();
