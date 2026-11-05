@@ -87,10 +87,9 @@ async function init(){
  if(ready||!window.IPV_CONFIG?.url||!window.supabase)return;
  const {url,publishableKey}=window.IPV_CONFIG;db=window.supabase.createClient(url,publishableKey);
  const {data,error}=await db.auth.getSession();if(error||!data.session)return;
- session=data.session;const email=(session.user.email||"").toLowerCase();
+ session=data.session;ready=true;const email=(session.user.email||"").toLowerCase();
  shift=email==="dependiente1@eltoque.com"?1:email==="dependiente2@eltoque.com"?2:0;
  if(!shift)return;
- ready=true;
  try{await load();}catch(e){$("closeTurnBtn").disabled=true;status(e.message||"No se pudo cargar el turno.");}
 }
 $("addTurnRow")?.addEventListener("click",()=>{rows.push(row());render();saveDraft();});
