@@ -32,7 +32,7 @@ async function persistRows(){
  const payload=rows.filter(r=>r.product.trim()!=="").map(r=>({product:r.product.trim(),start:Number(r.start)||0,entry:Number(r.entry)||0,sold:Number(r.sold)||0,price:Number(r.price)||0}));
  const {error}=await db.rpc("worker_save_turn_inventory",{p_rows:payload,p_business_date:dateKey()});
  if(error)status("No se pudo sincronizar la tabla: "+error.message);
- else status("Tabla guardada y sincronizada con la tienda.");
+ else{status("Tabla guardada y sincronizada con la tienda.");window.dispatchEvent(new Event("ipv:turn-inventory-saved"));}
 }
 function shiftLabel(){return shift===1?"Turno 1":"Turno 2";}
 function setMeta(){ $("turnShift").textContent=shiftLabel();$("turnDate").textContent=new Date().toLocaleDateString("es-ES",{weekday:"long",year:"numeric",month:"long",day:"numeric"}); }
