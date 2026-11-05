@@ -35,6 +35,14 @@ async function persistRows(){
  else{status("Tabla guardada y sincronizada con la tienda.");window.dispatchEvent(new Event("ipv:turn-inventory-saved"));}
 }
 function shiftLabel(){return shift===1?"Turno 1":"Turno 2";}
+function exportCurrent(format){
+ if(!session||!shift||!rows.length){status("No hay datos del turno para exportar.");return;}
+ const savedRows=rows.filter(r=>r.product.trim()!=="").map(r=>{const c=calc(r);return {product:r.product,start:Number(r.start)||0,entry:Number(r.entry)||0,available:c.available,final:c.final,sold:Number(r.sold)||0,price:Number(r.price)||0,amount:c.amount};});
+ if(!savedRows.length){status("Añade al menos un producto antes de exportar.");return;}
+ const match=($("turnDocumentNo").textContent.match(/\d+/)||[])[0]||"01";
+ exportData(savedRows,Number(match),shift,dateKey(),format);
+ status(format==="xlsx"?"Archivo Excel preparado.":"Archivo PDF preparado.");
+}
 function setMeta(){ $("turnShift").textContent=shiftLabel();$("turnDate").textContent=new Date().toLocaleDateString("es-ES",{weekday:"long",year:"numeric",month:"long",day:"numeric"}); }
 async function load(){
  const {data:last,error}=await db.rpc("get_last_worker_turn");
@@ -70,18 +78,18 @@ async function history(){
  if(error){$("turnHistory").innerHTML="<p>No se pudo cargar el historial.</p>";return;}
  $("turnHistory").innerHTML=(data||[]).map(x=>`<div class="turn-history-row"><strong>N°${String(x.closure_no).padStart(2,"0")} · Turno ${x.shift_no}</strong><span>${esc(x.business_date)} · ${money(x.total)}</span></div>`).join("")||"<p class='muted small'>Todavía no hay turnos cerrados.</p>";
 }
-function exportData(savedRows,number,shiftNo,date){
+function exportData(savedRows,number,shiftNo,date,format="both"){
  const billCounts={};document.querySelectorAll("#dailyBillsBody [data-bill-denomination]").forEach(el=>billCounts[el.dataset.billDenomination]=Number(el.value)||0);
  const bills=denominations.filter(v=>billCounts[v]>0).map(v=>({"Denominación":v+" CUP","Cantidad de billetes":billCounts[v],"Importe":v*billCounts[v]}));
  const billTotal=denominations.reduce((n,v)=>n+v*(billCounts[v]||0),0);
  bills.push({"Denominación":"TOTAL EFECTIVO CONTADO","Cantidad de billetes":denominations.reduce((n,v)=>n+(billCounts[v]||0),0),"Importe":billTotal});
- if(window.XLSX){const data=savedRows.map(r=>({Producto:r.product,Inicio:r.start,Entrada:r.entry,Disponible:r.available,Final:r.final,Vendido:r.sold,Precio:r.price,Importe:r.amount}));
+ if((format==="xlsx"||format==="both")&&window.XLSX){const data=savedRows.map(r=>({Producto:r.product,Inicio:r.start,Entrada:r.entry,Disponible:r.available,Final:r.final,Vendido:r.sold,Precio:r.price,Importe:r.amount}));
  data.push({Producto:"TOTAL GENERAL",Inicio:"",Entrada:"",Disponible:"",Final:"",Vendido:"",Precio:"",Importe:savedRows.reduce((n,r)=>n+r.amount,0)});
  const wb=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet([{Cuenta:session.user.user_metadata?.full_name||session.user.email,Correo:session.user.email,Turno:"Turno "+shiftNo,Documento:"N°"+String(number).padStart(2,"0"),Fecha:date,Total:money(savedRows.reduce((n,r)=>n+r.amount,0))}]),"Datos");
  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data),"Turno");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(bills),"Conteo de billetes");
  XLSX.writeFile(wb,"IPV_Turno_"+number+"_"+date+".xlsx");}
- if(window.jspdf?.jsPDF){const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
+ if((format==="pdf"||format==="both")&&window.jspdf?.jsPDF){const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
  doc.setFontSize(16);doc.text("IPV Digital · "+shiftLabel()+" · N°"+String(number).padStart(2,"0"),14,14);doc.setFontSize(9);
  doc.text("Cuenta: "+(session.user.user_metadata?.full_name||session.user.email),14,20);doc.text("Correo: "+session.user.email+" · Fecha: "+date,14,25);
  const tableRows=savedRows.map(r=>[r.product,r.start,r.entry,r.available,r.final,r.sold,r.price.toFixed(2),r.amount.toFixed(2)]);
@@ -100,6 +108,8 @@ async function init(){
  try{await load();}catch(e){$("closeTurnBtn").disabled=true;status(e.message||"No se pudo cargar el turno.");}
 }
 $("addTurnRow")?.addEventListener("click",()=>{rows.push(row());render();persistRows();});
+$("exportTurnXlsx")?.addEventListener("click",()=>exportCurrent("xlsx"));
+$("exportTurnPdf")?.addEventListener("click",()=>exportCurrent("pdf"));
 $("turnRows")?.addEventListener("change",()=>persistRows());
 $("turnRows")?.addEventListener("input",e=>{
  const input=e.target.closest("[data-field]");if(!input)return;const tr=input.closest("[data-row]"),i=Number(tr.dataset.row),field=input.dataset.field;
