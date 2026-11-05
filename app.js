@@ -260,14 +260,14 @@ $("dailyBillsBody")?.addEventListener("change",async e=>{
  try{await localPut("daily_bill_counts_"+user.id+"_"+localBusinessDate(),dailyBillCounts);}
  catch(error){toast("No se pudo guardar el conteo de billetes en este teléfono.");}
 });
-$("dailyStockBody").addEventListener("change",async e=>{
+$("dailyStockBody")?.addEventListener("change",async e=>{
  const input=e.target.closest("[data-stock-count]");if(!input)return;const quantity=Number(input.value);if(!Number.isInteger(quantity)||quantity<0){toast("Introduce una cantidad entera igual o mayor que cero.");return;}
  const row=dailyStockRows.find(r=>r.product_id===input.dataset.stockCount);if(!row)return;input.disabled=true;
  const {data,error}=await client.from("worker_daily_stock_counts").upsert({worker_id:user.id,business_date:localBusinessDate(),product_id:row.product_id,expected_quantity:row.expected,physical_quantity:quantity,counted_at:new Date().toISOString()},{onConflict:"worker_id,business_date,product_id"}).select("product_id,expected_quantity,physical_quantity,counted_at").single();
  input.disabled=false;if(error){toast("No se pudo guardar el conteo: "+error.message);return;}
  dailyStockCounts.set(row.product_id,data);row.physical=quantity;row.difference=quantity-row.expected;renderDailyStockCounts();toast("Conteo físico guardado.");
 });
-$("closeDaily").onclick=async()=>{
+const closeDailyButton=$("closeDaily");if(closeDailyButton)closeDailyButton.onclick=async()=>{
  if(!navigator.onLine){toast("Necesitas conexión para cerrar la jornada.");return}
  if(await updatePendingBadge()){toast("Primero sincroniza todas las ventas pendientes.");return}
  if(activeCloseout){toast("Esta jornada ya está cerrada.");return}
@@ -285,7 +285,7 @@ async function loadCloseoutHistory(){
  $("closeoutHistoryEmpty").classList.toggle("hidden",!!(data||[]).length);
 }
 $("refreshDaily")?.addEventListener("click",async()=>{await loadDailySales();});
-$("exportDaily").onclick=()=>{
+const exportDailyButton=$("exportDaily");if(exportDailyButton)exportDailyButton.onclick=()=>{
  if(!dailyExportRows.length){toast("No hay ventas de hoy para exportar.");return}
  if(!window.XLSX){toast("No se pudo cargar el módulo de Excel. Comprueba tu conexión e inténtalo de nuevo.");return}
  const detail=[];
@@ -307,7 +307,7 @@ $("exportDaily").onclick=()=>{
 };
 
 
-$("exportDailyPdf").onclick=()=>{
+const exportDailyPdfButton=$("exportDailyPdf");if(exportDailyPdfButton)exportDailyPdfButton.onclick=()=>{
  if(!dailyExportRows.length){toast("No hay ventas de hoy para exportar.");return}
  if(!window.jspdf?.jsPDF){toast("No se pudo cargar el módulo PDF. Comprueba tu conexión e inténtalo de nuevo.");return}
  const {jsPDF}=window.jspdf;const doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
