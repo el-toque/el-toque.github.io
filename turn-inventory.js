@@ -3,9 +3,9 @@
 const $=id=>document.getElementById(id), money=n=>new Intl.NumberFormat("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0)+" CUP";
 const dateKey=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let db=null,session=null,shift=0,rows=[],closure=null,ready=false,working=false,businessDate=dateKey();
+let db=null,session=null,shift=0,rows=[],closure=null,ready=false,working=false,businessDate=dateKey(),sessionNo=1;
 const denominations=[5000,2000,1000,500,200,100,50,20,10,5,3,1];
-const key=()=> "ipv_turn_draft_"+session.user.id+"_"+businessDate+"_"+shift;
+const key=()=> "ipv_turn_draft_"+session.user.id+"_"+businessDate+"_"+shift+"_"+sessionNo;
 function row(product="",start=0,entry=0,sold=0,price=0){return {product,start,entry,sold,price};}
 function calc(r){const available=Number(r.start)+Number(r.entry),sold=Number(r.sold),price=Number(r.price);return {available,final:available-sold,amount:sold*price};}
 function total(){return rows.reduce((n,r)=>n+calc(r).amount,0);}
@@ -30,7 +30,7 @@ async function persistRows(){
  await saveDraft();
  if(!navigator.onLine||!db||!session)return;
  const payload=rows.filter(r=>r.product.trim()!=="").map(r=>({product:r.product.trim(),start:Number(r.start)||0,entry:Number(r.entry)||0,sold:Number(r.sold)||0,price:Number(r.price)||0}));
- const {error}=await db.rpc("worker_save_turn_inventory",{p_rows:payload,p_business_date:businessDate});
+ const {error}=await db.rpc("worker_save_turn_inventory",{p_rows:payload,p_business_date:businessDate,p_session_no:sessionNo});
  if(error)status("No se pudo sincronizar la tabla: "+error.message);
  else{status("Tabla guardada y sincronizada con la tienda.");window.dispatchEvent(new Event("ipv:turn-inventory-saved"));}
 }
@@ -65,14 +65,14 @@ async function load(){
  }
  businessDate=day;
  if(navigator.onLine){
-  const {data:live,error:liveError}=await db.rpc("worker_get_turn_inventory",{p_business_date:businessDate});
+  const {data:live,error:liveError}=await db.rpc("worker_get_turn_inventory",{p_business_date:businessDate,p_session_no:sessionNo});
   if(liveError)throw liveError;
   if(Array.isArray(live)&&live.length)rows=live.map(x=>row(x.product_name,x.start_qty,x.entry_qty,x.sold_qty,x.price));
  }
  const saved=localStorage.getItem(key());
  if(!rows.some(r=>r.product.trim())&&saved){try{const draft=JSON.parse(saved);if(Array.isArray(draft)&&draft.length)rows=draft;}catch(_){}}
  if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));
- closure=null;setMeta();$("turnDocumentNo").textContent="N°"+String((last?.closure_no||0)+1).padStart(2,"0");render();
+ closure=null;setMeta();$("turnDocumentNo").textContent="N°"+String((last?.last_closure_no||0)+1).padStart(2,"0");render();
  $("closeTurnBtn").disabled=false;
  status("Puedes editar las celdas habilitadas. Las columnas calculadas están protegidas.");
  await persistRows();
@@ -130,7 +130,7 @@ $("closeTurnBtn")?.addEventListener("click",async()=>{
   const {error:syncError}=await db.rpc("worker_save_turn_inventory",{p_rows:payload,p_business_date:businessDate});if(syncError)throw syncError;
   if(!payload.length)throw new Error("Añade al menos un producto antes de cerrar.");
   for(const r of payload){if([r.start,r.entry,r.sold,r.price].some(n=>!Number.isFinite(n)||n<0)||r.sold>r.start+r.entry)throw new Error("Revisa "+r.product+": Vendido no puede superar Disponible y no se admiten valores negativos.");}
-  const {data,error}=await db.rpc("close_worker_turn",{p_rows:payload,p_business_date:businessDate});if(error)throw error;
+  const {data,error}=await db.rpc("close_worker_turn",{p_rows:payload,p_business_date:businessDate,p_session_no:sessionNo});if(error)throw error;
   closure=data;const date=data.business_date,number=data.closure_no;$("turnDocumentNo").textContent="N°"+String(number).padStart(2,"0");
   exportData(data.rows,number,data.shift_no,date);
   localStorage.removeItem(key());
@@ -143,5 +143,5 @@ $("closeTurnBtn")?.addEventListener("click",async()=>{
 });
 const observer=new MutationObserver(()=>{if($("appPanel")?.classList.contains("hidden")){ready=false;session=null;shift=0;rows=[];}else init();});
 observer.observe($("appPanel"),{attributes:true,attributeFilter:["class"]});
-window.addEventListener("online",init);window.addEventListener("ipv:turn-inventory-refresh",async()=>{if(!session||!navigator.onLine)return;try{const {data,error}=await db.rpc("worker_get_turn_inventory",{p_business_date:businessDate});if(error)throw error;if(Array.isArray(data)){rows=data.map(x=>row(x.product_name,x.start_qty,x.entry_qty,x.sold_qty,x.price));if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));render();await saveDraft();}}catch(e){status("No se pudo actualizar la tabla tras la venta: "+e.message);}});document.addEventListener("visibilitychange",()=>{if(!document.hidden)init();});
+window.addEventListener("online",init);window.addEventListener("ipv:turn-inventory-refresh",async()=>{if(!session||!navigator.onLine)return;try{const {data,error}=await db.rpc("worker_get_turn_inventory",{p_business_date:businessDate,p_session_no:sessionNo});if(error)throw error;if(Array.isArray(data)){rows=data.map(x=>row(x.product_name,x.start_qty,x.entry_qty,x.sold_qty,x.price));if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));render();await saveDraft();}}catch(e){status("No se pudo actualizar la tabla tras la venta: "+e.message);}});document.addEventListener("visibilitychange",()=>{if(!document.hidden)init();});
 })();
