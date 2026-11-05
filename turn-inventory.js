@@ -49,14 +49,7 @@ async function load(){
    if(last.business_date===day)throw new Error("El Turno 1 de hoy ya fue cerrado. Corresponde trabajar con el Turno 2.");
    throw new Error("Falta cerrar el Turno 2 de la fecha "+last.business_date+". No se puede iniciar otro día hasta completar ese cierre.");
  } else {
-   const {data:allocs,error:allocError}=await db.from("worker_stock_allocations").select("product_id,quantity_remaining").eq("worker_id",session.user.id);
-   if(allocError)throw allocError;
-   const ids=(allocs||[]).map(a=>a.product_id);
-   const {data:catalog,error:catalogError}=ids.length?await db.from("products").select("id,name,price").in("id",ids):{data:[],error:null};
-   if(catalogError)throw catalogError;
-   const byId=new Map((catalog||[]).map(p=>[p.id,p]));
-   const seeded=(allocs||[]).map(a=>{const p=byId.get(a.product_id);return row(p?.name||"",Number(a.quantity_remaining)||0,0,0,Number(p?.price)||0);}).filter(r=>r.product);
-   rows=seeded.length?seeded:Array.from({length:20},()=>row());
+   rows=Array.from({length:20},()=>row());
  }
  if(navigator.onLine){
   const {data:live,error:liveError}=await db.rpc("worker_get_turn_inventory",{p_business_date:day});
@@ -69,6 +62,7 @@ async function load(){
  closure=null;setMeta();$("turnDocumentNo").textContent="N°"+String((last?.closure_no||0)+1).padStart(2,"0");render();
  $("closeTurnBtn").disabled=false;
  status("Puedes editar las celdas habilitadas. Las columnas calculadas están protegidas.");
+ await persistRows();
  await history();
 }
 async function history(){
@@ -134,5 +128,5 @@ $("closeTurnBtn")?.addEventListener("click",async()=>{
 });
 const observer=new MutationObserver(()=>{if($("appPanel")?.classList.contains("hidden")){ready=false;session=null;shift=0;rows=[];}else init();});
 observer.observe($("appPanel"),{attributes:true,attributeFilter:["class"]});
-window.addEventListener("online",init);document.addEventListener("visibilitychange",()=>{if(!document.hidden)init();});
+window.addEventListener("online",init);window.addEventListener("ipv:turn-inventory-refresh",async()=>{if(!session||!navigator.onLine)return;try{const {data,error}=await db.rpc("worker_get_turn_inventory",{p_business_date:dateKey()});if(error)throw error;if(Array.isArray(data)){rows=data.map(x=>row(x.product_name,x.start_qty,x.entry_qty,x.sold_qty,x.price));if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));render();await saveDraft();}}catch(e){status("No se pudo actualizar la tabla tras la venta: "+e.message);}});document.addEventListener("visibilitychange",()=>{if(!document.hidden)init();});
 })();
