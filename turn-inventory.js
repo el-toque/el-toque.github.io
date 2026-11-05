@@ -30,7 +30,7 @@ async function persistRows(){
  await saveDraft();
  if(!navigator.onLine||!db||!session)return;
  const payload=rows.filter(r=>r.product.trim()!=="").map(r=>({product:r.product.trim(),start:Number(r.start)||0,entry:Number(r.entry)||0,sold:Number(r.sold)||0,price:Number(r.price)||0}));
- const {error}=await db.rpc("worker_save_turn_inventory",{p_rows:payload,p_business_date:dateKey()});
+ const {error}=await db.rpc("worker_save_turn_inventory",{p_rows:payload,p_business_date:businessDate});
  if(error)status("No se pudo sincronizar la tabla: "+error.message);
  else{status("Tabla guardada y sincronizada con la tienda.");window.dispatchEvent(new Event("ipv:turn-inventory-saved"));}
 }
@@ -47,11 +47,15 @@ function setMeta(){ const d=new Date(businessDate+"T12:00:00"); $("turnShift").t
 async function load(){
  const {data:last,error}=await db.rpc("get_last_worker_turn");
  if(error)throw error;
- const day=dateKey();
+ let day=dateKey();
  if(shift===2){
-   if(!last||last.shift_no!==1||last.business_date!==day)throw new Error("El Turno 2 estará disponible cuando se haya cerrado el Turno 1 de hoy.");
+   if(!last||last.shift_no!==1)throw new Error("El Turno 2 estará disponible cuando se haya cerrado el Turno 1.");
+   day=last.business_date;
    rows=(last.rows||[]).map(r=>row(r.product,r.final,0,0,r.price));
  } else if(last?.shift_no===2){
+   const next=new Date(last.business_date+"T12:00:00");
+   next.setDate(next.getDate()+1);
+   day=next.getFullYear()+"-"+String(next.getMonth()+1).padStart(2,"0")+"-"+String(next.getDate()).padStart(2,"0");
    rows=(last.rows||[]).map(r=>row(r.product,r.final,0,0,r.price));
  } else if(last?.shift_no===1){
    if(last.business_date===day)throw new Error("El Turno 1 de hoy ya fue cerrado. Corresponde trabajar con el Turno 2.");
@@ -59,6 +63,7 @@ async function load(){
  } else {
    rows=Array.from({length:20},()=>row());
  }
+ businessDate=day;
  if(navigator.onLine){
   const {data:live,error:liveError}=await db.rpc("worker_get_turn_inventory",{p_business_date:businessDate});
   if(liveError)throw liveError;
