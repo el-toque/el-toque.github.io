@@ -244,3 +244,27 @@ input,select,textarea{background:#1b1e22;border-color:#393c42;color:#f5f0e7}labe
 .permission-fieldset legend{padding:0 6px;color:var(--ei-gold,#e7bd5c);font-weight:800}
 .permission-fieldset label{display:flex;align-items:center;gap:9px;margin:0}
 .permission-fieldset input{width:18px;height:18px;flex:0 0 auto}
+
+
+/* Cuadre de inventario por turnos */
+.turn-inventory-section{margin:18px 0 24px;padding:18px;border:1px solid var(--ei-line,#303238);border-radius:14px;background:var(--ei-card,#151719)}
+.turn-document-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:12px}
+.turn-document-head h2{margin:3px 0;color:var(--ei-gold,#e7bd5c)}
+.turn-document-number{display:grid;gap:4px;text-align:right;color:var(--ei-muted,#aaa);font-size:.7rem;letter-spacing:.08em}
+.turn-document-number strong{color:var(--ei-gold,#e7bd5c);font-size:.9rem;letter-spacing:0}
+.turn-table-wrap{overflow-x:auto}
+.turn-table{width:100%;min-width:760px;table-layout:fixed}
+.turn-table th,.turn-table td{padding:7px 5px;text-align:center;font-size:.78rem}
+.turn-table th:first-child,.turn-table td:first-child{width:22%;text-align:left}
+.turn-table input{width:100%;min-width:0;margin:0;padding:8px 5px;font-size:.8rem}
+.turn-table td.calculated{background:#252117;color:#f1c45c;font-weight:800}
+.turn-table td.amount{white-space:nowrap}
+.turn-table tfoot th{background:#332817;color:#f4cf78;font-weight:900}
+.turn-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:14px}
+.turn-actions #closeTurnBtn{margin-left:auto}
+#turnStatus{margin:12px 0 0;padding:10px;border-radius:8px;background:#202326;color:#e8d8b2}
+.turn-history{margin-top:18px;padding-top:14px;border-top:1px solid var(--ei-line,#303238)}
+.turn-history h3{margin:0 0 10px;font-size:1rem}
+.turn-history-row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--ei-line,#303238);font-size:.82rem}
+.turn-history-row span{color:var(--ei-muted,#aaa);text-align:right}
+@media(max-width:560px){.turn-inventory-section{padding:12px}.turn-document-head{gap:8px}.turn-document-number{font-size:.62rem}.turn-table{min-width:720px}.turn-table th,.turn-table td{font-size:.73rem}.turn-table input{padding:7px 4px;font-size:.75rem}.turn-actions{display:grid;grid-template-columns:1fr 1fr}.turn-actions #closeTurnBtn{grid-column:1/-1;margin:0}.turn-history-row{display:grid;gap:3px}.turn-history-row span{text-align:left}}
