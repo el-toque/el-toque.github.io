@@ -69,11 +69,17 @@ function exportData(savedRows,number,shiftNo,date){
  const billTotal=denominations.reduce((n,v)=>n+v*(billCounts[v]||0),0);
  bills.push({"Denominación":"TOTAL EFECTIVO CONTADO","Cantidad de billetes":denominations.reduce((n,v)=>n+(billCounts[v]||0),0),"Importe":billTotal});
  if(window.XLSX){const data=savedRows.map(r=>({Producto:r.product,Inicio:r.start,Entrada:r.entry,Disponible:r.available,Final:r.final,Vendido:r.sold,Precio:r.price,Importe:r.amount}));
- const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data),"Turno");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(bills),"Conteo de billetes");
+ data.push({Producto:"TOTAL GENERAL",Inicio:"",Entrada:"",Disponible:"",Final:"",Vendido:"",Precio:"",Importe:savedRows.reduce((n,r)=>n+r.amount,0)});
+ const wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet([{Cuenta:session.user.user_metadata?.full_name||session.user.email,Correo:session.user.email,Turno:"Turno "+shiftNo,Documento:"N°"+String(number).padStart(2,"0"),Fecha:date,Total:money(savedRows.reduce((n,r)=>n+r.amount,0))}]),"Datos");
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data),"Turno");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(bills),"Conteo de billetes");
  XLSX.writeFile(wb,"IPV_Turno_"+number+"_"+date+".xlsx");}
  if(window.jspdf?.jsPDF){const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
- doc.setFontSize(16);doc.text("IPV Digital · "+shiftLabel()+" · N°"+String(number).padStart(2,"0"),14,14);doc.setFontSize(10);doc.text("Fecha: "+date,14,21);
- doc.autoTable({startY:26,head:[["Producto","Inicio","Entrada","Disponible","Final","Vendido","Precio","Importe"]],body:savedRows.map(r=>[r.product,r.start,r.entry,r.available,r.final,r.sold,r.price.toFixed(2),r.amount.toFixed(2)]),styles:{fontSize:8},headStyles:{fillColor:[45,38,24]}});
+ doc.setFontSize(16);doc.text("IPV Digital · "+shiftLabel()+" · N°"+String(number).padStart(2,"0"),14,14);doc.setFontSize(9);
+ doc.text("Cuenta: "+(session.user.user_metadata?.full_name||session.user.email),14,20);doc.text("Correo: "+session.user.email+" · Fecha: "+date,14,25);
+ const tableRows=savedRows.map(r=>[r.product,r.start,r.entry,r.available,r.final,r.sold,r.price.toFixed(2),r.amount.toFixed(2)]);
+ tableRows.push(["","","","","","","TOTAL",savedRows.reduce((n,r)=>n+r.amount,0).toFixed(2)]);
+ doc.autoTable({startY:30,head:[["Producto","Inicio","Entrada","Disponible","Final","Vendido","Precio","Importe"]],body:tableRows,styles:{fontSize:8},headStyles:{fillColor:[45,38,24]}});
  doc.autoTable({startY:doc.lastAutoTable.finalY+8,head:[["Denominación","Cantidad","Importe"]],body:bills.map(b=>[b["Denominación"],b["Cantidad de billetes"],b.Importe.toFixed(2)]),styles:{fontSize:8}});
  doc.save("IPV_Turno_"+number+"_"+date+".pdf");}
 }
