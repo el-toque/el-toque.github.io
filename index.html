@@ -70,5 +70,35 @@
 <dialog id="allocationDialog" class="allocation-dialog"><form id="allocationForm"><div class="dialog-head"><div><p class="eyebrow">INVENTARIO POR PUESTO</p><h2>Asignación de productos</h2></div><button type="button" id="closeAllocation" class="icon-btn">×</button></div><label>Trabajador<select id="allocationWorker" required></select></label><label>Buscar producto<input id="allocationSearch" type="search" placeholder="Nombre o código del producto…" autocomplete="off"></label><div id="allocationSearchResults" class="allocation-search-results"></div><div class="allocation-selected-head"><h3>Productos seleccionados</h3><span id="allocationSelectedCount" class="muted small">0 productos</span></div><div id="allocationSelectedList" class="allocation-selected-list"><p class="muted small">Busca y añade los productos que quieras asignar.</p></div><p class="muted small">Indica la cantidad de cada producto. Las cantidades vendidas se conservan y el sistema no permitirá superar las existencias libres.</p><p id="allocationMessage" class="form-error" role="status"></p><div class="dialog-actions"><button type="button" id="cancelAllocation" class="secondary">Cancelar</button><button id="saveAllocation" class="primary" type="submit">Guardar asignación</button></div></form></dialog>
 <dialog id="editWorkerDialog"><form id="editWorkerForm"><div class="dialog-head"><div><p class="eyebrow">EQUIPO</p><h2>Editar trabajador</h2></div><button type="button" id="closeEditWorker" class="icon-btn">×</button></div><input id="editWorkerId" type="hidden"><label>Nombre completo<input id="editWorkerName" required minlength="2" maxlength="100"></label><label>Correo electrónico<input id="editWorkerEmail" type="email" required maxlength="254"></label><label>Nueva contraseña <span class="muted small">(déjala vacía para conservar la actual)</span><input id="editWorkerPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password"></label><label class="worker-active-label"><input id="editWorkerActive" type="checkbox"> Trabajador activo (puede acceder al sistema)</label><fieldset class="permission-fieldset"><legend>Permisos de la cuenta</legend><label><input id="permCanSell" type="checkbox"> Puede realizar ventas en la tienda</label><label><input id="permCanViewCloseout" type="checkbox"> Puede consultar su cuadre e historial</label><label><input id="permCanCountStock" type="checkbox"> Puede registrar el conteo físico</label><label><input id="permCanCloseDay" type="checkbox"> Puede cerrar su jornada</label></fieldset><p class="muted small">Si cambias el correo, quedará confirmado automáticamente. La contraseña nueva debe tener al menos 8 caracteres.</p><p id="editWorkerMessage" class="form-error" role="status"></p><div class="dialog-actions"><button type="button" id="cancelEditWorker" class="secondary">Cancelar</button><button id="saveWorkerBtn" class="primary" type="submit">Guardar cambios</button></div></form></dialog>
 <div id="toast" class="toast" role="status"></div>
+<script>
+/* Diagnóstico de arranque: no modifica cuentas, sesiones ni datos de Supabase. */
+(function(){
+  function report(message){
+    var label=document.getElementById("sessionLabel");
+    var error=document.getElementById("loginError");
+    if(label) label.textContent="ERROR DE INICIO";
+    if(error) error.textContent="La aplicación no pudo iniciar correctamente: "+message+". Recarga la página y, si continúa, envía una grabación de este mensaje.";
+    console.error("[IPV arranque]",message);
+  }
+  window.addEventListener("error",function(event){
+    if(event.target && event.target !== window){
+      var src=event.target.src || event.target.href || "recurso externo";
+      report("No se pudo cargar "+src);
+    } else if(event.message){
+      report(event.message+" (línea "+(event.lineno||"?")+")");
+    }
+  },true);
+  window.addEventListener("unhandledrejection",function(event){
+    var reason=event.reason;
+    report(reason && reason.message ? reason.message : String(reason||"error asíncrono"));
+  });
+  window.setTimeout(function(){
+    var label=document.getElementById("sessionLabel");
+    if(label && label.textContent.trim()==="CONECTANDO"){
+      report("el código principal no terminó su inicialización; comprueba la carga de app.js y los errores de JavaScript");
+    }
+  },5000);
+})();
+</script>
 <script src="config.js"></script><script src="app.js"></script>
 </body></html>
