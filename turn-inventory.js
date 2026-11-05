@@ -117,7 +117,7 @@ $("closeTurnBtn")?.addEventListener("click",async()=>{
  working=true;$("closeTurnBtn").disabled=true;status("Guardando cierre en el servidor…");
  try{
   const payload=rows.filter(r=>r.product.trim()!=="").map(r=>({product:r.product.trim(),start:Number(r.start)||0,entry:Number(r.entry)||0,sold:Number(r.sold)||0,price:Number(r.price)||0}));
-  const {error:syncError}=await db.rpc("worker_save_turn_inventory",{p_rows:payload,p_business_date:businessDate});if(syncError)throw syncError;
+  const {error:syncError}=await db.rpc("worker_save_turn_inventory",{p_rows:payload,p_business_date:businessDate,p_session_no:sessionNo});if(syncError)throw syncError;
   if(!payload.length)throw new Error("Añade al menos un producto antes de cerrar.");
   for(const r of payload){if([r.start,r.entry,r.sold,r.price].some(n=>!Number.isFinite(n)||n<0)||r.sold>r.start+r.entry)throw new Error("Revisa "+r.product+": Vendido no puede superar Disponible y no se admiten valores negativos.");}
   const {data,error}=await db.rpc("close_worker_turn",{p_rows:payload,p_business_date:businessDate,p_session_no:sessionNo});if(error)throw error;
