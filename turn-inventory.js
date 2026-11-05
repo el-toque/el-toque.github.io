@@ -26,6 +26,14 @@ function render(){
 }
 function status(t){$("turnStatus").textContent=t;}
 async function saveDraft(){try{localStorage.setItem(key(),JSON.stringify(rows));}catch(e){status("No se pudo guardar el borrador en este teléfono.");}}
+async function persistRows(){
+ await saveDraft();
+ if(!navigator.onLine||!db||!session)return;
+ const payload=rows.filter(r=>r.product.trim()!=="").map(r=>({product:r.product.trim(),start:Number(r.start)||0,entry:Number(r.entry)||0,sold:Number(r.sold)||0,price:Number(r.price)||0}));
+ const {error}=await db.rpc("worker_save_turn_inventory",{p_rows:payload,p_business_date:dateKey()});
+ if(error)status("No se pudo sincronizar la tabla: "+error.message);
+ else status("Tabla guardada y sincronizada con la tienda.");
+}
 function shiftLabel(){return shift===1?"Turno 1":"Turno 2";}
 function setMeta(){ $("turnShift").textContent=shiftLabel();$("turnDate").textContent=new Date().toLocaleDateString("es-ES",{weekday:"long",year:"numeric",month:"long",day:"numeric"}); }
 async function load(){
@@ -50,8 +58,13 @@ async function load(){
    const seeded=(allocs||[]).map(a=>{const p=byId.get(a.product_id);return row(p?.name||"",Number(a.quantity_remaining)||0,0,0,Number(p?.price)||0);}).filter(r=>r.product);
    rows=seeded.length?seeded:Array.from({length:20},()=>row());
  }
+ if(navigator.onLine){
+  const {data:live,error:liveError}=await db.rpc("worker_get_turn_inventory",{p_business_date:day});
+  if(liveError)throw liveError;
+  if(Array.isArray(live)&&live.length)rows=live.map(x=>row(x.product_name,x.start_qty,x.entry_qty,x.sold_qty,x.price));
+ }
  const saved=localStorage.getItem(key());
- if(saved){try{const draft=JSON.parse(saved);if(Array.isArray(draft)&&draft.length)rows=draft;}catch(_){}}
+ if(!rows.some(r=>r.product.trim())&&saved){try{const draft=JSON.parse(saved);if(Array.isArray(draft)&&draft.length)rows=draft;}catch(_){}}
  if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));
  closure=null;setMeta();$("turnDocumentNo").textContent="N°"+String((last?.closure_no||0)+1).padStart(2,"0");render();
  $("closeTurnBtn").disabled=false;
@@ -92,7 +105,8 @@ async function init(){
  if(!shift)return;
  try{await load();}catch(e){$("closeTurnBtn").disabled=true;status(e.message||"No se pudo cargar el turno.");}
 }
-$("addTurnRow")?.addEventListener("click",()=>{rows.push(row());render();saveDraft();});
+$("addTurnRow")?.addEventListener("click",()=>{rows.push(row());render();persistRows();});
+$("turnRows")?.addEventListener("change",()=>persistRows());
 $("turnRows")?.addEventListener("input",e=>{
  const input=e.target.closest("[data-field]");if(!input)return;const tr=input.closest("[data-row]"),i=Number(tr.dataset.row),field=input.dataset.field;
  rows[i][field]=field==="product"?input.value:(input.value===""?0:Number(input.value));
@@ -104,6 +118,7 @@ $("closeTurnBtn")?.addEventListener("click",async()=>{
  working=true;$("closeTurnBtn").disabled=true;status("Guardando cierre en el servidor…");
  try{
   const payload=rows.filter(r=>r.product.trim()!=="").map(r=>({product:r.product.trim(),start:Number(r.start)||0,entry:Number(r.entry)||0,sold:Number(r.sold)||0,price:Number(r.price)||0}));
+  const {error:syncError}=await db.rpc("worker_save_turn_inventory",{p_rows:payload,p_business_date:dateKey()});if(syncError)throw syncError;
   if(!payload.length)throw new Error("Añade al menos un producto antes de cerrar.");
   for(const r of payload){if([r.start,r.entry,r.sold,r.price].some(n=>!Number.isFinite(n)||n<0)||r.sold>r.start+r.entry)throw new Error("Revisa "+r.product+": Vendido no puede superar Disponible y no se admiten valores negativos.");}
   const {data,error}=await db.rpc("close_worker_turn",{p_rows:payload,p_business_date:dateKey()});if(error)throw error;
