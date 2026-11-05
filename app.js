@@ -18,7 +18,7 @@ async function saveOfflineSale(items,method,code,id=crypto.randomUUID()){
  if(queue.some(x=>x.id===id))return queue.find(x=>x.id===id);
  // Evita consumir dos veces las mismas unidades asignadas mientras no hay servidor.
  for(const line of items){const allocation=workerAllocations.find(a=>a.product_id===line.product_id);if(!allocation||Number(allocation.quantity_remaining)<Number(line.quantity))throw new Error("Existencia local insuficiente para completar la venta.");}
- const entry={id,worker_id:user?.id||null,turn_inventory:true,items:items.map(x=>({product_id:x.product_id,quantity:x.quantity})),payment_method:method,transfer_code:method==="transfer"?code:null,business_date:localBusinessDate(),created_at:new Date().toISOString(),status:"pending"};
+ const turnCtx=await ensureTurnContext();\n const entry={id,worker_id:user?.id||null,turn_inventory:true,session_no:turnCtx.sessionNo,items:items.map(x=>({product_id:x.product_id,quantity:x.quantity})),payment_method:method,transfer_code:method==="transfer"?code:null,business_date:turnCtx.businessDate,created_at:new Date().toISOString(),status:"pending"};
  queue.push(entry);await localPut("pending_sales",queue);
  for(const line of entry.items){const allocation=workerAllocations.find(a=>a.product_id===line.product_id);allocation.quantity_remaining-=line.quantity;}
  await cacheWorkerState();await updatePendingBadge();renderShopProducts();return entry;
@@ -34,7 +34,7 @@ async function syncPendingSales(){
    if(!navigator.onLine)break;
    if(entry.worker_id&&entry.worker_id!==user.id){toast("Hay ventas pendientes de otra cuenta. Entra con la cuenta que las registró para sincronizarlas.");break;}
    const {data,error}=entry.turn_inventory
-    ? await client.rpc("worker_turn_create_sale",{p_items:entry.items.map(x=>({turn_item_id:x.product_id,quantity:x.quantity})),p_payment_method:entry.payment_method,p_idempotency_key:entry.id,p_transfer_code:entry.transfer_code,p_business_date:entry.business_date})
+    ? await client.rpc("worker_turn_create_sale",{p_items:entry.items.map(x=>({turn_item_id:x.product_id,quantity:x.quantity})),p_payment_method:entry.payment_method,p_idempotency_key:entry.id,p_transfer_code:entry.transfer_code,p_business_date:entry.business_date,p_session_no:Number(entry.session_no)||1})
     : await client.rpc("create_sale",{p_items:entry.items,p_payment_method:entry.payment_method,p_idempotency_key:entry.id,p_notes:null,p_transfer_code:entry.transfer_code,p_business_date:entry.business_date});
    if(error){entry.last_error=error.message;entry.status="error";queue=queue.map(x=>x.id===entry.id?entry:x);await localPut("pending_sales",queue);toast("Una venta sigue pendiente: "+error.message);break;}
    queue=queue.filter(x=>x.id!==entry.id);await localPut("pending_sales",queue);if(entry.turn_inventory)window.dispatchEvent(new Event("ipv:turn-inventory-refresh"));toast("Venta pendiente sincronizada. Folio: "+data);
@@ -99,14 +99,23 @@ $("loginForm").addEventListener("submit",async e=>{
 $("logoutBtn").addEventListener("click",async()=>{try{await client.auth.signOut();showLogin();}catch(error){toast("No se pudo cerrar la sesión: "+(error?.message||"Error inesperado"));}});
 function showSection(tab){["dashboard","inventory","purchases","sales","closeouts","activity","reservations","workers","shop","daily"].forEach(t=>$(t+"Tab").classList.toggle("hidden",t!==tab));}
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","reservations","workers"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="purchases"){loadProducts();loadSuppliers();loadReceipts();}if(b.dataset.tab==="activity")loadActivity();}));
+async function ensureTurnContext(){
+ const day=localBusinessDate();
+ const {data,error}=await client.rpc("get_last_worker_turn",{p_business_date:day});
+ if(error)throw error;
+ if(!data?.is_my_turn)throw new Error("Este no es el turno activo. Actualiza IPV o espera el cierre del otro trabajador.");
+ const context={businessDate:day,sessionNo:Number(data.session_no)||1,shift:Number((user?.email||"").toLowerCase()==="dependiente1@eltoque.com"?1:2)};
+ window.IPV_TURN_CONTEXT=context;
+ return context;
+}
 async function loadProducts(){
  if(user&&!admin()){
   if(!navigator.onLine){const snap=await localGet("worker_snapshot_"+user.id);if(snap){products=snap.products||[];categories=[];workerAllocations=(snap.workerAllocations||[]);renderCategoryControls();renderProducts();}return;}
-  let result=await client.rpc("worker_turn_shop_products",{p_business_date:localBusinessDate()});
+  const turnCtx=await ensureTurnContext();\n  let result=await client.rpc("worker_turn_shop_products",{p_business_date:turnCtx.businessDate,p_session_no:turnCtx.sessionNo});
   // Si la primera petición llega sin un JWT vigente, renovar sesión y repetir una sola vez.
   if(result.error&&(result.error.code==="42501"||result.error.status===401||/permission denied|unauthorized|JWT/i.test(result.error.message||""))){
    const refreshed=await client.auth.refreshSession();
-   if(!refreshed.error&&refreshed.data?.session)result=await client.rpc("worker_turn_shop_products",{p_business_date:localBusinessDate()});
+   if(!refreshed.error&&refreshed.data?.session)result=await client.rpc("worker_turn_shop_products",{p_business_date:turnCtx.businessDate,p_session_no:turnCtx.sessionNo});
   }
   const {data,error}=result;
   if(error){console.error("[IPV shop RPC]",{message:error.message,code:error.code,status:error.status});toast("No se pudo cargar la tienda del turno: "+error.message);products=[];workerAllocations=[];renderShopProducts();renderShopCart();return;}
@@ -223,7 +232,7 @@ function showShopOrder(show){$("shopCatalogView").classList.toggle("hidden",show
 $("viewOrderBtn").addEventListener("click",()=>showShopOrder(true));
 $("backToCatalog").addEventListener("click",()=>showShopOrder(false));
 $("shopPayment").addEventListener("change",()=>{$("transferCodeWrap").classList.toggle("hidden",$("shopPayment").value!=="transfer");if($("shopPayment").value!=="transfer")$("transferCode").value="";});
-$("shopSellBtn").addEventListener("click",async()=>{if(!cart.length){fail("shopMessage","Agrega al menos un producto al carrito.");return}const method=$("shopPayment").value,code=$("transferCode").value.trim();if(method==="transfer"&&!code){fail("shopMessage","Introduce el código de la transferencia antes de confirmar.");$("transferCode").focus();return}const btn=$("shopSellBtn");btn.disabled=true;if(!navigator.onLine){try{const entry=await saveOfflineSale(cart,method,code);cart=[];$("transferCode").value="";renderShopCart();showShopOrder(false);fail("shopMessage","Pendiente de sincronizar. Se guardó en este teléfono.");toast("Venta guardada sin conexión");}catch(e){fail("shopMessage","No se pudo guardar localmente. No cierres esta página.");}finally{btn.disabled=false;}return;}fail("shopMessage","Procesando venta…");const id=crypto.randomUUID();const {data,error}=await client.rpc("worker_turn_create_sale",{p_items:cart.map(x=>({turn_item_id:x.product_id,quantity:x.quantity})),p_payment_method:method,p_idempotency_key:id,p_transfer_code:method==="transfer"?code:null,p_business_date:localBusinessDate()});btn.disabled=false;if(error){if(!navigator.onLine||/fetch|network|failed to fetch|load failed/i.test(error.message||"")){try{await saveOfflineSale(cart,method,code,id);cart=[];renderShopCart();showShopOrder(false);fail("shopMessage","Pendiente de sincronizar. Se guardó en este teléfono.");}catch(e){fail("shopMessage","No se pudo guardar la venta localmente.");}return;}fail("shopMessage",error.message);return;}cart=[];$("transferCode").value="";renderShopCart();showShopOrder(false);fail("shopMessage","Venta confirmada. Folio: "+data);toast("Venta registrada y existencias descontadas");window.dispatchEvent(new Event("ipv:turn-inventory-refresh"));await loadProducts();await loadWorkerAllocations();await loadDailySales();});
+$("shopSellBtn").addEventListener("click",async()=>{if(!cart.length){fail("shopMessage","Agrega al menos un producto al carrito.");return}const method=$("shopPayment").value,code=$("transferCode").value.trim();if(method==="transfer"&&!code){fail("shopMessage","Introduce el código de la transferencia antes de confirmar.");$("transferCode").focus();return}const btn=$("shopSellBtn");btn.disabled=true;if(!navigator.onLine){try{const entry=await saveOfflineSale(cart,method,code);cart=[];$("transferCode").value="";renderShopCart();showShopOrder(false);fail("shopMessage","Pendiente de sincronizar. Se guardó en este teléfono.");toast("Venta guardada sin conexión");}catch(e){fail("shopMessage","No se pudo guardar localmente. No cierres esta página.");}finally{btn.disabled=false;}return;}fail("shopMessage","Procesando venta…");const id=crypto.randomUUID();let turnCtx;try{turnCtx=await ensureTurnContext();}catch(e){btn.disabled=false;fail("shopMessage",e.message);return;}const {data,error}=await client.rpc("worker_turn_create_sale",{p_items:cart.map(x=>({turn_item_id:x.product_id,quantity:x.quantity})),p_payment_method:method,p_idempotency_key:id,p_transfer_code:method==="transfer"?code:null,p_business_date:turnCtx.businessDate,p_session_no:turnCtx.sessionNo});btn.disabled=false;if(error){if(!navigator.onLine||/fetch|network|failed to fetch|load failed/i.test(error.message||"")){try{await saveOfflineSale(cart,method,code,id);cart=[];renderShopCart();showShopOrder(false);fail("shopMessage","Pendiente de sincronizar. Se guardó en este teléfono.");}catch(e){fail("shopMessage","No se pudo guardar la venta localmente.");}return;}fail("shopMessage",error.message);return;}cart=[];$("transferCode").value="";renderShopCart();showShopOrder(false);fail("shopMessage","Venta confirmada. Folio: "+data);toast("Venta registrada y existencias descontadas");window.dispatchEvent(new Event("ipv:turn-inventory-refresh"));await loadProducts();await loadWorkerAllocations();await loadDailySales();});
 $("refreshShop").onclick=loadProducts;
 function localBusinessDate(d=new Date()){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");return `${y}-${m}-${day}`;}
 let dailyExportRows=[];
