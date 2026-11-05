@@ -50,7 +50,7 @@ const admin=()=>profile?.role==="admin";
 const workerPermission=key=>admin()||profile?.worker_permissions?.[key]!==false;
 function fail(el,msg){$(el).textContent=msg}
 async function init(){
- if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
+ if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js?v=22",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
  window.addEventListener("online",()=>{syncPendingSales();});window.addEventListener("offline",()=>{updatePendingBadge();});
  if(!cfg.url||!cfg.publishableKey){$("sessionLabel").textContent="CONFIGURACIÓN PENDIENTE";$("loginPanel").classList.remove("hidden");fail("loginError","Falta configurar config.js con la URL y la clave publicable del proyecto.");return}
  try{
@@ -102,8 +102,14 @@ document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(
 async function loadProducts(){
  if(user&&!admin()){
   if(!navigator.onLine){const snap=await localGet("worker_snapshot_"+user.id);if(snap){products=snap.products||[];categories=[];workerAllocations=(snap.workerAllocations||[]);renderCategoryControls();renderProducts();}return;}
-  const {data,error}=await client.rpc("worker_turn_shop_products",{p_business_date:localBusinessDate()});
-  if(error){toast("No se pudo cargar la tienda del turno: "+error.message);products=[];workerAllocations=[];renderShopProducts();renderShopCart();return;}
+  let result=await client.rpc("worker_turn_shop_products",{p_business_date:localBusinessDate()});
+  // Si la primera petición llega sin un JWT vigente, renovar sesión y repetir una sola vez.
+  if(result.error&&(result.error.code==="42501"||result.error.status===401||/permission denied|unauthorized|JWT/i.test(result.error.message||""))){
+   const refreshed=await client.auth.refreshSession();
+   if(!refreshed.error&&refreshed.data?.session)result=await client.rpc("worker_turn_shop_products",{p_business_date:localBusinessDate()});
+  }
+  const {data,error}=result;
+  if(error){console.error("[IPV shop RPC]",{message:error.message,code:error.code,status:error.status});toast("No se pudo cargar la tienda del turno: "+error.message);products=[];workerAllocations=[];renderShopProducts();renderShopCart();return;}
   products=(data||[]).map(x=>({id:x.id,name:x.product_name,price:Number(x.price)||0,stock:Number(x.final_qty)||0,active:true,description:"Disponible para entrega"}));
   categories=[];workerAllocations=products.map(p=>({product_id:p.id,quantity_assigned:p.stock,quantity_remaining:p.stock}));
   renderCategoryControls();renderProducts();renderShopProducts();renderShopCart();await cacheWorkerState();return;
