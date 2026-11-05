@@ -56,11 +56,20 @@ async function init(){
  window.addEventListener("online",()=>{syncPendingSales();});window.addEventListener("offline",()=>{updatePendingBadge();});
  if(!cfg.url||!cfg.publishableKey){$("sessionLabel").textContent="CONFIGURACIÓN PENDIENTE";$("loginPanel").classList.remove("hidden");fail("loginError","Falta configurar config.js con la URL y la clave publicable del proyecto.");return}
  try{
-  client=window.supabase.createClient(cfg.url,cfg.publishableKey);
+  client=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   client.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"&&!session&&!loginInProgress&&user){showLogin();fail("loginError","La sesión se cerró. Vuelve a iniciar sesión.");}});
-  // No bloquear el formulario intentando restaurar una sesión anterior.
-  showLogin();
-  $("sessionLabel").textContent="LISTO PARA ACCEDER";
+  // Recuperar la sesión persistida en el teléfono al recargar la página.
+  $("sessionLabel").textContent="RECUPERANDO SESIÓN…";
+  const {data:authState,error:sessionError}=await client.auth.getSession();
+  if(sessionError)throw sessionError;
+  if(authState?.session?.user){
+   loginInProgress=true;
+   try{await enter(authState.session.user);}
+   finally{loginInProgress=false;}
+  }else{
+   showLogin();
+   $("sessionLabel").textContent="LISTO PARA ACCEDER";
+  }
  }catch(error){showLogin();fail("loginError","No se pudo preparar el acceso: "+(error?.message||"Error inesperado")+". Recarga la página e inténtalo de nuevo.");}
 }
 function showLogin(){user=null;profile=null;$("appPanel").classList.add("hidden");$("loginPanel").classList.remove("hidden");$("sessionLabel").textContent="SIN SESIÓN"}
