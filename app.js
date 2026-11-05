@@ -18,7 +18,8 @@ async function saveOfflineSale(items,method,code,id=crypto.randomUUID()){
  if(queue.some(x=>x.id===id))return queue.find(x=>x.id===id);
  // Evita consumir dos veces las mismas unidades asignadas mientras no hay servidor.
  for(const line of items){const allocation=workerAllocations.find(a=>a.product_id===line.product_id);if(!allocation||Number(allocation.quantity_remaining)<Number(line.quantity))throw new Error("Existencia local insuficiente para completar la venta.");}
- const turnCtx=navigator.onLine?await ensureTurnContext():(window.IPV_TURN_CONTEXT||JSON.parse(localStorage.getItem("ipv_turn_context_"+user.id)||"null"));\n if(!turnCtx)throw new Error("No se pudo identificar la sesión activa para guardar la venta sin conexión.");\n const entry={id,worker_id:user?.id||null,turn_inventory:true,session_no:turnCtx.sessionNo,items:items.map(x=>({product_id:x.product_id,quantity:x.quantity})),payment_method:method,transfer_code:method==="transfer"?code:null,business_date:turnCtx.businessDate,created_at:new Date().toISOString(),status:"pending"};
+ const turnCtx=navigator.onLine?await ensureTurnContext():(window.IPV_TURN_CONTEXT||JSON.parse(localStorage.getItem("ipv_turn_context_"+user.id)||"null"));
+ if(!turnCtx)throw new Error("No se pudo identificar la sesión activa para guardar la venta sin conexión.");\n const entry={id,worker_id:user?.id||null,turn_inventory:true,session_no:turnCtx.sessionNo,items:items.map(x=>({product_id:x.product_id,quantity:x.quantity})),payment_method:method,transfer_code:method==="transfer"?code:null,business_date:turnCtx.businessDate,created_at:new Date().toISOString(),status:"pending"};
  queue.push(entry);await localPut("pending_sales",queue);
  for(const line of entry.items){const allocation=workerAllocations.find(a=>a.product_id===line.product_id);allocation.quantity_remaining-=line.quantity;}
  await cacheWorkerState();await updatePendingBadge();renderShopProducts();return entry;
