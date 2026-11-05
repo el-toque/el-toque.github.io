@@ -82,11 +82,18 @@ async function enter(authUser){
  if(navigator.onLine){profile=data;if(!admin())await localPut("worker_profile_"+user.id,data);}
  if(!navigator.onLine&&profile?.role!=="worker"){showLogin();fail("loginError","La administración requiere conexión a internet.");return;}
  data=profile;
-$("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden");$("sessionLabel").textContent=admin()?"ADMINISTRADOR":"TRABAJADOR";$("welcome").textContent=`Hola, ${data.full_name||user.email} · ${data.role}`;
+ $("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden");$("sessionLabel").textContent=admin()?"ADMINISTRADOR":"TRABAJADOR";$("welcome").textContent=`Hola, ${data.full_name||user.email} · ${data.role}`;
  $("addBtn").classList.toggle("hidden",!admin());$("exportInventory").classList.toggle("hidden",!admin());$("exportInventoryPdf").classList.toggle("hidden",!admin());$("manageCategoriesBtn").classList.toggle("hidden",!admin());$("workersNav").classList.toggle("hidden",!admin());$("adminTabs").classList.toggle("hidden",!admin());$("workerTabs").classList.toggle("hidden",admin());if(!admin()){document.querySelector('[data-tab="daily"]').classList.toggle("hidden",!workerPermission("can_view_own_closeout"));$("shopSellBtn").disabled=!workerPermission("can_sell");}
  document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
  if(admin()){document.querySelector('[data-tab="dashboard"]').classList.add("active");showSection("dashboard");}else{document.querySelector('[data-tab="shop"]').classList.add("active");showSection("shop");}
- await loadProducts();if(admin()){await Promise.all([loadSales(),loadReservations(),loadWorkers(),loadAdminDashboard(),loadAdminCloseouts(),loadSuppliers(),loadReceipts()]);}else{await loadWorkerAllocations();if(workerPermission("can_view_own_closeout")){await loadDailySales();}await cacheWorkerState();await updatePendingBadge();}
+ // La autenticación ya está confirmada. Los errores de módulos no deben expulsar al usuario.
+ const tasks=admin()
+  ?[loadProducts,loadSales,loadReservations,loadWorkers,loadAdminDashboard,loadAdminCloseouts,loadSuppliers,loadReceipts]
+  :[loadProducts,loadWorkerAllocations,...(workerPermission("can_view_own_closeout")?[loadDailySales]:[]),cacheWorkerState,updatePendingBadge];
+ const results=await Promise.allSettled(tasks.map(fn=>Promise.resolve().then(fn)));
+ const failed=results.filter(x=>x.status==="rejected");
+ if(failed.length){console.error("[IPV module loading]",failed.map(x=>x.reason));toast("Sesión activa. Algunos datos no pudieron actualizarse; puedes reintentar desde la sección correspondiente.");}
+}
 }
 $("loginForm").addEventListener("submit",async e=>{
  e.preventDefault();fail("loginError","");
