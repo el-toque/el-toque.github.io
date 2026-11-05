@@ -3,9 +3,9 @@
 const $=id=>document.getElementById(id), money=n=>new Intl.NumberFormat("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0)+" CUP";
 const dateKey=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let db=null,session=null,shift=0,rows=[],closure=null,ready=false,working=false;
+let db=null,session=null,shift=0,rows=[],closure=null,ready=false,working=false,businessDate=dateKey();
 const denominations=[5000,2000,1000,500,200,100,50,20,10,5,3,1];
-const key=()=> "ipv_turn_draft_"+session.user.id+"_"+dateKey()+"_"+shift;
+const key=()=> "ipv_turn_draft_"+session.user.id+"_"+businessDate+"_"+shift;
 function row(product="",start=0,entry=0,sold=0,price=0){return {product,start,entry,sold,price};}
 function calc(r){const available=Number(r.start)+Number(r.entry),sold=Number(r.sold),price=Number(r.price);return {available,final:available-sold,amount:sold*price};}
 function total(){return rows.reduce((n,r)=>n+calc(r).amount,0);}
@@ -40,10 +40,10 @@ function exportCurrent(format){
  const savedRows=rows.filter(r=>r.product.trim()!=="").map(r=>{const c=calc(r);return {product:r.product,start:Number(r.start)||0,entry:Number(r.entry)||0,available:c.available,final:c.final,sold:Number(r.sold)||0,price:Number(r.price)||0,amount:c.amount};});
  if(!savedRows.length){status("Añade al menos un producto antes de exportar.");return;}
  const match=($("turnDocumentNo").textContent.match(/\d+/)||[])[0]||"01";
- exportData(savedRows,Number(match),shift,dateKey(),format);
+ exportData(savedRows,Number(match),shift,businessDate,format);
  status(format==="xlsx"?"Archivo Excel preparado.":"Archivo PDF preparado.");
 }
-function setMeta(){ $("turnShift").textContent=shiftLabel();$("turnDate").textContent=new Date().toLocaleDateString("es-ES",{weekday:"long",year:"numeric",month:"long",day:"numeric"}); }
+function setMeta(){ const d=new Date(businessDate+"T12:00:00"); $("turnShift").textContent=shiftLabel();$("turnDate").textContent=d.toLocaleDateString("es-ES",{weekday:"long",year:"numeric",month:"long",day:"numeric"}); }
 async function load(){
  const {data:last,error}=await db.rpc("get_last_worker_turn");
  if(error)throw error;
@@ -60,7 +60,7 @@ async function load(){
    rows=Array.from({length:20},()=>row());
  }
  if(navigator.onLine){
-  const {data:live,error:liveError}=await db.rpc("worker_get_turn_inventory",{p_business_date:day});
+  const {data:live,error:liveError}=await db.rpc("worker_get_turn_inventory",{p_business_date:businessDate});
   if(liveError)throw liveError;
   if(Array.isArray(live)&&live.length)rows=live.map(x=>row(x.product_name,x.start_qty,x.entry_qty,x.sold_qty,x.price));
  }
@@ -122,10 +122,10 @@ $("closeTurnBtn")?.addEventListener("click",async()=>{
  working=true;$("closeTurnBtn").disabled=true;status("Guardando cierre en el servidor…");
  try{
   const payload=rows.filter(r=>r.product.trim()!=="").map(r=>({product:r.product.trim(),start:Number(r.start)||0,entry:Number(r.entry)||0,sold:Number(r.sold)||0,price:Number(r.price)||0}));
-  const {error:syncError}=await db.rpc("worker_save_turn_inventory",{p_rows:payload,p_business_date:dateKey()});if(syncError)throw syncError;
+  const {error:syncError}=await db.rpc("worker_save_turn_inventory",{p_rows:payload,p_business_date:businessDate});if(syncError)throw syncError;
   if(!payload.length)throw new Error("Añade al menos un producto antes de cerrar.");
   for(const r of payload){if([r.start,r.entry,r.sold,r.price].some(n=>!Number.isFinite(n)||n<0)||r.sold>r.start+r.entry)throw new Error("Revisa "+r.product+": Vendido no puede superar Disponible y no se admiten valores negativos.");}
-  const {data,error}=await db.rpc("close_worker_turn",{p_rows:payload,p_business_date:dateKey()});if(error)throw error;
+  const {data,error}=await db.rpc("close_worker_turn",{p_rows:payload,p_business_date:businessDate});if(error)throw error;
   closure=data;const date=data.business_date,number=data.closure_no;$("turnDocumentNo").textContent="N°"+String(number).padStart(2,"0");
   exportData(data.rows,number,data.shift_no,date);
   localStorage.removeItem(key());
@@ -138,5 +138,5 @@ $("closeTurnBtn")?.addEventListener("click",async()=>{
 });
 const observer=new MutationObserver(()=>{if($("appPanel")?.classList.contains("hidden")){ready=false;session=null;shift=0;rows=[];}else init();});
 observer.observe($("appPanel"),{attributes:true,attributeFilter:["class"]});
-window.addEventListener("online",init);window.addEventListener("ipv:turn-inventory-refresh",async()=>{if(!session||!navigator.onLine)return;try{const {data,error}=await db.rpc("worker_get_turn_inventory",{p_business_date:dateKey()});if(error)throw error;if(Array.isArray(data)){rows=data.map(x=>row(x.product_name,x.start_qty,x.entry_qty,x.sold_qty,x.price));if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));render();await saveDraft();}}catch(e){status("No se pudo actualizar la tabla tras la venta: "+e.message);}});document.addEventListener("visibilitychange",()=>{if(!document.hidden)init();});
+window.addEventListener("online",init);window.addEventListener("ipv:turn-inventory-refresh",async()=>{if(!session||!navigator.onLine)return;try{const {data,error}=await db.rpc("worker_get_turn_inventory",{p_business_date:businessDate});if(error)throw error;if(Array.isArray(data)){rows=data.map(x=>row(x.product_name,x.start_qty,x.entry_qty,x.sold_qty,x.price));if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));render();await saveDraft();}}catch(e){status("No se pudo actualizar la tabla tras la venta: "+e.message);}});document.addEventListener("visibilitychange",()=>{if(!document.hidden)init();});
 })();
