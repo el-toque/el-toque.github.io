@@ -111,7 +111,8 @@ async function ensureTurnContext(){
 async function loadProducts(){
  if(user&&!admin()){
   if(!navigator.onLine){const snap=await localGet("worker_snapshot_"+user.id);if(snap){products=snap.products||[];categories=[];workerAllocations=(snap.workerAllocations||[]);renderCategoryControls();renderProducts();}return;}
-  const turnCtx=await ensureTurnContext();\n  let result=await client.rpc("worker_turn_shop_products",{p_business_date:turnCtx.businessDate,p_session_no:turnCtx.sessionNo});
+  const turnCtx=await ensureTurnContext();
+  let result=await client.rpc("worker_turn_shop_products",{p_business_date:turnCtx.businessDate,p_session_no:turnCtx.sessionNo});
   // Si la primera petición llega sin un JWT vigente, renovar sesión y repetir una sola vez.
   if(result.error&&(result.error.code==="42501"||result.error.status===401||/permission denied|unauthorized|JWT/i.test(result.error.message||""))){
    const refreshed=await client.auth.refreshSession();
