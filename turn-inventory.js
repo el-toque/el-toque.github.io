@@ -50,7 +50,7 @@ async function load(){
  if(error)throw error;
  if(!last?.is_my_turn)throw new Error("Este no es el turno activo. El otro trabajador debe completar su cierre.");
  businessDate=day;sessionNo=Number(last.session_no)||1;
- window.IPV_TURN_CONTEXT={businessDate,sessionNo,shift};
+ window.IPV_TURN_CONTEXT={businessDate,sessionNo,shift};\n localStorage.setItem("ipv_turn_context_"+session.user.id,JSON.stringify(window.IPV_TURN_CONTEXT));
  rows=(last.last_rows||[]).map(r=>row(r.product,r.final,0,0,r.price));
  if(!rows.length)rows=Array.from({length:20},()=>row());
  if(navigator.onLine){
