@@ -115,6 +115,7 @@ async function loadProducts(){
  if(error){toast("No se pudo cargar el inventario: "+error.message);return}
  products=data||[];if(admin()){const {data:costs,error:costError}=await client.from("product_costs").select("product_id,average_cost");if(costError){toast("No se pudieron cargar los costos de productos: "+costError.message);return}const costMap=new Map((costs||[]).map(x=>[x.product_id,Number(x.average_cost)||0]));products=products.map(p=>({...p,average_cost:costMap.get(p.id)||0}));}renderProducts();
 }
+window.addEventListener("ipv:turn-inventory-saved",()=>{if(user&&!admin())loadProducts();});
 function renderCategoryControls(){const select=$("productCategory");if(select){const chosen=select.value;select.innerHTML='<option value="">Sin categoría</option>'+categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("");select.value=chosen;}const filters=$("shopCategoryFilters");if(filters){filters.innerHTML=[`<button type="button" class="category-chip ${shopCategory==="all"?"active":""}" data-category="all">Todas</button>`,...categories.map(c=>`<button type="button" class="category-chip ${shopCategory===c.id?"active":""}" data-category="${c.id}">${esc(c.name)}</button>`)].join("");}}
 $("shopCategoryFilters").addEventListener("click",e=>{const b=e.target.closest("[data-category]");if(!b)return;shopCategory=b.dataset.category;renderCategoryControls();renderShopProducts()});
 function renderProducts(){
