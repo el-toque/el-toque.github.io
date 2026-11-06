@@ -556,3 +556,22 @@ body.admin-mode .topbar{display:none!important}
  .admin-menu-toggle{top:8px!important;left:10px!important;width:42px!important;height:42px!important;min-width:42px!important}
  .admin-mode .wrap,.worker-mode .wrap{padding-top:54px!important}
 }
+
+
+/* Menú lateral ligeramente elevado y logo del punto de venta sin fondo oscuro visible */
+.admin-sidebar{
+  top:8px!important;
+  bottom:8px!important;
+  height:auto!important;
+  max-height:calc(100dvh - 16px)!important;
+  border-radius:0 15px 15px 0!important;
+}
+.shop-welcome-seal{background:transparent!important;isolation:isolate!important}
+.shop-welcome-seal img{
+  background:transparent!important;
+  mix-blend-mode:screen!important;
+  filter:brightness(1.35) contrast(1.12)!important;
+}
+@media(max-width:820px){
+  .admin-sidebar{top:8px!important;bottom:8px!important;height:auto!important;max-height:calc(100dvh - 16px)!important}
+}
