@@ -145,7 +145,7 @@ input,select,textarea{background:#1b1e22;border-color:#393c42;color:#f5f0e7}labe
 .quantity-actions{display:flex;gap:6px;flex-wrap:wrap}.quantity-actions .mini-btn{white-space:nowrap}
 @media(max-width:680px){.category-filters{padding:10px 13px 0}.quantity-actions{width:100%}}
 
-.offline-status{margin:8px 0;padding:8px 12px;border-radius:9px;background:#e8f1f8;color:#17466a;font-size:.82rem}.offline-status.pending{background:#fff0d8;color:#80500b;font-weight:700}
+.header-status{display:inline-flex;align-items:center;gap:6px;margin-top:5px;color:#d9ad4b;font-size:.72rem;font-weight:800;letter-spacing:.09em}.header-status::before{content:"";width:7px;height:7px;border-radius:50%;background:#d9ad4b;box-shadow:0 0 8px #d9ad4b66}.header-status.pending{color:#f0c56a;letter-spacing:0}.header-status.pending::before{background:#f0c56a}.header-status.offline{color:#d7a34b}.header-status.offline::before{background:#d7a34b}
 
 /* Asignación masiva de inventario por trabajador */
 .allocation-dialog{width:min(680px,calc(100% - 24px));max-height:88vh;overflow:auto}
