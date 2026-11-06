@@ -84,7 +84,7 @@ async function enter(authUser){
  data=profile;
  document.body.classList.toggle("admin-mode",data.role!=="worker");$("adminSidebar")?.classList.toggle("hidden",data.role==="worker");document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.classList.toggle("hidden",data.role==="worker");
  document.body.classList.remove("login-screen");$("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden");$("sessionLabel").textContent=admin()?"ADMINISTRADOR":"TRABAJADOR";$("welcome").textContent=`Hola, ${data.full_name||user.email} · ${data.role}`;
- $("addBtn").classList.toggle("hidden",!admin());$("exportInventory").classList.toggle("hidden",!admin());$("exportInventoryPdf").classList.toggle("hidden",!admin());$("manageCategoriesBtn").classList.toggle("hidden",!admin());$("workersNav").classList.toggle("hidden",!admin());$("workerLogoutBtn")?.classList.toggle("hidden",admin());$("adminTabs").classList.toggle("hidden",!admin());$("workerTabs").classList.toggle("hidden",admin());if(!admin()){document.querySelector('[data-tab="daily"]').classList.toggle("hidden",!workerPermission("can_view_own_closeout"));$("shopSellBtn").disabled=!workerPermission("can_sell");}
+ $("addBtn")?.classList.toggle("hidden",!admin());$("exportInventory")?.classList.toggle("hidden",!admin());$("exportInventoryPdf")?.classList.toggle("hidden",!admin());$("manageCategoriesBtn")?.classList.toggle("hidden",!admin());$("workersNav").classList.toggle("hidden",!admin());$("workerLogoutBtn")?.classList.toggle("hidden",admin());$("adminTabs").classList.toggle("hidden",!admin());$("workerTabs").classList.toggle("hidden",admin());if(!admin()){document.querySelector('[data-tab="daily"]').classList.toggle("hidden",!workerPermission("can_view_own_closeout"));$("shopSellBtn").disabled=!workerPermission("can_sell");}
  document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
  if(admin()){document.querySelector('[data-tab="dashboard"]').classList.add("active");showSection("dashboard");}else{document.querySelector('[data-tab="shop"]').classList.add("active");showSection("shop");}
  // La autenticación ya está confirmada. Los errores de módulos no deben expulsar al usuario.
@@ -158,10 +158,10 @@ window.addEventListener("ipv:turn-inventory-saved",()=>{if(user&&!admin())loadPr
 function renderCategoryControls(){const select=$("productCategory");if(select){const chosen=select.value;select.innerHTML='<option value="">Sin categoría</option>'+categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("");select.value=chosen;}const filters=$("shopCategoryFilters");if(filters){filters.innerHTML=[`<button type="button" class="category-chip ${shopCategory==="all"?"active":""}" data-category="all">Todas</button>`,...categories.map(c=>`<button type="button" class="category-chip ${shopCategory===c.id?"active":""}" data-category="${c.id}">${esc(c.name)}</button>`)].join("");}}
 $("shopCategoryFilters").addEventListener("click",e=>{const b=e.target.closest("[data-category]");if(!b)return;shopCategory=b.dataset.category;renderCategoryControls();renderShopProducts()});
 function renderProducts(){
- const q=$("search").value.trim().toLowerCase(),list=products.filter(p=>(p.name+" "+(p.sku||"")).toLowerCase().includes(q));
- $("productCount").textContent=products.length;$("unitCount").textContent=products.reduce((a,p)=>a+p.stock,0);$("stockValue").textContent=money(products.reduce((a,p)=>a+Number(p.price)*p.stock,0));
- $("productsBody").innerHTML=list.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.sku||"—")}</td><td>${money(p.price)}</td><td>${p.stock}</td><td>${Number(p.min_stock||0)>0?Number(p.min_stock):"—"}${Number(p.min_stock||0)>0&&Number(p.stock)<=Number(p.min_stock)?' <strong class="low-stock-label">Reponer</strong>':""}</td><td>${admin()?`<button class="mini-btn" data-edit="${p.id}">Editar</button> <button class="mini-btn danger" data-delete="${p.id}">Desactivar</button>`:"—"}</td></tr>`).join("");
- $("inventoryEmpty").classList.toggle("hidden",list.length>0);
+ const q=$("search")?.value.trim().toLowerCase()||"",list=products.filter(p=>(p.name+" "+(p.sku||"")).toLowerCase().includes(q));
+ if($("productCount"))$("productCount").textContent=products.length;if($("unitCount"))$("unitCount").textContent=products.reduce((a,p)=>a+p.stock,0);if($("stockValue"))$("stockValue").textContent=money(products.reduce((a,p)=>a+Number(p.price)*p.stock,0));
+ if($("productsBody"))$("productsBody").innerHTML=list.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.sku||"—")}</td><td>${money(p.price)}</td><td>${p.stock}</td><td>${Number(p.min_stock||0)>0?Number(p.min_stock):"—"}${Number(p.min_stock||0)>0&&Number(p.stock)<=Number(p.min_stock)?' <strong class="low-stock-label">Reponer</strong>':""}</td><td>${admin()?`<button class="mini-btn" data-edit="${p.id}">Editar</button> <button class="mini-btn danger" data-delete="${p.id}">Desactivar</button>`:"—"}</td></tr>`).join("");
+ $("inventoryEmpty")?.classList.toggle("hidden",list.length>0);
  const opts=products.map(p=>`<option value="${p.id}">${esc(p.name)} · ${p.stock} disp.</option>`).join("");
  if(!admin()){renderShopProducts();renderShopCart();}
 }
@@ -197,13 +197,13 @@ async function buildInventoryExport(){
  const summary=[{Concepto:"Fecha de exportación",Valor:new Date().toLocaleString("es-ES")},{Concepto:"Cuenta administradora",Valor:profile?.full_name||user?.email||"Administrador"},{Concepto:"Correo de la cuenta",Valor:user?.email||"—"},{Concepto:"Productos registrados",Valor:inventory.length},{Concepto:"Productos activos",Valor:inventory.filter(r=>r.Estado==="Activo").length},{Concepto:"Unidades en almacén",Valor:sum("Stock en almacén")},{Concepto:"Unidades disponibles en trabajadores",Valor:sum("Disponible en trabajadores")},{Concepto:"Unidades disponibles totales",Valor:sum("Disponible total actual")},{Concepto:"Valor disponible en almacén (CUP)",Valor:sum("Valor en almacén CUP")},{Concepto:"Valor disponible en trabajadores (CUP)",Valor:sum("Valor disponible trabajadores CUP")},{Concepto:"Valor total disponible (CUP)",Valor:sum("Valor total disponible CUP")}];
  return {inventory,detail,workers,summary,stamp:new Date().toISOString().slice(0,10)};
 }
-$("exportInventory").addEventListener("click",async()=>{
+$("exportInventory")?.addEventListener("click",async()=>{
  const btn=$("exportInventory");btn.disabled=true;btn.textContent="Preparando Excel…";
  try{const d=await buildInventoryExport();if(!d)return;if(!window.XLSX){toast("No se pudo cargar el módulo Excel. Comprueba tu conexión.");return;}
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d.summary),"Resumen");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d.inventory),"Inventario general");const usedNames=new Set(["Resumen","Inventario general"]);for(const w of d.workers){const rows=d.detail.filter(r=>r._workerId===w.id).map(({_workerId,...row})=>row);if(!rows.length)rows.push({Trabajador:w.full_name||"Trabajador",Estado:w.active?"Activo":"Desactivado",SKU:"",Producto:"Sin existencias asignadas",Categoría:"","Cantidad asignada":0,"Cantidad restante":0,"Consumo de asignación":0,"Valor restante CUP":0});let base=("Trab - "+(w.full_name||"Trabajador")).replace(/[\\/?*\[\]:]/g," ").trim().slice(0,31)||"Trabajador";let sheetName=base,n=2;while(usedNames.has(sheetName)){const suffix=" "+n++;sheetName=base.slice(0,31-suffix.length)+suffix;}usedNames.add(sheetName);XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),sheetName);}XLSX.writeFile(wb,"Inventario_IPV_"+d.stamp+".xlsx");toast("Inventario Excel preparado: cada trabajador tiene su propia hoja.");
  }catch(e){toast("No se pudo exportar: "+(e?.message||"Error inesperado"));}finally{btn.disabled=false;btn.textContent="Exportar inventario (.xlsx)";}
 });
-$("exportInventoryPdf").addEventListener("click",async()=>{
+$("exportInventoryPdf")?.addEventListener("click",async()=>{
  const btn=$("exportInventoryPdf");btn.disabled=true;btn.textContent="Preparando PDF…";
  try{const d=await buildInventoryExport();if(!d)return;if(!window.jspdf?.jsPDF){toast("No se pudo cargar el módulo PDF. Comprueba tu conexión.");return;}
   const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"}),sum=d.summary;
@@ -216,9 +216,9 @@ $("exportInventoryPdf").addEventListener("click",async()=>{
  }catch(e){toast("No se pudo exportar: "+(e?.message||"Error inesperado"));}finally{btn.disabled=false;btn.textContent="Exportar inventario a PDF";}
 });
 
-$("search").addEventListener("input",renderProducts);
-$("addBtn").addEventListener("click",()=>openProduct());
-$("productsBody").addEventListener("click",async e=>{
+$("search")?.addEventListener("input",renderProducts);
+$("addBtn")?.addEventListener("click",()=>openProduct());
+$("productsBody")?.addEventListener("click",async e=>{
  const edit=e.target.closest("[data-edit]"),del=e.target.closest("[data-delete]");
  if(edit){const p=products.find(x=>x.id===edit.dataset.edit);openProduct(p)}
  if(del){const p=products.find(x=>x.id===del.dataset.delete);if(p&&confirm(`¿Desactivar ${p.name}?`)){const {error}=await client.from("products").update({active:false}).eq("id",p.id);if(error)toast(error.message);else{toast("Producto desactivado");await loadProducts()}}}
@@ -548,7 +548,7 @@ $("allocationSelectedList").addEventListener("input",e=>{const input=e.target.cl
 $("allocationSelectedList").addEventListener("click",e=>{const b=e.target.closest("[data-allocation-remove]");if(!b)return;allocationDraft.delete(b.dataset.allocationRemove);renderAllocationPicker();fail("allocationMessage","");});
 $("closeAllocation").onclick=$("cancelAllocation").onclick=()=>$("allocationDialog").close();
 $("allocationForm").addEventListener("submit",async e=>{e.preventDefault();if(!allocationDraft.size){fail("allocationMessage","Añade al menos un producto.");return}const items=[...allocationDraft.entries()].map(([product_id,quantity])=>({product_id,quantity}));const invalid=items.find(i=>!Number.isInteger(i.quantity)||i.quantity<0||i.quantity>allocationAvailable(i.product_id));if(invalid){fail("allocationMessage",`Stock insuficiente: solo quedan ${allocationAvailable(invalid.product_id)} unidades disponibles para asignar de ese producto.`);return}const btn=$("saveAllocation");btn.disabled=true;fail("allocationMessage","Guardando todas las asignaciones…");const {data,error}=await client.rpc("admin_set_worker_allocations",{p_worker_id:allocationCurrentWorker,p_items:items});btn.disabled=false;if(error){fail("allocationMessage",error.message);return}toast(`Asignación guardada: ${data||items.length} productos`);$("allocationDialog").close();});
-$("manageCategoriesBtn").addEventListener("click",async()=>{await loadCategoriesList();$("categoryDialog").showModal()});
+$("manageCategoriesBtn")?.addEventListener("click",async()=>{await loadCategoriesList();$("categoryDialog").showModal()});
 async function loadCategoriesList(){const {data,error}=await client.from("product_categories").select("id,name,active").order("name");if(error){fail("categoryMessage",error.message);return}categories=(data||[]).filter(c=>c.active);$("categoryList").innerHTML=categories.map(c=>`<div class="category-list-row">${esc(c.name)}</div>`).join("")||'<p class="muted small">Todavía no hay categorías.</p>';renderCategoryControls();}
 $("closeCategory").onclick=$("cancelCategory").onclick=()=>$("categoryDialog").close();
 $("categoryForm").addEventListener("submit",async e=>{e.preventDefault();const name=$("categoryName").value.trim();if(!name)return;const {error}=await client.from("product_categories").insert({name});if(error){fail("categoryMessage",error.message);return}$("categoryName").value="";fail("categoryMessage","Categoría creada");await loadCategoriesList();await loadProducts()});
