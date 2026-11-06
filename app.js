@@ -4,7 +4,7 @@ const cfg=window.IPV_CONFIG||{};
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0)+" CUP";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-let client=null,initPromise=null,user=null,profile=null,loginInProgress=false,products=[],cart=[],categories=[],shopCategory="all",workerAllocations=[];
+let client=null,initPromise=null,user=null,profile=null,loginInProgress=false,products=[],cart=[],categories=[],shopCategory="all",workerAllocations=[];let adminIPVTarget=null;
 // Almacenamiento local duradero para sesión de trabajador, catálogo y ventas pendientes.
 const OFFLINE_DB="ipv_digital_offline_v1";
 function offlineDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(OFFLINE_DB,1);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains("records"))db.createObjectStore("records");};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
@@ -425,6 +425,7 @@ async function loadAdminIPV(){
   const lastClosedSession=Number(latestClosure?.session_no)||0;
   const openRows=(items||[]).filter(x=>Number(x.session_no)>lastClosedSession);
   if(!openRows.length){
+   adminIPVTarget=null;
    body.innerHTML='<tr><td colspan="8" class="muted">No hay una sesión de turno abierta con actividad registrada en la fecha actual.</td></tr>';
    $("adminIPVSession").textContent="Sin turno activo detectado";
    $("adminIPVTotal").textContent=money(0);
@@ -433,6 +434,7 @@ async function loadAdminIPV(){
    return;
   }
   const newest=openRows[0];
+  adminIPVTarget={worker_id:newest.worker_id,business_date:newest.business_date,session_no:Number(newest.session_no)};
   const activeRows=openRows.filter(x=>x.worker_id===newest.worker_id&&Number(x.shift_no)===Number(newest.shift_no)&&Number(x.session_no)===Number(newest.session_no)&&x.business_date===newest.business_date).sort((a,b)=>Number(a.row_no)-Number(b.row_no));
   const {data:worker,error:workerError}=await client.from("profiles").select("full_name").eq("id",newest.worker_id).maybeSingle();
   if(workerError)throw workerError;
@@ -449,6 +451,21 @@ async function loadAdminIPV(){
  }
 }
 $("refreshAdminIPV")?.addEventListener("click",loadAdminIPV);
+
+$("submitAdminIPVEntry")?.addEventListener("click",async()=>{
+ if(!admin()||!adminIPVTarget||!navigator.onLine){toast("No hay una sesión activa disponible para recibir entradas.");return;}
+ const name=$("adminIPVProduct")?.value.trim()||"",qty=Number($("adminIPVQuantity")?.value),price=Number($("adminIPVPrice")?.value||0);
+ if(!name||!Number.isInteger(qty)||qty<=0||!Number.isFinite(price)||price<0){toast("Introduce un producto y una cantidad válida.");return;}
+ const button=$("submitAdminIPVEntry");button.disabled=true;
+ try{
+  const {error}=await client.rpc("admin_create_worker_entry_request",{p_worker_id:adminIPVTarget.worker_id,p_business_date:adminIPVTarget.business_date,p_session_no:adminIPVTarget.session_no,p_product_name:name,p_quantity:qty,p_price:price});
+  if(error)throw error;
+  $("adminIPVProduct").value="";$("adminIPVQuantity").value="";$("adminIPVPrice").value="";
+  toast("Entrada enviada. No se sumará al IPV hasta que el trabajador la apruebe.");
+ }catch(error){toast("No se pudo enviar la entrada: "+(error.message||"Error inesperado"));}
+ finally{button.disabled=false;}
+});
+
 async function loadAdminCloseouts(){
  if(!admin()||!navigator.onLine)return;
  const {data,error}=await client.from("worker_turn_closures").select("id,closure_no,worker_id,shift_no,business_date,session_no,total,rows,created_at,profiles(full_name)").order("created_at",{ascending:false}).limit(100);
