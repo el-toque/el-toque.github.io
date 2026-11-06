@@ -322,3 +322,17 @@ input,select,textarea{background:#1b1e22;border-color:#393c42;color:#f5f0e7}labe
 .admin-sidebar-footer{margin-top:auto;padding:18px 4px 4px;border-top:1px solid #3d321f}
 .admin-sidebar-footer #logoutBtn{width:100%;min-height:44px;border:1px solid #765b2b;background:#241c10;color:#f0d28a;font-weight:800}
 .admin-sidebar-footer #logoutBtn:hover{background:#3b2b12;border-color:#c49a43}
+
+/* Pantalla de acceso: identidad y estado integrados en el panel de autenticación */
+body.login-screen .topbar{display:none}
+.auth-brand{display:flex;align-items:center;gap:15px;margin:18px 0 20px}
+.auth-brand img{display:block;width:76px;height:76px;flex:0 0 76px;object-fit:contain;border-radius:14px;filter:drop-shadow(0 4px 10px #0008)}
+.auth-brand>div{min-width:0}
+.auth-brand h1{margin:0 0 4px!important;color:#f1c45c!important;font-size:1.75rem!important;line-height:1.1}
+.auth-brand p{margin:0;color:#aaa39a;font-size:.88rem;letter-spacing:.02em}
+.auth-account-status{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:0 0 16px;padding:11px 12px;border:1px solid #51452d;border-radius:10px;background:#191816}
+.auth-status-label{color:#b9a77d;font-size:.67rem;font-weight:850;letter-spacing:.12em}
+.auth-account-status .demo-pill{margin-left:auto}
+.auth-account-status small{flex-basis:100%;color:#aaa39a;font-size:.75rem}
+.auth-panel .auth-intro{margin:0 0 18px}
+@media(max-width:520px){.auth-brand{gap:12px;margin:15px 0 18px}.auth-brand img{width:66px;height:66px;flex-basis:66px}.auth-brand h1{font-size:1.55rem!important}.auth-account-status{padding:10px}}
