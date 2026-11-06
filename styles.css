@@ -484,3 +484,13 @@ body.admin-mode .topbar{display:none!important}
 .brand-mark{background:transparent!important;border:0!important;box-shadow:none!important;overflow:visible!important;border-radius:0!important}
 .brand-mark img,.auth-logo,.admin-sidebar-logo{mix-blend-mode:screen;filter:none!important;background:transparent!important;border:0!important;box-shadow:none!important}
 .admin-sidebar-logo{border-radius:0!important}
+
+
+/* Encabezado compacto: reduce altura sin perder legibilidad */
+.topbar{min-height:52px;padding-top:5px;padding-bottom:5px;border-bottom-width:2px;gap:10px}
+.brand{gap:8px}
+.brand-mark{width:34px;height:34px;flex-basis:34px}
+.brand strong{font-size:1rem;line-height:1.1}
+.brand small{margin-top:1px;font-size:.68rem;line-height:1.15}
+@media(max-width:850px){.topbar{min-height:48px;padding:4px 10px}}
+@media(max-width:520px){.brand strong{font-size:.94rem}.brand small{font-size:.64rem}}
