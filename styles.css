@@ -575,3 +575,9 @@ body.admin-mode .topbar{display:none!important}
 @media(max-width:820px){
   .admin-sidebar{top:8px!important;bottom:8px!important;height:auto!important;max-height:calc(100dvh - 16px)!important}
 }
+
+
+/* Separación entre el botón del menú lateral y el encabezado de la página */
+@media(max-width:820px){
+  .admin-mode .wrap,.worker-mode .wrap{padding-top:70px!important}
+}
