@@ -129,14 +129,15 @@ async function ensureTurnContext(){
  const {data,error}=await client.rpc("get_last_worker_turn_v2",{p_business_date:day});
  if(error)throw error;
  if(!data?.is_my_turn)throw new Error("Este no es el turno activo. Actualiza IPV o espera el cierre del otro trabajador.");
- const context={businessDate:day,sessionNo:Number(data.session_no)||1,shift:Number((user?.email||"").toLowerCase()==="dependiente1@eltoque.com"?1:2)};
+ const context={businessDate:data.last_business_date||data.business_date||day,sessionNo:Number(data.session_no)||1,shift:Number((user?.email||"").toLowerCase()==="dependiente1@eltoque.com"?1:2)};
  window.IPV_TURN_CONTEXT=context;
  return context;
 }
 async function loadProducts(){
  if(user&&!admin()){
   if(!navigator.onLine){const snap=await localGet("worker_snapshot_"+user.id);if(snap){products=snap.products||[];categories=[];workerAllocations=(snap.workerAllocations||[]);renderCategoryControls();renderProducts();}return;}
-  const turnCtx=await ensureTurnContext();
+  let turnCtx;
+  try{turnCtx=await ensureTurnContext();}catch(turnError){console.error("[IPV active turn]",turnError);toast("No se pudo identificar el turno activo: "+(turnError?.message||"Error inesperado"));products=[];workerAllocations=[];renderShopProducts();renderShopCart();return;}
   let result=await client.rpc("worker_turn_shop_products",{p_business_date:turnCtx.businessDate,p_session_no:turnCtx.sessionNo});
   // Si la primera petición llega sin un JWT vigente, renovar sesión y repetir una sola vez.
   if(result.error&&(result.error.code==="42501"||result.error.status===401||/permission denied|unauthorized|JWT/i.test(result.error.message||""))){
