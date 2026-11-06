@@ -456,3 +456,11 @@ body.admin-mode .topbar{display:none!important}
   #inventoryTab .ipv-live-table th,#inventoryTab .ipv-live-table td{padding:5px 6px;font-size:.7rem}
   #inventoryTab .ipv-live-table td:first-child{max-width:14ch}
 }
+
+
+/* Selector y vista previa de fotografías en la tabla IPV del administrador */
+#inventoryTab .admin-ipv-product-cell{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+#inventoryTab .admin-ipv-product-cell>span{flex:1 1 100%;overflow-wrap:anywhere}
+#inventoryTab .admin-ipv-thumb{width:34px;height:34px;object-fit:cover;border-radius:6px;border:1px solid #80652e;background:#171717}
+#inventoryTab .admin-ipv-image-btn{padding:4px 7px;font-size:.67rem;white-space:nowrap}
+#inventoryTab .admin-ipv-image-btn:disabled{opacity:.55}
