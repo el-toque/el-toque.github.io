@@ -287,11 +287,12 @@ input,select,textarea{background:#1b1e22;border-color:#393c42;color:#f5f0e7}labe
 .admin-sidebar-caption{margin:19px 10px 9px;color:#8e805f;font-size:.65rem;font-weight:850;letter-spacing:.16em}
 .admin-sidebar #adminTabs{display:grid;gap:5px;margin:0;padding:0;background:transparent}
 .admin-sidebar #adminTabs .tab{display:flex;align-items:center;gap:12px;width:100%;min-height:46px;padding:10px 12px;border:1px solid transparent;border-radius:9px;background:transparent;color:#c8c0ad;text-align:left;font-size:.86rem;font-weight:700}
-.admin-sidebar #adminTabs .tab:before{display:grid;place-items:center;width:23px;height:23px;border-radius:7px;background:#252117;color:#d8b65f;font-size:.85rem}
-.admin-sidebar #adminTabs [data-tab="dashboard"]:before{content:"⌂"}.admin-sidebar #adminTabs [data-tab="inventory"]:before{content:"▦"}.admin-sidebar #adminTabs [data-tab="sales"]:before{content:"↗"}.admin-sidebar #adminTabs [data-tab="closeouts"]:before{content:"▤"}.admin-sidebar #adminTabs [data-tab="activity"]:before{content:"◷"}.admin-sidebar #adminTabs [data-tab="reservations"]:before{content:"◇"}.admin-sidebar #adminTabs [data-tab="workers"]:before{content:"♙"}
+.admin-sidebar #adminTabs .tab{gap:13px}
+.admin-sidebar #adminTabs .tab-icon{display:block;flex:0 0 21px;width:21px;height:21px;fill:none;stroke:#cda64e;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round;transition:stroke .18s,transform .18s}
+.admin-sidebar #adminTabs .tab:hover .tab-icon,.admin-sidebar #adminTabs .tab:focus-visible .tab-icon{stroke:#f0d58b;transform:translateX(1px)}
 .admin-sidebar #adminTabs .tab:hover,.admin-sidebar #adminTabs .tab:focus-visible{background:#292316;color:#f1d995;outline:none}
 .admin-sidebar #adminTabs .tab.active{background:linear-gradient(100deg,#4b3817,#2a2112);border-color:#8c6827;color:#f4d887;box-shadow:inset 3px 0 #d5a943,0 4px 12px #0004}
-.admin-sidebar #adminTabs .tab.active:before{background:#b88931;color:#17120a}
+.admin-sidebar #adminTabs .tab.active .tab-icon{stroke:#f2d27a}
 .admin-mode #dashboardTab,.admin-mode #inventoryTab,.admin-mode #salesTab,.admin-mode #closeoutsTab,.admin-mode #activityTab,.admin-mode #reservationsTab,.admin-mode #workersTab,.admin-mode #offlineStatus,.admin-mode #syncPendingBtn{margin-left:274px}
 .admin-mode .panel{background:#141516;border-color:#37322a;color:#e9e2d4;box-shadow:0 8px 24px #0004}
 .admin-mode .panel h2,.admin-mode .panel h3{color:#e8ca7c}.admin-mode .eyebrow{color:#d2ad59}.admin-mode .muted,.admin-mode .small{color:#aaa18e}
