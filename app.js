@@ -4,7 +4,8 @@ const cfg=window.IPV_CONFIG||{};
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0)+" CUP";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-let client=null,initPromise=null,user=null,profile=null,loginInProgress=false,products=[],cart=[],categories=[],shopCategory="all",workerAllocations=[];let adminIPVTarget=null;
+let client=null,initPromise=null,user=null,profile=null,loginInProgress=false,products=[],cart=[],categories=[],shopCategory="all",workerAllocations=[];let adminIPVTarget=null;let adminIPVImages=new Map();
+const ipvProductKey=name=>String(name??"").trim().toLowerCase();
 // Almacenamiento local duradero para sesión de trabajador, catálogo y ventas pendientes.
 const OFFLINE_DB="ipv_digital_offline_v1";
 function offlineDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(OFFLINE_DB,1);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains("records"))db.createObjectStore("records");};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
@@ -52,7 +53,7 @@ const admin=()=>profile?.role==="admin";
 const workerPermission=key=>admin()||profile?.worker_permissions?.[key]!==false;
 function fail(el,msg){$(el).textContent=msg}
 async function init(){
- if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js?v=44",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
+ if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js?v=49",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
  window.addEventListener("online",()=>{syncPendingSales();});window.addEventListener("offline",()=>{updatePendingBadge();});
  if(!cfg.url||!cfg.publishableKey){$("sessionLabel").textContent="CONFIGURACIÓN PENDIENTE";document.body.classList.add("login-screen");$("loginPanel").classList.remove("hidden");fail("loginError","Falta configurar config.js con la URL y la clave publicable del proyecto.");return}
  try{
@@ -143,7 +144,10 @@ async function loadProducts(){
   }
   const {data,error}=result;
   if(error){console.error("[IPV shop RPC]",{message:error.message,code:error.code,status:error.status});toast("No se pudo cargar la tienda del turno: "+error.message);products=[];workerAllocations=[];renderShopProducts();renderShopCart();return;}
-  products=(data||[]).map(x=>({id:x.id,name:x.product_name,price:Number(x.price)||0,stock:Number(x.final_qty)||0,active:true,description:"Disponible para entrega"}));
+  const {data:workerImageRows,error:workerImageError}=await client.from("worker_turn_product_images").select("product_key,image_url");
+  if(workerImageError)console.warn("[IPV product images]",workerImageError.message);
+  const workerImageMap=new Map((workerImageRows||[]).map(image=>[image.product_key,image.image_url]));
+  products=(data||[]).map(x=>({id:x.id,name:x.product_name,price:Number(x.price)||0,stock:Number(x.final_qty)||0,active:true,description:"Disponible para entrega",image_url:workerImageMap.get(ipvProductKey(x.product_name))||null}));
   categories=[];workerAllocations=products.map(p=>({product_id:p.id,quantity_assigned:p.stock,quantity_remaining:p.stock}));
   renderCategoryControls();renderProducts();renderShopProducts();renderShopCart();await cacheWorkerState();return;
  }
@@ -426,7 +430,10 @@ async function loadAdminIPV(){
    .order("row_no",{ascending:true}).limit(500);
   if(itemError)throw itemError;
   const activeRows=items||[];
-  const rowHtml=activeRows.map(x=>'<tr><td>'+esc(x.product_name||"—")+'</td><td>'+Number(x.start_qty||0)+'</td><td class="admin-ipv-entry-cell">'+Number(x.entry_qty||0)+'<div class="admin-ipv-inline-entry"><input data-entry-qty type="number" min="1" step="1" inputmode="numeric" placeholder="+ Entrada" aria-label="Nueva entrada para '+esc(x.product_name)+'"><button type="button" class="mini-btn" data-submit-entry data-product="'+esc(x.product_name)+'">+</button></div></td><td>'+Number(x.available_qty||0)+'</td><td>'+Number(x.final_qty||0)+'</td><td>'+Number(x.sold_qty||0)+'</td><td>'+money(x.price)+'</td><td>'+money(x.amount)+'</td></tr>').join("");
+  const {data:imageRows,error:imageError}=await client.from("worker_turn_product_images").select("product_key,product_name,image_path,image_url");
+  if(imageError)throw imageError;
+  adminIPVImages=new Map((imageRows||[]).map(image=>[image.product_key,image]));
+  const rowHtml=activeRows.map(x=>{const key=ipvProductKey(x.product_name),image=adminIPVImages.get(key);return '<tr><td><div class="admin-ipv-product-cell"><span>'+esc(x.product_name||"—")+'</span>'+(image?'<img class="admin-ipv-thumb" src="'+esc(image.image_url)+'" alt="Imagen de '+esc(x.product_name)+'">':'')+'<button type="button" class="mini-btn admin-ipv-image-btn" data-ipv-image title="Asignar o cambiar imagen">'+(image?'Cambiar foto':'📷 Foto')+'</button><input hidden type="file" accept="image/jpeg,image/png,image/webp" data-ipv-image-file data-product-key="'+esc(key)+'" data-product-name="'+esc(x.product_name)+'"></div></td><td>'+Number(x.start_qty||0)+'</td><td class="admin-ipv-entry-cell">'+Number(x.entry_qty||0)+'<div class="admin-ipv-inline-entry"><input data-entry-qty type="number" min="1" step="1" inputmode="numeric" placeholder="+ Entrada" aria-label="Nueva entrada para '+esc(x.product_name)+'"><button type="button" class="mini-btn" data-submit-entry data-product="'+esc(x.product_name)+'">+</button></div></td><td>'+Number(x.available_qty||0)+'</td><td>'+Number(x.final_qty||0)+'</td><td>'+Number(x.sold_qty||0)+'</td><td>'+money(x.price)+'</td><td>'+money(x.amount)+'</td></tr>';}).join("");
   const draftRow='<tr class="admin-ipv-new-row"><td><input data-new-product type="text" maxlength="120" placeholder="Nuevo producto" aria-label="Nombre del nuevo producto"><button type="button" class="mini-btn" data-submit-entry data-new-row>Crear fila</button></td><td>0</td><td><input data-entry-qty type="number" min="1" step="1" inputmode="numeric" placeholder="Entrada" aria-label="Cantidad inicial de entrada"></td><td>0</td><td>0</td><td>0</td><td><input data-new-price type="number" min="0" step="0.01" inputmode="decimal" value="0" aria-label="Precio del nuevo producto"></td><td>0,00 CUP</td></tr>';
   body.innerHTML=(rowHtml||'<tr><td colspan="8" class="muted">Todavía no hay filas en este IPV. Puedes proponer la primera desde la fila inferior.</td></tr>')+draftRow;
   const total=activeRows.reduce((sum,x)=>sum+(Number(x.amount)||0),0);
@@ -446,6 +453,8 @@ async function loadAdminIPV(){
 $("refreshAdminIPV")?.addEventListener("click",loadAdminIPV);
 
 $("adminIPVRows")?.addEventListener("click",async e=>{
+ const imageButton=e.target.closest("[data-ipv-image]");
+ if(imageButton){if(!admin())return;imageButton.closest("td")?.querySelector("[data-ipv-image-file]")?.click();return;}
  const button=e.target.closest("[data-submit-entry]");if(!button)return;
  if(!admin()||!adminIPVTarget||!navigator.onLine){toast("No hay una sesión activa disponible para recibir entradas.");return;}
  const tr=button.closest("tr"),isNew=button.hasAttribute("data-new-row");
@@ -462,6 +471,34 @@ $("adminIPVRows")?.addEventListener("click",async e=>{
   toast(isNew?"Fila enviada para aprobación. El trabajador deberá aceptarla para que aparezca en su IPV.":"Entrada enviada para aprobación. No se sumará al IPV hasta que el trabajador la acepte.");
  }catch(error){toast("No se pudo enviar la solicitud: "+(error.message||"Error inesperado"));}
  finally{button.disabled=false;}
+});
+
+$("adminIPVRows")?.addEventListener("change",async e=>{
+ const input=e.target.closest("[data-ipv-image-file]");if(!input)return;
+ const file=input.files?.[0];if(!file)return;
+ if(!admin()||!navigator.onLine){toast("La asignación de imágenes requiere conexión y permisos de administrador.");input.value="";return;}
+ const key=input.dataset.productKey,productName=input.dataset.productName;
+ if(!key||!productName){toast("No se pudo identificar el producto.");input.value="";return;}
+ if(!["image/jpeg","image/png","image/webp"].includes(file.type)){toast("Usa una imagen JPG, PNG o WebP.");input.value="";return;}
+ if(file.size>5*1024*1024){toast("La imagen no puede superar 5 MB.");input.value="";return;}
+ const ext=file.type==="image/png"?"png":file.type==="image/webp"?"webp":"jpg";
+ const path="products/"+crypto.randomUUID()+"."+ext;
+ const oldImage=adminIPVImages.get(key);
+ const button=input.closest("td")?.querySelector("[data-ipv-image]");
+ if(button)button.disabled=true;
+ try{
+  const {data:uploaded,error:uploadError}=await client.storage.from("product-images").upload(path,file,{cacheControl:"3600",contentType:file.type,upsert:false});
+  if(uploadError)throw uploadError;
+  const {data:publicData}=client.storage.from("product-images").getPublicUrl(uploaded.path);
+  const record={product_key:key,product_name:productName,image_path:uploaded.path,image_url:publicData.publicUrl,updated_by:user.id,updated_at:new Date().toISOString()};
+  const {error:saveError}=await client.from("worker_turn_product_images").upsert(record,{onConflict:"product_key"});
+  if(saveError){await client.storage.from("product-images").remove([uploaded.path]);throw saveError;}
+  adminIPVImages.set(key,record);
+  if(oldImage?.image_path)await client.storage.from("product-images").remove([oldImage.image_path]);
+  toast("Imagen asignada a "+productName+". La tienda la mostrará al actualizarse.");
+  await loadAdminIPV();
+ }catch(error){console.error("[IPV product image]",error);toast("No se pudo guardar la imagen: "+(error.message||"Error inesperado"));}
+ finally{if(button)button.disabled=false;input.value="";}
 });
 
 async function loadAdminCloseouts(){
