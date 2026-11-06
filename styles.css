@@ -479,3 +479,8 @@ body.admin-mode .topbar{display:none!important}
 .worker-mode .admin-sidebar-footer #workerLogoutBtn{width:100%;min-height:44px;border:1px solid #765b2b;background:#241c10;color:#f0d28a;font-weight:800}
 @media(max-width:820px){.worker-mode .wrap{padding:12px}.worker-mode #appPanel>.hero{margin-left:0;padding:14px;gap:10px}.worker-mode #appPanel>.hero h1{font-size:1.3rem}.worker-mode #shopTab,.worker-mode #dailyTab,.worker-mode #offlineStatus,.worker-mode #syncPendingBtn{margin-left:0}.worker-mode.admin-sidebar-open .admin-sidebar{transform:translateX(0)}}
 @media(min-width:821px) and (max-width:1100px){.worker-mode #appPanel>.hero,.worker-mode #shopTab,.worker-mode #dailyTab,.worker-mode #offlineStatus,.worker-mode #syncPendingBtn{margin-left:254px}}
+
+/* Logotipo sin recuadro negro en acceso y paneles */
+.brand-mark{background:transparent!important;border:0!important;box-shadow:none!important;overflow:visible!important;border-radius:0!important}
+.brand-mark img,.auth-logo,.admin-sidebar-logo{mix-blend-mode:screen;filter:none!important;background:transparent!important;border:0!important;box-shadow:none!important}
+.admin-sidebar-logo{border-radius:0!important}
