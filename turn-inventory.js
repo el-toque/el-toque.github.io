@@ -67,8 +67,32 @@ async function load(){
  $("closeTurnBtn").disabled=false;
  status("Sesión "+sessionNo+" activa. Puedes editar las celdas habilitadas.");
  await persistRows();
+ await loadPendingRequests();
  await history();
 }
+
+async function loadPendingRequests(){
+ const host=$("turnPendingRequests");if(!host||!db||!session||!navigator.onLine)return;
+ try{
+  const {data,error}=await db.rpc("worker_list_entry_requests",{p_business_date:businessDate,p_session_no:sessionNo});
+  if(error)throw error;
+  const list=data||[];
+  host.innerHTML=list.length?list.map(x=>'<div class="turn-pending-row"><div><strong>'+esc(x.product_name)+'</strong><span>'+Number(x.quantity)+' unidades'+(Number(x.price)>0?' · '+money(x.price):'')+'</span></div><button type="button" class="primary" data-approve-entry="'+x.id+'">Aceptar</button></div>').join(''):'<p class="muted small">No tienes entradas pendientes.</p>';
+ }catch(e){host.innerHTML='<p class="muted small">No se pudieron consultar las entradas pendientes: '+esc(e.message||"Error")+'</p>';}
+}
+$("turnPendingRequests")?.addEventListener("click",async e=>{
+ const button=e.target.closest("[data-approve-entry]");if(!button||working)return;
+ button.disabled=true;
+ try{
+  const {error}=await db.rpc("worker_approve_entry_request",{p_request_id:button.dataset.approveEntry,p_business_date:businessDate,p_session_no:sessionNo});
+  if(error)throw error;
+  await window.refreshWorkerTurnInventory?.();
+  await loadPendingRequests();
+  status("Entrada aprobada. La cantidad ya está incluida en tu IPV.");
+  window.dispatchEvent(new Event("ipv:turn-inventory-saved"));
+ }catch(error){button.disabled=false;status("No se pudo aprobar la entrada: "+(error.message||"Error inesperado"));}
+});
+
 async function history(){
  const {data,error}=await db.from("worker_turn_closures").select("closure_no,shift_no,business_date,total,created_at").order("closure_no",{ascending:false}).limit(12);
  if(error){$("turnHistory").innerHTML="<p>No se pudo cargar el historial.</p>";return;}
@@ -101,7 +125,7 @@ async function init(){
  session=data.session;ready=true;const email=(session.user.email||"").toLowerCase();
  shift=email==="dependiente1@eltoque.com"?1:email==="dependiente2@eltoque.com"?2:0;
  if(!shift)return;
- try{await load();}catch(e){$("closeTurnBtn").disabled=true;$("addTurnRow").disabled=true;$("exportTurnXlsx").disabled=true;$("exportTurnPdf").disabled=true;rows=[];render();status(e.message||"No se pudo cargar el turno.");}
+ try{await load();if(db.channel){db.channel("worker-entry-requests-"+session.user.id).on("postgres_changes",{event:"INSERT",schema:"public",table:"worker_turn_entry_requests",filter:"worker_id=eq."+session.user.id},()=>loadPendingRequests()).subscribe();}}catch(e){$("closeTurnBtn").disabled=true;$("addTurnRow").disabled=true;$("exportTurnXlsx").disabled=true;$("exportTurnPdf").disabled=true;rows=[];render();status(e.message||"No se pudo cargar el turno.");}
 }
 $("addTurnRow")?.addEventListener("click",()=>{rows.push(row());render();persistRows();});
 $("exportTurnXlsx")?.addEventListener("click",()=>exportCurrent("xlsx"));
@@ -134,5 +158,6 @@ $("closeTurnBtn")?.addEventListener("click",async()=>{
 });
 const observer=new MutationObserver(()=>{if($("appPanel")?.classList.contains("hidden")){ready=false;session=null;shift=0;rows=[];}else init();});
 observer.observe($("appPanel"),{attributes:true,attributeFilter:["class"]});
-window.refreshWorkerTurnInventory=async function(){if(!session||!navigator.onLine)return false;try{const {data,error}=await db.rpc("worker_get_turn_inventory_v2",{p_business_date:businessDate,p_session_no:sessionNo});if(error)throw error;if(Array.isArray(data)){rows=data.map(x=>row(x.product_name,x.start_qty,x.entry_qty,x.sold_qty,x.price));if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));render();await saveDraft();return true;}return false;}catch(e){status("No se pudo actualizar la tabla tras la venta: "+e.message);return false;}};window.addEventListener("online",()=>{ready=false;init();});window.addEventListener("ipv:turn-inventory-refresh",()=>window.refreshWorkerTurnInventory?.());document.addEventListener("visibilitychange",()=>{if(!document.hidden)init();});
+window.refreshWorkerTurnInventory=async function(){if(!session||!navigator.onLine)return false;try{const {data,error}=await db.rpc("worker_get_turn_inventory_v2",{p_business_date:businessDate,p_session_no:sessionNo});if(error)throw error;if(Array.isArray(data)){rows=data.map(x=>row(x.product_name,x.start_qty,x.entry_qty,x.sold_qty,x.price));if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));render();await saveDraft();return true;}return false;}catch(e){status("No se pudo actualizar la tabla tras la venta: "+e.message);return false;}};window.addEventListener("online",()=>{ready=false;init();});
+window.addEventListener("ipv:turn-inventory-refresh",()=>window.refreshWorkerTurnInventory?.());document.addEventListener("visibilitychange",()=>{if(!document.hidden)init();});
 })();
