@@ -412,47 +412,46 @@ async function loadAdminDashboard(){
 async function loadAdminIPV(){
  if(!admin()||!navigator.onLine)return;
  const body=$("adminIPVRows");
- $("adminIPVSession").textContent="Consultando la sesión de trabajo más reciente…";
- body.innerHTML='<tr><td colspan="8" class="muted">Actualizando…</td></tr>';
+ $("adminIPVSession").textContent="Consultando el turno activo…";
+ body.innerHTML='<tr><td colspan="9" class="muted">Actualizando…</td></tr>';
  try{
-  // La sesión activa se determina por el último cierre global, no por la fecha local
-  // del dispositivo: el día operativo puede diferir de la fecha UTC de updated_at.
-  const {data:latestClosure,error:closureError}=await client.from("worker_turn_closures")
-   .select("closure_no,shift_no,session_no").order("closure_no",{ascending:false}).limit(1).maybeSingle();
-  if(closureError)throw closureError;
-  const expectedShift=latestClosure?.shift_no===1?2:latestClosure?.shift_no===2?1:1;
-  const expectedSession=(Number(latestClosure?.session_no)||0)+1;
-  const {data:items,error:itemError}=await client.from("worker_turn_inventory_items")
-   .select("worker_id,shift_no,business_date,session_no,row_no,product_name,start_qty,entry_qty,available_qty,final_qty,sold_qty,price,amount,updated_at")
-   .eq("shift_no",expectedShift).eq("session_no",expectedSession)
-   .order("updated_at",{ascending:false}).limit(500);
-  if(itemError)throw itemError;
-  if(!items?.length){
+  const {data:targets,error:targetError}=await client.rpc("admin_get_active_worker_turn",{p_business_date:localBusinessDate()});
+  if(targetError)throw targetError;
+  const target=Array.isArray(targets)?targets[0]:targets;
+  if(!target){
    adminIPVTarget=null;
-   body.innerHTML='<tr><td colspan="9" class="muted">El turno '+expectedShift+' · sesión '+expectedSession+' todavía no tiene productos registrados.</td></tr>';
-   $("adminIPVSession").textContent="Turno "+expectedShift+" · Sesión "+expectedSession+" · Sin productos";
+   body.innerHTML='<tr><td colspan="9" class="muted">No hay un trabajador activo disponible para recibir propuestas.</td></tr>';
+   $("adminIPVSession").textContent="Sin turno activo";
    $("adminIPVTotal").textContent=money(0);
    $("adminIPVRowCount").textContent="0 productos";
    $("adminIPVLastUpdate").textContent="Sin actividad reciente";
    return;
   }
-  const newest=items[0];
-  adminIPVTarget={worker_id:newest.worker_id,business_date:newest.business_date,session_no:Number(newest.session_no)};
-  const activeRows=items.filter(x=>x.worker_id===newest.worker_id&&Number(x.shift_no)===expectedShift&&Number(x.session_no)===expectedSession&&x.business_date===newest.business_date).sort((a,b)=>Number(a.row_no)-Number(b.row_no));
-  const {data:worker,error:workerError}=await client.from("profiles").select("full_name").eq("id",newest.worker_id).maybeSingle();
-  if(workerError)throw workerError;
-  body.innerHTML=activeRows.map(x=>'<tr><td>'+esc(x.product_name||"—")+'</td><td>'+Number(x.start_qty||0)+'</td><td>'+Number(x.entry_qty||0)+'</td><td>'+Number(x.available_qty||0)+'</td><td>'+Number(x.final_qty||0)+'</td><td>'+Number(x.sold_qty||0)+'</td><td>'+money(x.price)+'</td><td>'+money(x.amount)+'</td><td class="admin-ipv-action-cell"><input data-entry-qty type="number" min="1" step="1" inputmode="numeric" placeholder="+ Cantidad" aria-label="Cantidad nueva para '+esc(x.product_name)+'"><button type="button" class="mini-btn" data-submit-entry data-product="'+esc(x.product_name)+'">Solicitar</button></td></tr>').join("")+'<tr class="admin-ipv-new-row"><td><input data-new-product type="text" maxlength="120" placeholder="Nombre del producto" aria-label="Nombre del nuevo producto"></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td><input data-new-price type="number" min="0" step="0.01" inputmode="decimal" value="0" aria-label="Precio del nuevo producto"></td><td>0,00 CUP</td><td class="admin-ipv-action-cell"><input data-entry-qty type="number" min="1" step="1" inputmode="numeric" placeholder="Cantidad" aria-label="Cantidad del nuevo producto"><button type="button" class="primary" data-submit-entry data-new-row>Enviar fila</button></td></tr>';
+  adminIPVTarget={worker_id:target.worker_id,business_date:target.business_date,session_no:Number(target.session_no),shift_no:Number(target.shift_no)};
+  const {data:items,error:itemError}=await client.from("worker_turn_inventory_items")
+   .select("worker_id,shift_no,business_date,session_no,row_no,product_name,start_qty,entry_qty,available_qty,final_qty,sold_qty,price,amount,updated_at")
+   .eq("worker_id",target.worker_id).eq("shift_no",target.shift_no)
+   .eq("business_date",target.business_date).eq("session_no",target.session_no)
+   .order("row_no",{ascending:true}).limit(500);
+  if(itemError)throw itemError;
+  const activeRows=items||[];
+  const rowHtml=activeRows.map(x=>'<tr><td>'+esc(x.product_name||"—")+'</td><td>'+Number(x.start_qty||0)+'</td><td>'+Number(x.entry_qty||0)+'</td><td>'+Number(x.available_qty||0)+'</td><td>'+Number(x.final_qty||0)+'</td><td>'+Number(x.sold_qty||0)+'</td><td>'+money(x.price)+'</td><td>'+money(x.amount)+'</td><td class="admin-ipv-action-cell"><input data-entry-qty type="number" min="1" step="1" inputmode="numeric" placeholder="+ Cantidad" aria-label="Cantidad nueva para '+esc(x.product_name)+'"><button type="button" class="mini-btn" data-submit-entry data-product="'+esc(x.product_name)+'">Solicitar</button></td></tr>').join("");
+  const draftRow='<tr class="admin-ipv-new-row"><td><input data-new-product type="text" maxlength="120" placeholder="Nombre del producto" aria-label="Nombre del nuevo producto"></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td><input data-new-price type="number" min="0" step="0.01" inputmode="decimal" value="0" aria-label="Precio del nuevo producto"></td><td>0,00 CUP</td><td class="admin-ipv-action-cell"><input data-entry-qty type="number" min="1" step="1" inputmode="numeric" placeholder="Cantidad" aria-label="Cantidad del nuevo producto"><button type="button" class="primary" data-submit-entry data-new-row>Enviar fila</button></td></tr>';
+  body.innerHTML=(rowHtml||'<tr><td colspan="9" class="muted">Todavía no hay filas en este IPV. Puedes proponer la primera desde la fila inferior.</td></tr>')+draftRow;
   const total=activeRows.reduce((sum,x)=>sum+(Number(x.amount)||0),0);
-  $("adminIPVSession").textContent=(worker?.full_name||("Turno "+expectedShift))+" · Turno "+expectedShift+" · Sesión "+expectedSession+" · "+new Date(newest.business_date+"T00:00:00").toLocaleDateString("es-ES");
+  $("adminIPVSession").textContent=(target.full_name||("Turno "+target.shift_no))+" · Turno "+target.shift_no+" · Sesión "+target.session_no+" · "+new Date(target.business_date+"T00:00:00").toLocaleDateString("es-ES");
   $("adminIPVTotal").textContent=money(total);
   $("adminIPVRowCount").textContent=activeRows.length+" productos";
-  $("adminIPVLastUpdate").textContent="Última actualización: "+new Date(newest.updated_at).toLocaleString("es-ES");
+  const newest=activeRows.reduce((latest,x)=>!latest||new Date(x.updated_at)>new Date(latest)?x.updated_at:latest,null);
+  $("adminIPVLastUpdate").textContent=newest?"Última actualización: "+new Date(newest).toLocaleString("es-ES"):"Esperando la primera fila del trabajador";
  }catch(error){
   console.error("[IPV admin live table]",error);
+  adminIPVTarget=null;
   body.innerHTML='<tr><td colspan="9" class="muted">No se pudo actualizar la tabla IPV: '+esc(error.message||"Error inesperado")+'</td></tr>';
   $("adminIPVSession").textContent="Error al consultar el turno";
  }
 }
+
 $("refreshAdminIPV")?.addEventListener("click",loadAdminIPV);
 
 $("adminIPVRows")?.addEventListener("click",async e=>{
