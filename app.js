@@ -52,7 +52,7 @@ const admin=()=>profile?.role==="admin";
 const workerPermission=key=>admin()||profile?.worker_permissions?.[key]!==false;
 function fail(el,msg){$(el).textContent=msg}
 async function init(){
- if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js?v=32",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
+ if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js?v=33",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
  window.addEventListener("online",()=>{syncPendingSales();});window.addEventListener("offline",()=>{updatePendingBadge();});
  if(!cfg.url||!cfg.publishableKey){$("sessionLabel").textContent="CONFIGURACIÓN PENDIENTE";$("loginPanel").classList.remove("hidden");fail("loginError","Falta configurar config.js con la URL y la clave publicable del proyecto.");return}
  try{
@@ -88,7 +88,7 @@ async function enter(authUser){
  if(admin()){document.querySelector('[data-tab="dashboard"]').classList.add("active");showSection("dashboard");}else{document.querySelector('[data-tab="shop"]').classList.add("active");showSection("shop");}
  // La autenticación ya está confirmada. Los errores de módulos no deben expulsar al usuario.
  const tasks=admin()
-  ?[loadProducts,loadSales,loadReservations,loadWorkers,loadAdminDashboard,loadAdminCloseouts,loadSuppliers,loadReceipts]
+  ?[loadProducts,loadSales,loadReservations,loadWorkers,loadAdminDashboard,loadAdminCloseouts]
   :[loadProducts,loadWorkerAllocations,...(workerPermission("can_view_own_closeout")?[loadDailySales]:[]),cacheWorkerState,updatePendingBadge];
  const results=await Promise.allSettled(tasks.map(fn=>Promise.resolve().then(fn)));
  const failed=results.filter(x=>x.status==="rejected");
@@ -114,8 +114,8 @@ $("loginForm").addEventListener("submit",async e=>{
  finally{loginInProgress=false;if(btn){btn.disabled=false;btn.textContent=original;}}
 });
 $("logoutBtn").addEventListener("click",async()=>{try{await client.auth.signOut();showLogin();}catch(error){toast("No se pudo cerrar la sesión: "+(error?.message||"Error inesperado"));}});
-function showSection(tab){["dashboard","inventory","purchases","sales","closeouts","activity","reservations","workers","shop","daily"].forEach(t=>$(t+"Tab").classList.toggle("hidden",t!==tab));}
-document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","reservations","workers"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="purchases"){loadProducts();loadSuppliers();loadReceipts();}if(b.dataset.tab==="activity")loadActivity();}));
+function showSection(tab){["dashboard","inventory","sales","closeouts","activity","reservations","workers","shop","daily"].forEach(t=>$(t+"Tab").classList.toggle("hidden",t!==tab));}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","reservations","workers"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="activity")loadActivity();}));
 async function ensureTurnContext(){
  const day=localBusinessDate();
  const {data,error}=await client.rpc("get_last_worker_turn_v2",{p_business_date:day});
@@ -157,7 +157,7 @@ function renderProducts(){
  $("productsBody").innerHTML=list.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.sku||"—")}</td><td>${money(p.price)}</td><td>${p.stock}</td><td>${Number(p.min_stock||0)>0?Number(p.min_stock):"—"}${Number(p.min_stock||0)>0&&Number(p.stock)<=Number(p.min_stock)?' <strong class="low-stock-label">Reponer</strong>':""}</td><td>${admin()?`<button class="mini-btn" data-edit="${p.id}">Editar</button> <button class="mini-btn danger" data-delete="${p.id}">Desactivar</button>`:"—"}</td></tr>`).join("");
  $("inventoryEmpty").classList.toggle("hidden",list.length>0);
  const opts=products.map(p=>`<option value="${p.id}">${esc(p.name)} · ${p.stock} disp.</option>`).join("");
- $("reserveProduct").innerHTML=opts;$("receiptProduct").innerHTML=opts;
+ $("reserveProduct").innerHTML=opts;
  if(!admin()){renderShopProducts();renderShopCart();}
 }
 
@@ -376,46 +376,6 @@ const exportDailyPdfButton=$("exportDailyPdf");if(exportDailyPdfButton)exportDai
  let nextY=(doc.lastAutoTable?.finalY||43)+10;doc.setFontSize(13);doc.text("Conteo físico de existencias",14,nextY);if(typeof doc.autoTable==="function"){doc.autoTable({startY:nextY+4,head:[["Producto","Asignado","Vendido","Debe quedar","Conteo físico","Diferencia"]],body:dailyStockRows.map(r=>[r.name,String(r.assigned),String(r.sold),String(r.expected),r.physical===null?"Pendiente":String(r.physical),r.difference===null?"Pendiente":String(r.difference)]),styles:{fontSize:8,cellPadding:2},headStyles:{fillColor:[7,85,164]}});}let billsY=(doc.lastAutoTable?.finalY||nextY+4)+10;if(billsY>175){doc.addPage();billsY=18;}doc.setFontSize(13);doc.text("Conteo de billetes",14,billsY);const billTotal=dailyBillDenominations.reduce((sum,value)=>sum+value*(Number(dailyBillCounts[value])||0),0);doc.autoTable({startY:billsY+4,head:[["Denominación","Cantidad de billetes","Importe"]],body:dailyBillDenominations.filter(value=>(Number(dailyBillCounts[value])||0)>0).map(value=>[value.toLocaleString("es-ES")+" CUP",String(Number(dailyBillCounts[value])||0),money(value*(Number(dailyBillCounts[value])||0))]),foot:[["TOTAL EFECTIVO CONTADO",String(dailyBillDenominations.reduce((sum,value)=>sum+(Number(dailyBillCounts[value])||0),0)),money(billTotal)]],styles:{fontSize:9,cellPadding:2},headStyles:{fillColor:[7,85,164]},footStyles:{fillColor:[238,231,214],textColor:[25,22,16],fontStyle:"bold"}});doc.save("Cuadre_IPV_"+new Date().toISOString().slice(0,10)+".pdf");toast("PDF preparado para guardar en tu teléfono.");
 };
 
-let receiptDraft=[];
-async function loadSuppliers(){
- if(!admin())return;
- const {data,error}=await client.from("suppliers").select("id,name,active").eq("active",true).order("name");
- if(error){toast("No se pudieron cargar los proveedores: "+error.message);return}
- $("receiptSupplier").innerHTML='<option value="">Selecciona un proveedor</option>'+(data||[]).map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join("");
-}
-function renderReceiptLines(){
- $("receiptLines").innerHTML=receiptDraft.map((x,i)=>{const p=products.find(z=>z.id===x.product_id);return '<div class="receipt-line"><div><strong>'+esc(p?.name||"Producto")+'</strong><small>'+x.quantity+' unidades × '+money(x.unit_cost)+'</small></div><strong>'+money(x.quantity*x.unit_cost)+'</strong><button type="button" class="mini-btn danger" data-receipt-remove="'+i+'">Quitar</button></div>'}).join("")||'<p class="muted small">Añade los productos de esta compra.</p>';
- const total=receiptDraft.reduce((n,x)=>n+x.quantity*x.unit_cost,0);$("receiptMessage").textContent=receiptDraft.length?("Total de compra: "+money(total)):"";
-}
-$("addReceiptLine").addEventListener("click",()=>{
- const productId=$("receiptProduct").value,quantity=Number($("receiptQuantity").value),unitCost=Number($("receiptUnitCost").value);
- if(!productId||!Number.isInteger(quantity)||quantity<1||!Number.isFinite(unitCost)||unitCost<0){fail("receiptMessage","Selecciona un producto e introduce cantidad y costo válidos.");return}
- if(receiptDraft.some(x=>x.product_id===productId)){fail("receiptMessage","Ese producto ya está en esta entrada. Modifica la cantidad antes de añadirlo otra vez.");return}
- receiptDraft.push({product_id:productId,quantity,unit_cost:unitCost});renderReceiptLines();
-});
-$("receiptLines").addEventListener("click",e=>{const b=e.target.closest("[data-receipt-remove]");if(!b)return;receiptDraft.splice(Number(b.dataset.receiptRemove),1);renderReceiptLines();});
-$("receiptForm").addEventListener("submit",async e=>{
- e.preventDefault();if(!admin())return;if(!receiptDraft.length){fail("receiptMessage","Añade al menos un producto.");return}
- const newName=$("receiptNewSupplier").value.trim();let supplierId=$("receiptSupplier").value||null;
- if(!supplierId&&!newName){fail("receiptMessage","Selecciona un proveedor o escribe uno nuevo.");return}
- const btn=$("saveReceipt");btn.disabled=true;fail("receiptMessage","Registrando entrada…");
- try{
-  if(newName){const {data,error}=await client.from("suppliers").insert({name:newName}).select("id").single();if(error)throw error;supplierId=data.id;}
-  const {data,error}=await client.rpc("admin_receive_stock",{p_supplier_id:supplierId,p_supplier_name:newName,p_reference:$("receiptReference").value.trim(),p_notes:$("receiptNotes").value.trim(),p_items:receiptDraft});
-  if(error)throw error;
-  receiptDraft=[];$("receiptForm").reset();renderReceiptLines();toast("Entrada registrada. Inventario actualizado. Folio: "+data);
-  await Promise.all([loadProducts(),loadSuppliers(),loadReceipts(),loadAdminDashboard()]);
- }catch(error){fail("receiptMessage",error?.message||"No se pudo registrar la entrada.");}
- finally{btn.disabled=false;}
-});
-async function loadReceipts(){
- if(!admin())return;
- const {data,error}=await client.from("stock_receipts").select("id,supplier_name,reference,received_at,total_cost,profiles(full_name),stock_receipt_items(quantity,products(name))").order("received_at",{ascending:false}).limit(50);
- if(error){toast("No se pudo cargar el historial de entradas: "+error.message);return}
- $("receiptsBody").innerHTML=(data||[]).map(r=>{const items=(r.stock_receipt_items||[]).map(x=>(x.products?.name||"Producto")+" × "+x.quantity).join(", ");return '<tr><td>'+new Date(r.received_at).toLocaleString("es-ES")+'</td><td>'+esc(r.supplier_name)+'</td><td>'+esc(r.reference||"—")+'</td><td>'+esc(items)+'</td><td>'+money(r.total_cost)+'</td><td>'+esc(r.profiles?.full_name||"—")+'</td></tr>'}).join("");
- $("receiptsEmpty").classList.toggle("hidden",!!(data||[]).length);
-}
-$("refreshReceipts").addEventListener("click",loadReceipts);
 async function loadActivity(){
  if(!admin())return;
  const {data,error}=await client.from("activity_log").select("id,actor_id,action,entity_type,entity_id,details,created_at,profiles(full_name)").order("created_at",{ascending:false}).limit(100);
