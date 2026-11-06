@@ -117,7 +117,7 @@ $("loginForm").addEventListener("submit",async e=>{
 });
 const logout=async()=>{try{await client.auth.signOut();showLogin();}catch(error){toast("No se pudo cerrar la sesión: "+(error?.message||"Error inesperado"));}};$("logoutBtn").addEventListener("click",logout);$("workerLogoutBtn")?.addEventListener("click",logout);
 function showSection(tab){["dashboard","inventory","sales","closeouts","activity","workers","shop","daily"].forEach(t=>$(t+"Tab").classList.toggle("hidden",t!==tab));}
-document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(b.closest("#adminTabs")){document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.setAttribute("aria-expanded","false");}if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","workers"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="inventory")loadAdminIPV();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="activity")loadActivity();}));
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(b.closest("#adminTabs")){document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.setAttribute("aria-expanded","false");}if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","workers"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="inventory")loadAdminIPV();if(b.dataset.tab==="closeouts")loadAdminCloseouts();}));
 function setAdminSidebar(open){document.body.classList.toggle("admin-sidebar-open",!!open);$("adminSidebarOverlay")?.classList.toggle("hidden",!open);$("adminMenuToggle")?.setAttribute("aria-expanded",open?"true":"false");}
 $("adminMenuToggle").addEventListener("click",()=>setAdminSidebar(!document.body.classList.contains("admin-sidebar-open")));
 $("adminSidebarClose").addEventListener("click",()=>setAdminSidebar(false));
@@ -381,15 +381,6 @@ const exportDailyPdfButton=$("exportDailyPdf");if(exportDailyPdfButton)exportDai
  let nextY=(doc.lastAutoTable?.finalY||43)+10;doc.setFontSize(13);doc.text("Conteo físico de existencias",14,nextY);if(typeof doc.autoTable==="function"){doc.autoTable({startY:nextY+4,head:[["Producto","Asignado","Vendido","Debe quedar","Conteo físico","Diferencia"]],body:dailyStockRows.map(r=>[r.name,String(r.assigned),String(r.sold),String(r.expected),r.physical===null?"Pendiente":String(r.physical),r.difference===null?"Pendiente":String(r.difference)]),styles:{fontSize:8,cellPadding:2},headStyles:{fillColor:[7,85,164]}});}let billsY=(doc.lastAutoTable?.finalY||nextY+4)+10;if(billsY>175){doc.addPage();billsY=18;}doc.setFontSize(13);doc.text("Conteo de billetes",14,billsY);const billTotal=dailyBillDenominations.reduce((sum,value)=>sum+value*(Number(dailyBillCounts[value])||0),0);doc.autoTable({startY:billsY+4,head:[["Denominación","Cantidad de billetes","Importe"]],body:dailyBillDenominations.filter(value=>(Number(dailyBillCounts[value])||0)>0).map(value=>[value.toLocaleString("es-ES")+" CUP",String(Number(dailyBillCounts[value])||0),money(value*(Number(dailyBillCounts[value])||0))]),foot:[["TOTAL EFECTIVO CONTADO",String(dailyBillDenominations.reduce((sum,value)=>sum+(Number(dailyBillCounts[value])||0),0)),money(billTotal)]],styles:{fontSize:9,cellPadding:2},headStyles:{fillColor:[7,85,164]},footStyles:{fillColor:[238,231,214],textColor:[25,22,16],fontStyle:"bold"}});doc.save("Cuadre_IPV_"+new Date().toISOString().slice(0,10)+".pdf");toast("PDF preparado para guardar en tu teléfono.");
 };
 
-async function loadActivity(){
- if(!admin())return;
- const {data,error}=await client.from("activity_log").select("id,actor_id,action,entity_type,entity_id,details,created_at,profiles(full_name)").order("created_at",{ascending:false}).limit(100);
- if(error){toast("No se pudo cargar la actividad: "+error.message);return}
- const labels={product_created:"Producto creado",product_updated:"Producto actualizado",sale_created:"Venta registrada",sale_cancelled:"Venta cancelada",stock_movement:"Movimiento de inventario",stock_assigned:"Existencias asignadas",stock_allocation_updated:"Asignación modificada",worker_profile_updated:"Trabajador actualizado",worker_created:"Trabajador creado",daily_closeout:"Jornada cerrada",stock_receipt:"Entrada de mercancía"};
- $("activityBody").innerHTML=(data||[]).map(x=>'<tr><td>'+new Date(x.created_at).toLocaleString("es-ES")+'</td><td>'+esc(x.profiles?.full_name||"Sistema")+'</td><td>'+esc(labels[x.action]||x.action)+'</td><td>'+esc(x.entity_type)+' · '+esc(String(x.entity_id||"").slice(0,8))+'</td><td>'+esc(JSON.stringify(x.details||{}))+'</td></tr>').join("");
- $("activityEmpty").classList.toggle("hidden",!!(data||[]).length);
-}
-$("refreshActivity").addEventListener("click",loadActivity);
 async function loadAdminDashboard(){
  if(!admin()||!navigator.onLine)return;
  const now=new Date(),todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()),tomorrow=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1),monthStart=new Date(now.getFullYear(),now.getMonth(),1);
@@ -529,7 +520,7 @@ $("salesBody").addEventListener("click",async e=>{
  b.disabled=true;const {data,error}=await client.rpc("admin_cancel_sale",{p_sale_id:sale.id,p_reason:reason.trim()});
  if(error){b.disabled=false;toast("No se pudo cancelar: "+error.message);return}
  toast("Venta cancelada y existencias restituidas.");
- await Promise.all([loadSales(),loadProducts(),loadAdminDashboard(),loadActivity()]);
+ await Promise.all([loadSales(),loadProducts(),loadAdminDashboard()]);
 });
 $("refreshSales").onclick=loadSales;
 ["salesFrom","salesTo","salesWorker"].forEach(id=>$(id).addEventListener("change",renderAdminSales));
