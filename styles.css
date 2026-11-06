@@ -385,3 +385,17 @@ body.admin-mode .topbar{display:none!important}
 
 /* Tabla IPV del turno activo en administración */
 .ipv-live-table-wrap{margin:10px 0 8px;border-color:#6c5426}.ipv-live-table{min-width:760px}.ipv-live-table th{background:#211c12;color:#e8bd58}.ipv-live-table tfoot th{background:#2a2316;color:#f3c65e}.ipv-live-meta{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#aaa39a;font-size:.75rem}.ipv-live-meta span:first-child{color:#e8bd58;font-weight:800}#inventoryTab hr{border-color:#34363a;margin:24px 0}#inventoryTab>.toolbar:first-child{align-items:center}
+
+
+/* Solicitudes de entrada del administrador y aprobación del trabajador */
+.ipv-entry-request-form{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:14px;margin:14px 0;border:1px solid rgba(190,151,75,.35);border-radius:12px;background:rgba(190,151,75,.06)}
+.ipv-entry-request-form>div{flex:1 1 220px;min-width:180px}
+.ipv-entry-request-form input{min-width:110px;flex:1 1 125px}
+.ipv-entry-request-form .muted{margin:4px 0 0}
+.turn-pending-requests{margin:18px 0;padding:14px;border:1px solid rgba(190,151,75,.35);border-radius:12px;background:rgba(190,151,75,.05)}
+.turn-pending-requests h3{margin:0 0 5px}
+.turn-pending-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid rgba(190,151,75,.2)}
+.turn-pending-row>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.turn-pending-row span{font-size:.85rem;opacity:.75}
+.turn-pending-row button{flex:0 0 auto}
+@media(max-width:600px){.ipv-entry-request-form{align-items:stretch}.ipv-entry-request-form input,.ipv-entry-request-form button{width:100%;flex-basis:100%}.turn-pending-row{align-items:flex-start}}
