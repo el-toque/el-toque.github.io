@@ -336,3 +336,45 @@ body.login-screen .topbar{display:none}
 .auth-account-status small{flex-basis:100%;color:#aaa39a;font-size:.75rem}
 .auth-panel .auth-intro{margin:0 0 18px}
 @media(max-width:520px){.auth-brand{gap:12px;margin:15px 0 18px}.auth-brand img{width:66px;height:66px;flex-basis:66px}.auth-brand h1{font-size:1.55rem!important}.auth-account-status{padding:10px}}
+
+
+/* Acceso IPV: composición minimalista y centrada */
+body.login-screen{
+  min-height:100svh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:28px 14px;
+  background:radial-gradient(ellipse at 50% 12%,#292113 0%,#11110f 34%,#08090a 76%);
+}
+body.login-screen .wrap{width:100%;max-width:470px;margin:0;padding:0}
+body.login-screen .auth-panel{
+  width:100%;margin:0;padding:32px 34px 25px;
+  border:1px solid #4a3b20;border-radius:18px;
+  background:linear-gradient(155deg,#171716 0%,#101112 72%);
+  box-shadow:0 24px 70px #000b,0 0 0 1px #d0a3480b;
+}
+body.login-screen .auth-panel:after{height:3px;background:linear-gradient(90deg,#8e6929,#edc45e,#8e6929)}
+.auth-heading{text-align:center;display:flex;flex-direction:column;align-items:center}
+.auth-logo{width:70px;height:70px;object-fit:contain;margin:0 0 13px;filter:drop-shadow(0 5px 12px #0009)}
+.auth-heading h1{margin:0!important;color:#f1cf7b!important;font-size:1.85rem!important;line-height:1.15;letter-spacing:-.04em}
+.auth-heading p{margin:6px 0 0;color:#aaa39a;font-size:.88rem;letter-spacing:.035em}
+.auth-divider{height:1px;margin:23px 0 20px;background:linear-gradient(90deg,transparent,#514329 18%,#514329 82%,transparent)}
+.auth-eyebrow{margin:0 0 12px;color:#c5a45f;font-size:.68rem;letter-spacing:.17em}
+.auth-form label{margin:12px 0 15px;color:#d8d0c1;font-size:.82rem;font-weight:650}
+.auth-form input{min-height:47px;margin-top:7px;padding:11px 13px;border:1px solid #393a39;border-radius:9px;background:#1b1c1c;color:#f4efe5}
+.auth-form input:focus{border-color:#c49a43;box-shadow:0 0 0 3px #c49a431c}
+.auth-form input::placeholder{color:#77746d}
+.auth-form .full{min-height:47px;margin-top:8px;border-radius:9px;background:linear-gradient(110deg,#d7ad53,#f0cc78);border:0;color:#17130b;font-weight:850;letter-spacing:.02em}
+.auth-form .full:hover{background:linear-gradient(110deg,#e7bd62,#f6d98f)}
+.auth-status-line{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px;padding-top:15px;border-top:1px solid #302b21;color:#9f998e;font-size:.75rem}
+.auth-status-line .demo-pill{margin:0;padding:5px 9px;border:1px solid #51452d;background:#19170f;color:#d9bb72;font-size:.62rem}
+.auth-session-note{margin:5px 0 0;color:#77736b;font-size:.69rem;text-align:right}
+body.login-screen footer{display:none}
+@media(max-width:520px){
+ body.login-screen{padding:18px 12px}
+ body.login-screen .auth-panel{padding:27px 21px 21px;border-radius:15px}
+ .auth-logo{width:62px;height:62px;margin-bottom:11px}
+ .auth-heading h1{font-size:1.65rem!important}
+ .auth-divider{margin:20px 0 18px}
+}
