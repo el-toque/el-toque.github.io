@@ -52,9 +52,9 @@ const admin=()=>profile?.role==="admin";
 const workerPermission=key=>admin()||profile?.worker_permissions?.[key]!==false;
 function fail(el,msg){$(el).textContent=msg}
 async function init(){
- if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js?v=38",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
+ if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js?v=39",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
  window.addEventListener("online",()=>{syncPendingSales();});window.addEventListener("offline",()=>{updatePendingBadge();});
- if(!cfg.url||!cfg.publishableKey){$("sessionLabel").textContent="CONFIGURACIÓN PENDIENTE";$("loginPanel").classList.remove("hidden");fail("loginError","Falta configurar config.js con la URL y la clave publicable del proyecto.");return}
+ if(!cfg.url||!cfg.publishableKey){$("sessionLabel").textContent="CONFIGURACIÓN PENDIENTE";document.body.classList.add("login-screen");$("loginPanel").classList.remove("hidden");fail("loginError","Falta configurar config.js con la URL y la clave publicable del proyecto.");return}
  try{
   client=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   client.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"&&!session&&!loginInProgress&&user){showLogin();fail("loginError","La sesión se cerró. Vuelve a iniciar sesión.");}});
@@ -72,7 +72,7 @@ async function init(){
   }
  }catch(error){showLogin();fail("loginError","No se pudo preparar el acceso: "+(error?.message||"Error inesperado")+". Recarga la página e inténtalo de nuevo.");}
 }
-function showLogin(){user=null;profile=null;document.body.classList.remove("admin-mode","admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.classList.add("hidden");$("appPanel").classList.add("hidden");$("loginPanel").classList.remove("hidden");$("sessionLabel").textContent="SIN SESIÓN"}
+function showLogin(){user=null;profile=null;document.body.classList.add("login-screen");document.body.classList.remove("admin-mode","admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.classList.add("hidden");$("appPanel").classList.add("hidden");$("loginPanel").classList.remove("hidden");$("sessionLabel").textContent="SIN SESIÓN"}
 async function enter(authUser){
  user=authUser;
  let data=null,error=null;
@@ -83,7 +83,7 @@ async function enter(authUser){
  if(!navigator.onLine&&profile?.role!=="worker"){showLogin();fail("loginError","La administración requiere conexión a internet.");return;}
  data=profile;
  document.body.classList.toggle("admin-mode",data.role!=="worker");$("adminSidebar")?.classList.toggle("hidden",data.role==="worker");document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.classList.toggle("hidden",data.role==="worker");
- $("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden");$("sessionLabel").textContent=admin()?"ADMINISTRADOR":"TRABAJADOR";$("welcome").textContent=`Hola, ${data.full_name||user.email} · ${data.role}`;
+ document.body.classList.remove("login-screen");$("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden");$("sessionLabel").textContent=admin()?"ADMINISTRADOR":"TRABAJADOR";$("welcome").textContent=`Hola, ${data.full_name||user.email} · ${data.role}`;
  $("addBtn").classList.toggle("hidden",!admin());$("exportInventory").classList.toggle("hidden",!admin());$("exportInventoryPdf").classList.toggle("hidden",!admin());$("manageCategoriesBtn").classList.toggle("hidden",!admin());$("workersNav").classList.toggle("hidden",!admin());$("workerLogoutBtn")?.classList.toggle("hidden",admin());$("adminTabs").classList.toggle("hidden",!admin());$("workerTabs").classList.toggle("hidden",admin());if(!admin()){document.querySelector('[data-tab="daily"]').classList.toggle("hidden",!workerPermission("can_view_own_closeout"));$("shopSellBtn").disabled=!workerPermission("can_sell");}
  document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
  if(admin()){document.querySelector('[data-tab="dashboard"]').classList.add("active");showSection("dashboard");}else{document.querySelector('[data-tab="shop"]').classList.add("active");showSection("shop");}
