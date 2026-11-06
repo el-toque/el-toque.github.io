@@ -52,7 +52,7 @@ const admin=()=>profile?.role==="admin";
 const workerPermission=key=>admin()||profile?.worker_permissions?.[key]!==false;
 function fail(el,msg){$(el).textContent=msg}
 async function init(){
- if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js?v=34",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
+ if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js?v=35",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
  window.addEventListener("online",()=>{syncPendingSales();});window.addEventListener("offline",()=>{updatePendingBadge();});
  if(!cfg.url||!cfg.publishableKey){$("sessionLabel").textContent="CONFIGURACIÓN PENDIENTE";$("loginPanel").classList.remove("hidden");fail("loginError","Falta configurar config.js con la URL y la clave publicable del proyecto.");return}
  try{
@@ -89,7 +89,7 @@ async function enter(authUser){
  if(admin()){document.querySelector('[data-tab="dashboard"]').classList.add("active");showSection("dashboard");}else{document.querySelector('[data-tab="shop"]').classList.add("active");showSection("shop");}
  // La autenticación ya está confirmada. Los errores de módulos no deben expulsar al usuario.
  const tasks=admin()
-  ?[loadProducts,loadSales,loadReservations,loadWorkers,loadAdminDashboard,loadAdminCloseouts]
+  ?[loadProducts,loadSales,loadWorkers,loadAdminDashboard,loadAdminCloseouts]
   :[loadProducts,loadWorkerAllocations,...(workerPermission("can_view_own_closeout")?[loadDailySales]:[]),cacheWorkerState,updatePendingBadge];
  const results=await Promise.allSettled(tasks.map(fn=>Promise.resolve().then(fn)));
  const failed=results.filter(x=>x.status==="rejected");
@@ -115,8 +115,8 @@ $("loginForm").addEventListener("submit",async e=>{
  finally{loginInProgress=false;if(btn){btn.disabled=false;btn.textContent=original;}}
 });
 $("logoutBtn").addEventListener("click",async()=>{try{await client.auth.signOut();showLogin();}catch(error){toast("No se pudo cerrar la sesión: "+(error?.message||"Error inesperado"));}});
-function showSection(tab){["dashboard","inventory","sales","closeouts","activity","reservations","workers","shop","daily"].forEach(t=>$(t+"Tab").classList.toggle("hidden",t!==tab));}
-document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(b.closest("#adminTabs")){document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.setAttribute("aria-expanded","false");}if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","reservations","workers"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="activity")loadActivity();}));
+function showSection(tab){["dashboard","inventory","sales","closeouts","activity","workers","shop","daily"].forEach(t=>$(t+"Tab").classList.toggle("hidden",t!==tab));}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(b.closest("#adminTabs")){document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.setAttribute("aria-expanded","false");}if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","workers"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="activity")loadActivity();}));
 function setAdminSidebar(open){document.body.classList.toggle("admin-sidebar-open",!!open);$("adminSidebarOverlay")?.classList.toggle("hidden",!open);$("adminMenuToggle")?.setAttribute("aria-expanded",open?"true":"false");}
 $("adminMenuToggle").addEventListener("click",()=>setAdminSidebar(!document.body.classList.contains("admin-sidebar-open")));
 $("adminSidebarClose").addEventListener("click",()=>setAdminSidebar(false));
@@ -162,7 +162,6 @@ function renderProducts(){
  $("productsBody").innerHTML=list.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.sku||"—")}</td><td>${money(p.price)}</td><td>${p.stock}</td><td>${Number(p.min_stock||0)>0?Number(p.min_stock):"—"}${Number(p.min_stock||0)>0&&Number(p.stock)<=Number(p.min_stock)?' <strong class="low-stock-label">Reponer</strong>':""}</td><td>${admin()?`<button class="mini-btn" data-edit="${p.id}">Editar</button> <button class="mini-btn danger" data-delete="${p.id}">Desactivar</button>`:"—"}</td></tr>`).join("");
  $("inventoryEmpty").classList.toggle("hidden",list.length>0);
  const opts=products.map(p=>`<option value="${p.id}">${esc(p.name)} · ${p.stock} disp.</option>`).join("");
- $("reserveProduct").innerHTML=opts;
  if(!admin()){renderShopProducts();renderShopCart();}
 }
 
@@ -469,10 +468,6 @@ $("salesBody").addEventListener("click",async e=>{
 });
 $("refreshSales").onclick=loadSales;
 ["salesFrom","salesTo","salesWorker"].forEach(id=>$(id).addEventListener("change",renderAdminSales));
-$("reserveBtn").onclick=async()=>{const qty=Number($("reserveQty").value),hours=Number($("reserveHours").value);if(!$("reserveProduct").value||!Number.isInteger(qty)||qty<1){fail("reserveMessage","Selecciona producto y cantidad válidos.");return}const {data,error}=await client.rpc("create_stock_reservation",{p_product_id:$("reserveProduct").value,p_quantity:qty,p_customer_phone:$("customerPhone").value.trim(),p_hours:hours});if(error){fail("reserveMessage",error.message);return}fail("reserveMessage","Reserva creada: "+data);await loadProducts();await loadReservations()};
-async function loadReservations(){if(!user)return;const {data,error}=await client.from("stock_reservations").select("id,product_id,quantity,customer_phone,expires_at,created_at,status,products(name)").eq("status","active").order("created_at",{ascending:false});if(error){toast("Reservas: "+error.message);return}$("reservationsBody").innerHTML=(data||[]).map(r=>`<tr><td>${new Date(r.created_at).toLocaleString("es-US")}</td><td>${esc(r.products?.name||"Producto")}</td><td>${r.quantity}</td><td>${esc(r.customer_phone)}</td><td>${new Date(r.expires_at).toLocaleString("es-US")}</td><td><button class="mini-btn danger" data-release="${r.id}">Liberar</button></td></tr>`).join("")}
-$("reservationsBody").onclick=async e=>{const b=e.target.closest("[data-release]");if(!b)return;const {data,error}=await client.rpc("release_stock_reservation",{p_reservation_id:b.dataset.release});if(error){toast(error.message);return}toast(data?"Reserva liberada":"La reserva ya no estaba activa");await loadProducts();await loadReservations()};
-$("refreshReservations").onclick=loadReservations;
 
 let workerRows=[];
 async function loadWorkers(){
