@@ -429,7 +429,7 @@ async function loadAdminIPV(){
   if(itemError)throw itemError;
   if(!items?.length){
    adminIPVTarget=null;
-   body.innerHTML='<tr><td colspan="8" class="muted">El turno '+expectedShift+' · sesión '+expectedSession+' todavía no tiene productos registrados.</td></tr>';
+   body.innerHTML='<tr><td colspan="9" class="muted">El turno '+expectedShift+' · sesión '+expectedSession+' todavía no tiene productos registrados.</td></tr>';
    $("adminIPVSession").textContent="Turno "+expectedShift+" · Sesión "+expectedSession+" · Sin productos";
    $("adminIPVTotal").textContent=money(0);
    $("adminIPVRowCount").textContent="0 productos";
@@ -441,7 +441,7 @@ async function loadAdminIPV(){
   const activeRows=items.filter(x=>x.worker_id===newest.worker_id&&Number(x.shift_no)===expectedShift&&Number(x.session_no)===expectedSession&&x.business_date===newest.business_date).sort((a,b)=>Number(a.row_no)-Number(b.row_no));
   const {data:worker,error:workerError}=await client.from("profiles").select("full_name").eq("id",newest.worker_id).maybeSingle();
   if(workerError)throw workerError;
-  body.innerHTML=activeRows.map(x=>'<tr><td>'+esc(x.product_name||"—")+'</td><td>'+Number(x.start_qty||0)+'</td><td>'+Number(x.entry_qty||0)+'</td><td>'+Number(x.available_qty||0)+'</td><td>'+Number(x.final_qty||0)+'</td><td>'+Number(x.sold_qty||0)+'</td><td>'+money(x.price)+'</td><td>'+money(x.amount)+'</td></tr>').join("");
+  body.innerHTML=activeRows.map(x=>'<tr><td>'+esc(x.product_name||"—")+'</td><td>'+Number(x.start_qty||0)+'</td><td>'+Number(x.entry_qty||0)+'</td><td>'+Number(x.available_qty||0)+'</td><td>'+Number(x.final_qty||0)+'</td><td>'+Number(x.sold_qty||0)+'</td><td>'+money(x.price)+'</td><td>'+money(x.amount)+'</td><td class="admin-ipv-action-cell"><input data-entry-qty type="number" min="1" step="1" inputmode="numeric" placeholder="+ Cantidad" aria-label="Cantidad nueva para '+esc(x.product_name)+'"><button type="button" class="mini-btn" data-submit-entry data-product="'+esc(x.product_name)+'">Solicitar</button></td></tr>').join("")+'<tr class="admin-ipv-new-row"><td><input data-new-product type="text" maxlength="120" placeholder="Nombre del producto" aria-label="Nombre del nuevo producto"></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td><input data-new-price type="number" min="0" step="0.01" inputmode="decimal" value="0" aria-label="Precio del nuevo producto"></td><td>0,00 CUP</td><td class="admin-ipv-action-cell"><input data-entry-qty type="number" min="1" step="1" inputmode="numeric" placeholder="Cantidad" aria-label="Cantidad del nuevo producto"><button type="button" class="primary" data-submit-entry data-new-row>Enviar fila</button></td></tr>';
   const total=activeRows.reduce((sum,x)=>sum+(Number(x.amount)||0),0);
   $("adminIPVSession").textContent=(worker?.full_name||("Turno "+expectedShift))+" · Turno "+expectedShift+" · Sesión "+expectedSession+" · "+new Date(newest.business_date+"T00:00:00").toLocaleDateString("es-ES");
   $("adminIPVTotal").textContent=money(total);
@@ -449,23 +449,28 @@ async function loadAdminIPV(){
   $("adminIPVLastUpdate").textContent="Última actualización: "+new Date(newest.updated_at).toLocaleString("es-ES");
  }catch(error){
   console.error("[IPV admin live table]",error);
-  body.innerHTML='<tr><td colspan="8" class="muted">No se pudo actualizar la tabla IPV: '+esc(error.message||"Error inesperado")+'</td></tr>';
+  body.innerHTML='<tr><td colspan="9" class="muted">No se pudo actualizar la tabla IPV: '+esc(error.message||"Error inesperado")+'</td></tr>';
   $("adminIPVSession").textContent="Error al consultar el turno";
  }
 }
 $("refreshAdminIPV")?.addEventListener("click",loadAdminIPV);
 
-$("submitAdminIPVEntry")?.addEventListener("click",async()=>{
+$("adminIPVRows")?.addEventListener("click",async e=>{
+ const button=e.target.closest("[data-submit-entry]");if(!button)return;
  if(!admin()||!adminIPVTarget||!navigator.onLine){toast("No hay una sesión activa disponible para recibir entradas.");return;}
- const name=$("adminIPVProduct")?.value.trim()||"",qty=Number($("adminIPVQuantity")?.value),price=Number($("adminIPVPrice")?.value||0);
- if(!name||!Number.isInteger(qty)||qty<=0||!Number.isFinite(price)||price<0){toast("Introduce un producto y una cantidad válida.");return;}
- const button=$("submitAdminIPVEntry");button.disabled=true;
+ const tr=button.closest("tr"),isNew=button.hasAttribute("data-new-row");
+ const name=isNew?(tr.querySelector("[data-new-product]")?.value.trim()||""):(button.dataset.product||"");
+ const qty=Number(tr.querySelector("[data-entry-qty]")?.value);
+ const price=isNew?Number(tr.querySelector("[data-new-price]")?.value||0):0;
+ if(!name||!Number.isInteger(qty)||qty<=0||!Number.isFinite(price)||price<0){toast(isNew?"Completa el nombre, la cantidad y un precio válido para la nueva fila.":"Introduce una cantidad entera mayor que cero.");return;}
+ button.disabled=true;
  try{
   const {error}=await client.rpc("admin_create_worker_entry_request",{p_worker_id:adminIPVTarget.worker_id,p_business_date:adminIPVTarget.business_date,p_session_no:adminIPVTarget.session_no,p_product_name:name,p_quantity:qty,p_price:price});
   if(error)throw error;
-  $("adminIPVProduct").value="";$("adminIPVQuantity").value="";$("adminIPVPrice").value="";
-  toast("Entrada enviada. No se sumará al IPV hasta que el trabajador la apruebe.");
- }catch(error){toast("No se pudo enviar la entrada: "+(error.message||"Error inesperado"));}
+  tr.querySelector("[data-entry-qty]").value="";
+  if(isNew){tr.querySelector("[data-new-product]").value="";tr.querySelector("[data-new-price]").value="0";}
+  toast(isNew?"Fila enviada para aprobación. El trabajador deberá aceptarla para que aparezca en su IPV.":"Entrada enviada para aprobación. No se sumará al IPV hasta que el trabajador la acepte.");
+ }catch(error){toast("No se pudo enviar la solicitud: "+(error.message||"Error inesperado"));}
  finally{button.disabled=false;}
 });
 
