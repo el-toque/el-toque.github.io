@@ -46,9 +46,10 @@ function exportCurrent(format){
 function setMeta(){ const d=new Date(businessDate+"T12:00:00"); $("turnShift").textContent=shiftLabel();$("turnDate").textContent=d.toLocaleDateString("es-ES",{weekday:"long",year:"numeric",month:"long",day:"numeric"}); }
 async function load(){
  const day=dateKey();
- const {data:last,error}=await db.rpc("get_last_worker_turn",{p_business_date:day});
+ const {data:last,error}=await db.rpc("get_last_worker_turn_v2",{p_business_date:day});
  if(error)throw error;
- if(!last?.is_my_turn)throw new Error("Este no es el turno activo. El otro trabajador debe completar su cierre.");
+ if(!last?.is_my_turn)throw new Error("Turno en espera. El otro trabajador debe cerrar y entregar sus existencias antes de que puedas iniciar tu sesión.");
+
  businessDate=day;sessionNo=Number(last.session_no)||1;
  window.IPV_TURN_CONTEXT={businessDate,sessionNo,shift};
  localStorage.setItem("ipv_turn_context_"+session.user.id,JSON.stringify(window.IPV_TURN_CONTEXT));
@@ -62,7 +63,7 @@ async function load(){
  const saved=localStorage.getItem(key());
  if(!rows.some(r=>r.product.trim())&&saved){try{const draft=JSON.parse(saved);if(Array.isArray(draft)&&draft.length)rows=draft;}catch(_){}}
  if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));
- closure=null;setMeta();$("turnDocumentNo").textContent="N°"+String((last.last_closure_no||0)+1).padStart(2,"0");render();
+ closure=null;setMeta();$("addTurnRow").disabled=false;$("exportTurnXlsx").disabled=false;$("exportTurnPdf").disabled=false;$("turnDocumentNo").textContent="N°"+String((last.last_closure_no||0)+1).padStart(2,"0");render();
  $("closeTurnBtn").disabled=false;
  status("Sesión "+sessionNo+" activa. Puedes editar las celdas habilitadas.");
  await persistRows();
@@ -100,7 +101,7 @@ async function init(){
  session=data.session;ready=true;const email=(session.user.email||"").toLowerCase();
  shift=email==="dependiente1@eltoque.com"?1:email==="dependiente2@eltoque.com"?2:0;
  if(!shift)return;
- try{await load();}catch(e){$("closeTurnBtn").disabled=true;status(e.message||"No se pudo cargar el turno.");}
+ try{await load();}catch(e){$("closeTurnBtn").disabled=true;$("addTurnRow").disabled=true;$("exportTurnXlsx").disabled=true;$("exportTurnPdf").disabled=true;rows=[];render();status(e.message||"No se pudo cargar el turno.");}
 }
 $("addTurnRow")?.addEventListener("click",()=>{rows.push(row());render();persistRows();});
 $("exportTurnXlsx")?.addEventListener("click",()=>exportCurrent("xlsx"));
@@ -133,5 +134,5 @@ $("closeTurnBtn")?.addEventListener("click",async()=>{
 });
 const observer=new MutationObserver(()=>{if($("appPanel")?.classList.contains("hidden")){ready=false;session=null;shift=0;rows=[];}else init();});
 observer.observe($("appPanel"),{attributes:true,attributeFilter:["class"]});
-window.refreshWorkerTurnInventory=async function(){if(!session||!navigator.onLine)return false;try{const {data,error}=await db.rpc("worker_get_turn_inventory_v2",{p_business_date:businessDate,p_session_no:sessionNo});if(error)throw error;if(Array.isArray(data)){rows=data.map(x=>row(x.product_name,x.start_qty,x.entry_qty,x.sold_qty,x.price));if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));render();await saveDraft();return true;}return false;}catch(e){status("No se pudo actualizar la tabla tras la venta: "+e.message);return false;}};window.addEventListener("online",init);window.addEventListener("ipv:turn-inventory-refresh",()=>window.refreshWorkerTurnInventory?.());document.addEventListener("visibilitychange",()=>{if(!document.hidden)init();});
+window.refreshWorkerTurnInventory=async function(){if(!session||!navigator.onLine)return false;try{const {data,error}=await db.rpc("worker_get_turn_inventory_v2",{p_business_date:businessDate,p_session_no:sessionNo});if(error)throw error;if(Array.isArray(data)){rows=data.map(x=>row(x.product_name,x.start_qty,x.entry_qty,x.sold_qty,x.price));if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));render();await saveDraft();return true;}return false;}catch(e){status("No se pudo actualizar la tabla tras la venta: "+e.message);return false;}};window.addEventListener("online",()=>{ready=false;init();});window.addEventListener("ipv:turn-inventory-refresh",()=>window.refreshWorkerTurnInventory?.());document.addEventListener("visibilitychange",()=>{if(!document.hidden)init();});
 })();
