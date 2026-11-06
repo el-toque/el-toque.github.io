@@ -382,3 +382,6 @@ body.login-screen footer{display:none}
 
 /* Administración: conservar el encabezado interno y ocultar la barra superior global */
 body.admin-mode .topbar{display:none!important}
+
+/* Tabla IPV del turno activo en administración */
+.ipv-live-table-wrap{margin:10px 0 8px;border-color:#6c5426}.ipv-live-table{min-width:760px}.ipv-live-table th{background:#211c12;color:#e8bd58}.ipv-live-table tfoot th{background:#2a2316;color:#f3c65e}.ipv-live-meta{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#aaa39a;font-size:.75rem}.ipv-live-meta span:first-child{color:#e8bd58;font-weight:800}#inventoryTab hr{border-color:#34363a;margin:24px 0}#inventoryTab>.toolbar:first-child{align-items:center}
