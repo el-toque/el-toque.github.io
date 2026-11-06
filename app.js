@@ -53,7 +53,7 @@ const admin=()=>profile?.role==="admin";
 const workerPermission=key=>admin()||profile?.worker_permissions?.[key]!==false;
 function fail(el,msg){$(el).textContent=msg}
 async function init(){
- if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js?v=49",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
+ if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js?v=50",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
  window.addEventListener("online",()=>{syncPendingSales();});window.addEventListener("offline",()=>{updatePendingBadge();});
  if(!cfg.url||!cfg.publishableKey){$("sessionLabel").textContent="CONFIGURACIÓN PENDIENTE";document.body.classList.add("login-screen");$("loginPanel").classList.remove("hidden");fail("loginError","Falta configurar config.js con la URL y la clave publicable del proyecto.");return}
  try{
@@ -73,7 +73,7 @@ async function init(){
   }
  }catch(error){showLogin();fail("loginError","No se pudo preparar el acceso: "+(error?.message||"Error inesperado")+". Recarga la página e inténtalo de nuevo.");}
 }
-function showLogin(){user=null;profile=null;document.body.classList.add("login-screen");document.body.classList.remove("admin-mode","admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.classList.add("hidden");$("appPanel").classList.add("hidden");$("loginPanel").classList.remove("hidden");$("sessionLabel").textContent="SIN SESIÓN"}
+function showLogin(){user=null;profile=null;document.body.classList.add("login-screen");document.body.classList.remove("admin-mode","worker-mode","admin-sidebar-open");$("adminSidebar")?.classList.add("hidden");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.classList.add("hidden");$("appPanel").classList.add("hidden");$("loginPanel").classList.remove("hidden");$("sessionLabel").textContent="SIN SESIÓN"}
 async function enter(authUser){
  user=authUser;
  let data=null,error=null;
@@ -83,9 +83,9 @@ async function enter(authUser){
  if(navigator.onLine){profile=data;if(!admin())await localPut("worker_profile_"+user.id,data);}
  if(!navigator.onLine&&profile?.role!=="worker"){showLogin();fail("loginError","La administración requiere conexión a internet.");return;}
  data=profile;
- document.body.classList.toggle("admin-mode",data.role!=="worker");$("adminSidebar")?.classList.toggle("hidden",data.role==="worker");document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.classList.toggle("hidden",data.role==="worker");
+ document.body.classList.toggle("admin-mode",data.role!=="worker");document.body.classList.toggle("worker-mode",data.role==="worker");$("adminSidebar")?.classList.remove("hidden");document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.classList.add("hidden");$("sidebarRoleLabel").textContent=admin()?"ADMINISTRACIÓN":"PUNTO DE VENTA";
  document.body.classList.remove("login-screen");$("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden");$("sessionLabel").textContent=admin()?"ADMINISTRADOR":"TRABAJADOR";$("welcome").textContent=`Hola, ${data.full_name||user.email} · ${data.role}`;
- $("addBtn")?.classList.toggle("hidden",!admin());$("exportInventory")?.classList.toggle("hidden",!admin());$("exportInventoryPdf")?.classList.toggle("hidden",!admin());$("manageCategoriesBtn")?.classList.toggle("hidden",!admin());$("workersNav").classList.toggle("hidden",!admin());$("workerLogoutBtn")?.classList.toggle("hidden",admin());$("adminTabs").classList.toggle("hidden",!admin());$("workerTabs").classList.toggle("hidden",admin());if(!admin()){document.querySelector('[data-tab="daily"]').classList.toggle("hidden",!workerPermission("can_view_own_closeout"));$("shopSellBtn").disabled=!workerPermission("can_sell");}
+ $("addBtn")?.classList.toggle("hidden",!admin());$("exportInventory")?.classList.toggle("hidden",!admin());$("exportInventoryPdf")?.classList.toggle("hidden",!admin());$("manageCategoriesBtn")?.classList.toggle("hidden",!admin());$("workersNav").classList.toggle("hidden",!admin());$("workerLogoutBtn")?.classList.toggle("hidden",admin());$("logoutBtn")?.classList.toggle("hidden",!admin());$("adminTabs").classList.toggle("hidden",!admin());$("workerTabs").classList.toggle("hidden",admin());if(!admin()){document.querySelector('[data-tab="daily"]').classList.toggle("hidden",!workerPermission("can_view_own_closeout"));$("shopSellBtn").disabled=!workerPermission("can_sell");}
  document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
  if(admin()){document.querySelector('[data-tab="dashboard"]').classList.add("active");showSection("dashboard");}else{document.querySelector('[data-tab="shop"]').classList.add("active");showSection("shop");}
  // La autenticación ya está confirmada. Los errores de módulos no deben expulsar al usuario.
@@ -119,8 +119,8 @@ $("loginForm").addEventListener("submit",async e=>{
 });
 const logout=async()=>{try{await client.auth.signOut();showLogin();}catch(error){toast("No se pudo cerrar la sesión: "+(error?.message||"Error inesperado"));}};$("logoutBtn").addEventListener("click",logout);$("workerLogoutBtn")?.addEventListener("click",logout);
 function showSection(tab){["dashboard","inventory","sales","closeouts","workers","shop","daily"].forEach(t=>$(t+"Tab").classList.toggle("hidden",t!==tab));}
-document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(b.closest("#adminTabs")){document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.setAttribute("aria-expanded","false");}if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","workers"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="inventory")loadAdminIPV();if(b.dataset.tab==="closeouts")loadAdminCloseouts();}));
-function setAdminSidebar(open){document.body.classList.toggle("admin-sidebar-open",!!open);$("adminSidebarOverlay")?.classList.toggle("hidden",!open);$("adminMenuToggle")?.setAttribute("aria-expanded",open?"true":"false");}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(b.closest("#adminTabs")||b.closest("#workerTabs")){document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.setAttribute("aria-expanded","false");}if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","workers"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="inventory")loadAdminIPV();if(b.dataset.tab==="closeouts")loadAdminCloseouts();}));
+function setAdminSidebar(open){document.body.classList.toggle("admin-sidebar-open",!!open);$("adminSidebarOverlay")?.classList.toggle("hidden",!open);$("adminMenuToggle")?.setAttribute("aria-expanded",open?"true":"false");$("adminMenuToggle")?.setAttribute("aria-label",open?"Cerrar menú":"Abrir menú");}
 $("adminMenuToggle").addEventListener("click",()=>setAdminSidebar(!document.body.classList.contains("admin-sidebar-open")));
 $("adminSidebarClose").addEventListener("click",()=>setAdminSidebar(false));
 $("adminSidebarOverlay").addEventListener("click",()=>setAdminSidebar(false));
