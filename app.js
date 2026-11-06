@@ -475,7 +475,7 @@ async function loadWorkers(){
  const response=await fetch(cfg.url+"/functions/v1/list-workers",{method:"POST",headers:{"Content-Type":"application/json","apikey":cfg.publishableKey,"Authorization":"Bearer "+session.access_token},body:"{}"});
  const result=await response.json();if(!response.ok){toast(result.error||"No se pudo cargar el equipo");return}
  workerRows=result.workers||[];$("workersEmpty")?.classList.toggle("hidden",workerRows.length>0);
- $("workersBody").innerHTML=workerRows.map(w=>`<tr><td>${esc(w.full_name)}</td><td>${esc(w.email||"—")}</td><td>${w.active?"Activo":"Desactivado"}</td><td><button class="mini-btn" data-worker-allocation="${w.id}">Asignar stock</button> <button class="mini-btn" data-worker-edit="${w.id}">Editar</button></td></tr>`).join("");
+ $("workersBody").innerHTML=workerRows.map(w=>`<tr><td>${esc(w.full_name)}</td><td>${esc(w.email||"—")}</td><td>${w.active?"Activo":"Desactivado"}</td><td><button class="mini-btn" data-worker-edit="${w.id}">Editar</button></td></tr>`).join("");
 }
 async function loadWorkerAllocations(){if(!user||admin())return;workerAllocations=products.map(p=>({product_id:p.id,quantity_assigned:p.stock,quantity_remaining:p.stock}));renderShopProducts();renderShopCart();await cacheWorkerState();await updatePendingBadge();}
 let allocationCurrentWorker="",allocationExisting=[],allocationDraft=new Map(),allocationOtherRemaining=new Map();
@@ -503,7 +503,7 @@ $("workerForm").addEventListener("submit",async e=>{
  }catch(err){fail("workerMessage",err.message)}finally{btn.disabled=false}
 });
 function openWorkerEdit(w){$("editWorkerForm").reset();$("editWorkerId").value=w.id;$("editWorkerName").value=w.full_name||"";$("editWorkerEmail").value=w.email||"";$("editWorkerActive").checked=!!w.active;const p=w.worker_permissions||{};$("permCanSell").checked=p.can_sell!==false;$("permCanViewCloseout").checked=p.can_view_own_closeout!==false;$("permCanCountStock").checked=p.can_count_stock!==false;$("permCanCloseDay").checked=p.can_close_day!==false;fail("editWorkerMessage","");$("editWorkerDialog").showModal()}
-$("workersBody").addEventListener("click",e=>{const a=e.target.closest("[data-worker-allocation]"),b=e.target.closest("[data-worker-edit]");if(a){openAllocation(a.dataset.workerAllocation);return}if(!b)return;const w=workerRows.find(x=>x.id===b.dataset.workerEdit);if(w)openWorkerEdit(w)});
+$("workersBody").addEventListener("click",e=>{const b=e.target.closest("[data-worker-edit]");if(!b)return;const w=workerRows.find(x=>x.id===b.dataset.workerEdit);if(w)openWorkerEdit(w)});
 $("closeEditWorker").onclick=$("cancelEditWorker").onclick=()=>$("editWorkerDialog").close();
 $("editWorkerForm").addEventListener("submit",async e=>{
  e.preventDefault();const btn=$("saveWorkerBtn");btn.disabled=true;fail("editWorkerMessage","Guardando cambios…");
