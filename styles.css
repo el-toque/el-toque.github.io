@@ -391,3 +391,7 @@ body.login-screen footer{display:none}
   .admin-mode #appPanel>.hero>div{display:none}
   .admin-mode #appPanel>.hero .admin-menu-toggle{display:inline-flex}
 }
+
+
+/* Administración: ocultar también la barra superior global */
+body.admin-mode .topbar{display:none!important}
