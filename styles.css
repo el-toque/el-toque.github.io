@@ -420,3 +420,39 @@ body.admin-mode .topbar{display:none!important}
 .admin-ipv-new-row td{background:rgba(190,151,75,.07);border-top:1px solid #80652e}
 .admin-ipv-new-row td:first-child input,.admin-ipv-new-row td:nth-child(7) input{margin-bottom:5px}
 .admin-ipv-new-row td:first-child button{white-space:nowrap}
+
+
+/* Tabla IPV administrativa compacta: ancho según el contenido real */
+#inventoryTab .ipv-live-table-wrap{width:100%;max-width:100%;overflow-x:auto}
+#inventoryTab .ipv-live-table{
+  width:max-content;
+  min-width:0;
+  max-width:none;
+  table-layout:auto;
+}
+#inventoryTab .ipv-live-table th,
+#inventoryTab .ipv-live-table td{
+  padding:6px 8px;
+  font-size:.74rem;
+  white-space:nowrap;
+}
+#inventoryTab .ipv-live-table th{font-size:.69rem}
+#inventoryTab .ipv-live-table td:first-child{white-space:normal;min-width:0;max-width:18ch;overflow-wrap:anywhere}
+#inventoryTab .ipv-live-table .admin-ipv-entry-cell,
+#inventoryTab .ipv-live-table .admin-ipv-action-cell{min-width:0;width:1%}
+#inventoryTab .ipv-live-table input{
+  min-height:29px;
+  padding:4px 5px;
+  font-size:.72rem;
+}
+#inventoryTab .ipv-live-table .admin-ipv-inline-entry input{width:5ch;min-width:5ch}
+#inventoryTab .ipv-live-table .admin-ipv-inline-entry button{min-width:25px;padding:4px 6px;font-size:.7rem}
+#inventoryTab .ipv-live-table .admin-ipv-new-row td:first-child input{width:13ch;min-width:13ch}
+#inventoryTab .ipv-live-table .admin-ipv-new-row td:nth-child(7) input{width:7ch;min-width:7ch}
+#inventoryTab .ipv-live-table .admin-ipv-new-row td:nth-child(3) input{width:5ch;min-width:5ch}
+#inventoryTab .ipv-live-table .admin-ipv-new-row button{padding:5px 7px;font-size:.7rem}
+#inventoryTab .ipv-live-table tfoot th{font-size:.72rem}
+@media(max-width:600px){
+  #inventoryTab .ipv-live-table th,#inventoryTab .ipv-live-table td{padding:5px 6px;font-size:.7rem}
+  #inventoryTab .ipv-live-table td:first-child{max-width:14ch}
+}
