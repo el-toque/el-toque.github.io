@@ -399,3 +399,13 @@ body.admin-mode .topbar{display:none!important}
 .turn-pending-row span{font-size:.85rem;opacity:.75}
 .turn-pending-row button{flex:0 0 auto}
 @media(max-width:600px){.ipv-entry-request-form{align-items:stretch}.ipv-entry-request-form input,.ipv-entry-request-form button{width:100%;flex-basis:100%}.turn-pending-row{align-items:flex-start}}
+
+
+/* Edición de propuestas directamente en la tabla IPV administrativa */
+.ipv-table-instructions{margin:8px 0 12px;color:#aaa39a;font-size:.78rem}
+.ipv-live-table{min-width:900px}
+.admin-ipv-action-cell{min-width:138px;display:table-cell}
+.admin-ipv-action-cell input{width:100%;min-width:105px;box-sizing:border-box;margin-bottom:5px;padding:7px 8px;border:1px solid #65532e;border-radius:7px;background:#171717;color:#f4efe5}
+.admin-ipv-action-cell button{white-space:nowrap}
+.admin-ipv-new-row td{background:rgba(190,151,75,.07);border-top:1px solid #80652e}
+.admin-ipv-new-row td:first-child input,.admin-ipv-new-row td:nth-child(7) input{width:100%;min-width:125px;box-sizing:border-box;padding:8px;border:1px solid #80652e;border-radius:7px;background:#171717;color:#f4efe5}
