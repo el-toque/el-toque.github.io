@@ -283,7 +283,8 @@ input,select,textarea{background:#1b1e22;border-color:#393c42;color:#f5f0e7}labe
 .admin-sidebar-brand{display:flex;align-items:center;gap:10px;padding:9px 8px 18px;border-bottom:1px solid #3d321f}
 .admin-sidebar-mark{display:grid;place-items:center;width:39px;height:39px;border:1px solid #b98a32;border-radius:11px;background:#2b2110;color:#e8c66f;font-size:1.25rem}
 .admin-sidebar-brand>div{display:grid;gap:2px;min-width:0}.admin-sidebar-brand strong{color:#f1d58c;font-size:.98rem;letter-spacing:.12em}.admin-sidebar-brand small{color:#9e8a5f;font-size:.61rem;font-weight:850;letter-spacing:.16em}
-.admin-sidebar-brand button{display:none;margin-left:auto;width:34px;height:34px;padding:0;background:#252117;border:1px solid #5d4926;color:#e8ca7c;font-size:1.3rem}
+.admin-sidebar-logo{display:block;width:48px;height:48px;flex:0 0 48px;object-fit:contain;margin-left:auto;border-radius:9px;filter:drop-shadow(0 2px 5px #0008)}
+.admin-sidebar-brand button{display:none;margin-left:8px;width:34px;height:34px;padding:0;background:#252117;border:1px solid #5d4926;color:#e8ca7c;font-size:1.3rem}
 .admin-sidebar-caption{margin:19px 10px 9px;color:#8e805f;font-size:.65rem;font-weight:850;letter-spacing:.16em}
 .admin-sidebar #adminTabs{display:grid;gap:5px;margin:0;padding:0;background:transparent}
 .admin-sidebar #adminTabs .tab{display:flex;align-items:center;gap:12px;width:100%;min-height:46px;padding:10px 12px;border:1px solid transparent;border-radius:9px;background:transparent;color:#c8c0ad;text-align:left;font-size:.86rem;font-weight:700}
