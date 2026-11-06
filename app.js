@@ -52,7 +52,7 @@ const admin=()=>profile?.role==="admin";
 const workerPermission=key=>admin()||profile?.worker_permissions?.[key]!==false;
 function fail(el,msg){$(el).textContent=msg}
 async function init(){
- if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js?v=43",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
+ if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js?v=44",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
  window.addEventListener("online",()=>{syncPendingSales();});window.addEventListener("offline",()=>{updatePendingBadge();});
  if(!cfg.url||!cfg.publishableKey){$("sessionLabel").textContent="CONFIGURACIÓN PENDIENTE";document.body.classList.add("login-screen");$("loginPanel").classList.remove("hidden");fail("loginError","Falta configurar config.js con la URL y la clave publicable del proyecto.");return}
  try{
@@ -415,32 +415,35 @@ async function loadAdminIPV(){
  $("adminIPVSession").textContent="Consultando la sesión de trabajo más reciente…";
  body.innerHTML='<tr><td colspan="8" class="muted">Actualizando…</td></tr>';
  try{
-  const day=localBusinessDate();
-  const [{data:latestClosure,error:closureError},{data:items,error:itemError}]=await Promise.all([
-   client.from("worker_turn_closures").select("closure_no,session_no").order("closure_no",{ascending:false}).limit(1).maybeSingle(),
-   client.from("worker_turn_inventory_items").select("worker_id,shift_no,business_date,session_no,row_no,product_name,start_qty,entry_qty,available_qty,final_qty,sold_qty,price,amount,updated_at").eq("business_date",day).order("updated_at",{ascending:false}).limit(500)
-  ]);
+  // La sesión activa se determina por el último cierre global, no por la fecha local
+  // del dispositivo: el día operativo puede diferir de la fecha UTC de updated_at.
+  const {data:latestClosure,error:closureError}=await client.from("worker_turn_closures")
+   .select("closure_no,shift_no,session_no").order("closure_no",{ascending:false}).limit(1).maybeSingle();
   if(closureError)throw closureError;
+  const expectedShift=latestClosure?.shift_no===1?2:latestClosure?.shift_no===2?1:1;
+  const expectedSession=(Number(latestClosure?.session_no)||0)+1;
+  const {data:items,error:itemError}=await client.from("worker_turn_inventory_items")
+   .select("worker_id,shift_no,business_date,session_no,row_no,product_name,start_qty,entry_qty,available_qty,final_qty,sold_qty,price,amount,updated_at")
+   .eq("shift_no",expectedShift).eq("session_no",expectedSession)
+   .order("updated_at",{ascending:false}).limit(500);
   if(itemError)throw itemError;
-  const lastClosedSession=Number(latestClosure?.session_no)||0;
-  const openRows=(items||[]).filter(x=>Number(x.session_no)>lastClosedSession);
-  if(!openRows.length){
+  if(!items?.length){
    adminIPVTarget=null;
-   body.innerHTML='<tr><td colspan="8" class="muted">No hay una sesión de turno abierta con actividad registrada en la fecha actual.</td></tr>';
-   $("adminIPVSession").textContent="Sin turno activo detectado";
+   body.innerHTML='<tr><td colspan="8" class="muted">El turno '+expectedShift+' · sesión '+expectedSession+' todavía no tiene productos registrados.</td></tr>';
+   $("adminIPVSession").textContent="Turno "+expectedShift+" · Sesión "+expectedSession+" · Sin productos";
    $("adminIPVTotal").textContent=money(0);
    $("adminIPVRowCount").textContent="0 productos";
    $("adminIPVLastUpdate").textContent="Sin actividad reciente";
    return;
   }
-  const newest=openRows[0];
+  const newest=items[0];
   adminIPVTarget={worker_id:newest.worker_id,business_date:newest.business_date,session_no:Number(newest.session_no)};
-  const activeRows=openRows.filter(x=>x.worker_id===newest.worker_id&&Number(x.shift_no)===Number(newest.shift_no)&&Number(x.session_no)===Number(newest.session_no)&&x.business_date===newest.business_date).sort((a,b)=>Number(a.row_no)-Number(b.row_no));
+  const activeRows=items.filter(x=>x.worker_id===newest.worker_id&&Number(x.shift_no)===expectedShift&&Number(x.session_no)===expectedSession&&x.business_date===newest.business_date).sort((a,b)=>Number(a.row_no)-Number(b.row_no));
   const {data:worker,error:workerError}=await client.from("profiles").select("full_name").eq("id",newest.worker_id).maybeSingle();
   if(workerError)throw workerError;
   body.innerHTML=activeRows.map(x=>'<tr><td>'+esc(x.product_name||"—")+'</td><td>'+Number(x.start_qty||0)+'</td><td>'+Number(x.entry_qty||0)+'</td><td>'+Number(x.available_qty||0)+'</td><td>'+Number(x.final_qty||0)+'</td><td>'+Number(x.sold_qty||0)+'</td><td>'+money(x.price)+'</td><td>'+money(x.amount)+'</td></tr>').join("");
   const total=activeRows.reduce((sum,x)=>sum+(Number(x.amount)||0),0);
-  $("adminIPVSession").textContent=(worker?.full_name||("Turno "+Number(newest.shift_no)))+" · Turno "+Number(newest.shift_no)+" · Sesión "+Number(newest.session_no)+" · "+new Date(newest.business_date+"T00:00:00").toLocaleDateString("es-ES");
+  $("adminIPVSession").textContent=(worker?.full_name||("Turno "+expectedShift))+" · Turno "+expectedShift+" · Sesión "+expectedSession+" · "+new Date(newest.business_date+"T00:00:00").toLocaleDateString("es-ES");
   $("adminIPVTotal").textContent=money(total);
   $("adminIPVRowCount").textContent=activeRows.length+" productos";
   $("adminIPVLastUpdate").textContent="Última actualización: "+new Date(newest.updated_at).toLocaleString("es-ES");
