@@ -94,7 +94,7 @@ async function enter(authUser){
  const results=await Promise.allSettled(tasks.map(fn=>Promise.resolve().then(fn)));
  const failed=results.filter(x=>x.status==="rejected");
  if(failed.length){console.error("[IPV module loading]",failed.map(x=>x.reason));toast("Sesión activa. Algunos datos no pudieron actualizarse; puedes reintentar desde la sección correspondiente.");}
- if(admin()&&!window.ipvAdminIPVChannel){window.ipvAdminIPVChannel=client.channel("admin-ipv-live").on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_inventory_items"},()=>{if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();}).on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_closures"},()=>{if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();}).subscribe();}
+ if(admin()&&!window.ipvAdminIPVChannel){window.ipvAdminIPVChannel=client.channel("admin-ipv-live").on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_inventory_items"},()=>{if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();}).on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_closures"},()=>{if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();}).subscribe((status,error)=>{if(status==="SUBSCRIBED"){console.info("[IPV realtime] Sincronización automática activa.");if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();}else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"){console.warn("[IPV realtime] Canal no disponible; se mantiene la actualización manual.",error);}});}
 }
 $("loginForm").addEventListener("submit",async e=>{
  e.preventDefault();fail("loginError","");
