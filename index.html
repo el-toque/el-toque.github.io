@@ -13,11 +13,14 @@
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
 </head>
-<body>
-<header class="topbar"><div class="brand"><div class="brand-mark"><img src="icons/icon-192.png" alt="Emblema EL TOQUE"></div><div><strong>IPV Digital</strong><small>Inventario y operaciones</small></div></div><span id="sessionLabel" class="demo-pill">CONECTANDO</span></header>
+<body class="login-screen">
+<header class="topbar"><div class="brand"><div class="brand-mark"><img src="icons/icon-192.png" alt="Emblema EL TOQUE"></div><div><strong>IPV Digital</strong><small>Inventario y operaciones</small></div></div></header>
 <main class="wrap">
 <section id="loginPanel" class="panel auth-panel">
-  <p class="eyebrow">ACCESO SEGURO</p><h1>Iniciar sesión</h1><p class="muted">Entra con el usuario creado para IPV Digital.</p>
+  <p class="eyebrow">ACCESO SEGURO</p>
+  <div class="auth-brand"><img src="icons/icon-192.png" alt="Logo El Toque"><div><h1>IPV Digital</h1><p>Inventario y operaciones</p></div></div>
+  <div class="auth-account-status"><span class="auth-status-label">ESTADO DE LA CUENTA</span><span id="sessionLabel" class="demo-pill">CONECTANDO</span><small>Sin sesión iniciada</small></div>
+  <p class="muted auth-intro">Entra con el usuario creado para IPV Digital.</p>
   <form id="loginForm" autocomplete="on"><label>Correo electrónico<input id="email" name="username" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required></label><label>Contraseña<input id="password" name="password" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required></label><button class="primary full" type="submit">Entrar</button><p id="loginError" class="form-error" role="alert"></p></form>
 </section>
 <section id="appPanel" class="hidden">
