@@ -413,14 +413,14 @@ async function loadAdminIPV(){
  if(!admin()||!navigator.onLine)return;
  const body=$("adminIPVRows");
  $("adminIPVSession").textContent="Consultando el turno activo…";
- body.innerHTML='<tr><td colspan="9" class="muted">Actualizando…</td></tr>';
+ body.innerHTML='<tr><td colspan="8" class="muted">Actualizando…</td></tr>';
  try{
   const {data:targets,error:targetError}=await client.rpc("admin_get_active_worker_turn",{p_business_date:localBusinessDate()});
   if(targetError)throw targetError;
   const target=Array.isArray(targets)?targets[0]:targets;
   if(!target){
    adminIPVTarget=null;
-   body.innerHTML='<tr><td colspan="9" class="muted">No hay un trabajador activo disponible para recibir propuestas.</td></tr>';
+   body.innerHTML='<tr><td colspan="8" class="muted">No hay un trabajador activo disponible para recibir propuestas.</td></tr>';
    $("adminIPVSession").textContent="Sin turno activo";
    $("adminIPVTotal").textContent=money(0);
    $("adminIPVRowCount").textContent="0 productos";
@@ -435,9 +435,9 @@ async function loadAdminIPV(){
    .order("row_no",{ascending:true}).limit(500);
   if(itemError)throw itemError;
   const activeRows=items||[];
-  const rowHtml=activeRows.map(x=>'<tr><td>'+esc(x.product_name||"—")+'</td><td>'+Number(x.start_qty||0)+'</td><td>'+Number(x.entry_qty||0)+'</td><td>'+Number(x.available_qty||0)+'</td><td>'+Number(x.final_qty||0)+'</td><td>'+Number(x.sold_qty||0)+'</td><td>'+money(x.price)+'</td><td>'+money(x.amount)+'</td><td class="admin-ipv-action-cell"><input data-entry-qty type="number" min="1" step="1" inputmode="numeric" placeholder="+ Cantidad" aria-label="Cantidad nueva para '+esc(x.product_name)+'"><button type="button" class="mini-btn" data-submit-entry data-product="'+esc(x.product_name)+'">Solicitar</button></td></tr>').join("");
-  const draftRow='<tr class="admin-ipv-new-row"><td><input data-new-product type="text" maxlength="120" placeholder="Nombre del producto" aria-label="Nombre del nuevo producto"></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td><input data-new-price type="number" min="0" step="0.01" inputmode="decimal" value="0" aria-label="Precio del nuevo producto"></td><td>0,00 CUP</td><td class="admin-ipv-action-cell"><input data-entry-qty type="number" min="1" step="1" inputmode="numeric" placeholder="Cantidad" aria-label="Cantidad del nuevo producto"><button type="button" class="primary" data-submit-entry data-new-row>Enviar fila</button></td></tr>';
-  body.innerHTML=(rowHtml||'<tr><td colspan="9" class="muted">Todavía no hay filas en este IPV. Puedes proponer la primera desde la fila inferior.</td></tr>')+draftRow;
+  const rowHtml=activeRows.map(x=>'<tr><td>'+esc(x.product_name||"—")+'</td><td>'+Number(x.start_qty||0)+'</td><td class="admin-ipv-entry-cell">'+Number(x.entry_qty||0)+'<div class="admin-ipv-inline-entry"><input data-entry-qty type="number" min="1" step="1" inputmode="numeric" placeholder="+ Entrada" aria-label="Nueva entrada para '+esc(x.product_name)+'"><button type="button" class="mini-btn" data-submit-entry data-product="'+esc(x.product_name)+'">+</button></div></td><td>'+Number(x.available_qty||0)+'</td><td>'+Number(x.final_qty||0)+'</td><td>'+Number(x.sold_qty||0)+'</td><td>'+money(x.price)+'</td><td>'+money(x.amount)+'</td></tr>').join("");
+  const draftRow='<tr class="admin-ipv-new-row"><td><input data-new-product type="text" maxlength="120" placeholder="Nuevo producto" aria-label="Nombre del nuevo producto"><button type="button" class="mini-btn" data-submit-entry data-new-row>Crear fila</button></td><td>0</td><td><input data-entry-qty type="number" min="1" step="1" inputmode="numeric" placeholder="Entrada" aria-label="Cantidad inicial de entrada"></td><td>0</td><td>0</td><td>0</td><td><input data-new-price type="number" min="0" step="0.01" inputmode="decimal" value="0" aria-label="Precio del nuevo producto"></td><td>0,00 CUP</td></tr>';
+  body.innerHTML=(rowHtml||'<tr><td colspan="8" class="muted">Todavía no hay filas en este IPV. Puedes proponer la primera desde la fila inferior.</td></tr>')+draftRow;
   const total=activeRows.reduce((sum,x)=>sum+(Number(x.amount)||0),0);
   $("adminIPVSession").textContent=(target.full_name||("Turno "+target.shift_no))+" · Turno "+target.shift_no+" · Sesión "+target.session_no+" · "+new Date(target.business_date+"T00:00:00").toLocaleDateString("es-ES");
   $("adminIPVTotal").textContent=money(total);
@@ -447,7 +447,7 @@ async function loadAdminIPV(){
  }catch(error){
   console.error("[IPV admin live table]",error);
   adminIPVTarget=null;
-  body.innerHTML='<tr><td colspan="9" class="muted">No se pudo actualizar la tabla IPV: '+esc(error.message||"Error inesperado")+'</td></tr>';
+  body.innerHTML='<tr><td colspan="8" class="muted">No se pudo actualizar la tabla IPV: '+esc(error.message||"Error inesperado")+'</td></tr>';
   $("adminIPVSession").textContent="Error al consultar el turno";
  }
 }
