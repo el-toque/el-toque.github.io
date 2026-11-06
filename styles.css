@@ -409,3 +409,14 @@ body.admin-mode .topbar{display:none!important}
 .admin-ipv-action-cell button{white-space:nowrap}
 .admin-ipv-new-row td{background:rgba(190,151,75,.07);border-top:1px solid #80652e}
 .admin-ipv-new-row td:first-child input,.admin-ipv-new-row td:nth-child(7) input{width:100%;min-width:125px;box-sizing:border-box;padding:8px;border:1px solid #80652e;border-radius:7px;background:#171717;color:#f4efe5}
+
+
+/* Controles de aprobación integrados en las ocho columnas del IPV */
+.ipv-live-table{min-width:760px}
+.admin-ipv-entry-cell{min-width:112px}
+.admin-ipv-inline-entry{display:flex;align-items:center;gap:4px;margin-top:5px}
+.admin-ipv-inline-entry input,.admin-ipv-new-row input{width:100%;min-width:70px;box-sizing:border-box;padding:6px;border:1px solid #80652e;border-radius:6px;background:#171717;color:#f4efe5}
+.admin-ipv-inline-entry button{flex:0 0 auto;min-width:30px;padding:5px}
+.admin-ipv-new-row td{background:rgba(190,151,75,.07);border-top:1px solid #80652e}
+.admin-ipv-new-row td:first-child input,.admin-ipv-new-row td:nth-child(7) input{margin-bottom:5px}
+.admin-ipv-new-row td:first-child button{white-space:nowrap}
