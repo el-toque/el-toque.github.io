@@ -549,3 +549,10 @@ body.admin-mode .topbar{display:none!important}
  .admin-sidebar{z-index:230!important}
  .admin-sidebar-overlay{z-index:220!important}
 }
+
+
+/* Ajuste fino: recuperar la posición del encabezado y reservar solo el espacio necesario para el menú */
+@media(max-width:820px){
+ .admin-menu-toggle{top:8px!important;left:10px!important;width:42px!important;height:42px!important;min-width:42px!important}
+ .admin-mode .wrap,.worker-mode .wrap{padding-top:54px!important}
+}
