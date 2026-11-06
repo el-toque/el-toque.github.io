@@ -380,18 +380,5 @@ body.login-screen footer{display:none}
 }
 
 
-/* Administración: retirar el encabezado interno y conservar solo el acceso al menú móvil */
-.admin-mode #appPanel>.hero{display:none}
-@media(max-width:820px){
-  .admin-mode #appPanel>.hero{
-    display:flex;align-items:center;justify-content:flex-start;
-    min-height:40px;margin:0 0 10px;padding:0;
-    background:transparent;border:0;box-shadow:none;overflow:visible
-  }
-  .admin-mode #appPanel>.hero>div{display:none}
-  .admin-mode #appPanel>.hero .admin-menu-toggle{display:inline-flex}
-}
-
-
-/* Administración: ocultar también la barra superior global */
+/* Administración: conservar el encabezado interno y ocultar la barra superior global */
 body.admin-mode .topbar{display:none!important}
