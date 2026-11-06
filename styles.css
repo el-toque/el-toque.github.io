@@ -314,3 +314,9 @@ input,select,textarea{background:#1b1e22;border-color:#393c42;color:#f5f0e7}labe
 }
 @media(min-width:821px) and (max-width:1100px){.admin-mode #appPanel>.hero,.admin-mode #dashboardTab,.admin-mode #inventoryTab,.admin-mode #salesTab,.admin-mode #closeoutsTab,.admin-mode #activityTab,.admin-mode #reservationsTab,.admin-mode #workersTab,.admin-mode #offlineStatus,.admin-mode #syncPendingBtn{margin-left:254px}.admin-sidebar{width:222px}}
 @media(prefers-reduced-motion:reduce){.admin-sidebar{transition:none}}
+
+/* Cierre de sesión fijado al final del menú lateral administrativo */
+.admin-sidebar{display:flex;flex-direction:column}
+.admin-sidebar-footer{margin-top:auto;padding:18px 4px 4px;border-top:1px solid #3d321f}
+.admin-sidebar-footer #logoutBtn{width:100%;min-height:44px;border:1px solid #765b2b;background:#241c10;color:#f0d28a;font-weight:800}
+.admin-sidebar-footer #logoutBtn:hover{background:#3b2b12;border-color:#c49a43}
