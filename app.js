@@ -89,7 +89,7 @@ async function enter(authUser){
  if(admin()){document.querySelector('[data-tab="dashboard"]').classList.add("active");showSection("dashboard");}else{document.querySelector('[data-tab="shop"]').classList.add("active");showSection("shop");}
  // La autenticación ya está confirmada. Los errores de módulos no deben expulsar al usuario.
  const tasks=admin()
-  ?[loadProducts,loadSales,loadWorkers,loadAdminDashboard,loadAdminCloseouts]
+  ?[loadProducts,loadSales,loadWorkers,loadAdminDashboard,loadAdminCloseouts,loadAdminIPV]
   :[loadProducts,loadWorkerAllocations,...(workerPermission("can_view_own_closeout")?[loadDailySales]:[]),cacheWorkerState,updatePendingBadge];
  const results=await Promise.allSettled(tasks.map(fn=>Promise.resolve().then(fn)));
  const failed=results.filter(x=>x.status==="rejected");
@@ -116,7 +116,7 @@ $("loginForm").addEventListener("submit",async e=>{
 });
 const logout=async()=>{try{await client.auth.signOut();showLogin();}catch(error){toast("No se pudo cerrar la sesión: "+(error?.message||"Error inesperado"));}};$("logoutBtn").addEventListener("click",logout);$("workerLogoutBtn")?.addEventListener("click",logout);
 function showSection(tab){["dashboard","inventory","sales","closeouts","activity","workers","shop","daily"].forEach(t=>$(t+"Tab").classList.toggle("hidden",t!==tab));}
-document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(b.closest("#adminTabs")){document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.setAttribute("aria-expanded","false");}if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","workers"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="activity")loadActivity();}));
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(b.closest("#adminTabs")){document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.setAttribute("aria-expanded","false");}if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","workers"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="inventory")loadAdminIPV();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="activity")loadActivity();}));
 function setAdminSidebar(open){document.body.classList.toggle("admin-sidebar-open",!!open);$("adminSidebarOverlay")?.classList.toggle("hidden",!open);$("adminMenuToggle")?.setAttribute("aria-expanded",open?"true":"false");}
 $("adminMenuToggle").addEventListener("click",()=>setAdminSidebar(!document.body.classList.contains("admin-sidebar-open")));
 $("adminSidebarClose").addEventListener("click",()=>setAdminSidebar(false));
@@ -408,6 +408,46 @@ async function loadAdminDashboard(){
  $("dashStockTotal").textContent=stockTotal.toLocaleString("es-ES");$("dashActiveWorkers").textContent=(workersResult.data||[]).length;
  $("dashboardUpdated").textContent="Actualizado: "+now.toLocaleString("es-ES");
 }
+async function loadAdminIPV(){
+ if(!admin()||!navigator.onLine)return;
+ const body=$("adminIPVRows");
+ $("adminIPVSession").textContent="Consultando la sesión de trabajo más reciente…";
+ body.innerHTML='<tr><td colspan="8" class="muted">Actualizando…</td></tr>';
+ try{
+  const day=localBusinessDate();
+  const [{data:latestClosure,error:closureError},{data:items,error:itemError}]=await Promise.all([
+   client.from("worker_turn_closures").select("closure_no,session_no").order("closure_no",{ascending:false}).limit(1).maybeSingle(),
+   client.from("worker_turn_inventory_items").select("worker_id,shift_no,business_date,session_no,row_no,product_name,start_qty,entry_qty,available_qty,final_qty,sold_qty,price,amount,updated_at").eq("business_date",day).order("updated_at",{ascending:false}).limit(500)
+  ]);
+  if(closureError)throw closureError;
+  if(itemError)throw itemError;
+  const lastClosedSession=Number(latestClosure?.session_no)||0;
+  const openRows=(items||[]).filter(x=>Number(x.session_no)>lastClosedSession);
+  if(!openRows.length){
+   body.innerHTML='<tr><td colspan="8" class="muted">No hay una sesión de turno abierta con actividad registrada en la fecha actual.</td></tr>';
+   $("adminIPVSession").textContent="Sin turno activo detectado";
+   $("adminIPVTotal").textContent=money(0);
+   $("adminIPVRowCount").textContent="0 productos";
+   $("adminIPVLastUpdate").textContent="Sin actividad reciente";
+   return;
+  }
+  const newest=openRows[0];
+  const activeRows=openRows.filter(x=>x.worker_id===newest.worker_id&&Number(x.shift_no)===Number(newest.shift_no)&&Number(x.session_no)===Number(newest.session_no)&&x.business_date===newest.business_date).sort((a,b)=>Number(a.row_no)-Number(b.row_no));
+  const {data:worker,error:workerError}=await client.from("profiles").select("full_name").eq("id",newest.worker_id).maybeSingle();
+  if(workerError)throw workerError;
+  body.innerHTML=activeRows.map(x=>'<tr><td>'+esc(x.product_name||"—")+'</td><td>'+Number(x.start_qty||0)+'</td><td>'+Number(x.entry_qty||0)+'</td><td>'+Number(x.available_qty||0)+'</td><td>'+Number(x.final_qty||0)+'</td><td>'+Number(x.sold_qty||0)+'</td><td>'+money(x.price)+'</td><td>'+money(x.amount)+'</td></tr>').join("");
+  const total=activeRows.reduce((sum,x)=>sum+(Number(x.amount)||0),0);
+  $("adminIPVSession").textContent=(worker?.full_name||("Turno "+Number(newest.shift_no)))+" · Turno "+Number(newest.shift_no)+" · Sesión "+Number(newest.session_no)+" · "+new Date(newest.business_date+"T00:00:00").toLocaleDateString("es-ES");
+  $("adminIPVTotal").textContent=money(total);
+  $("adminIPVRowCount").textContent=activeRows.length+" productos";
+  $("adminIPVLastUpdate").textContent="Última actualización: "+new Date(newest.updated_at).toLocaleString("es-ES");
+ }catch(error){
+  console.error("[IPV admin live table]",error);
+  body.innerHTML='<tr><td colspan="8" class="muted">No se pudo actualizar la tabla IPV: '+esc(error.message||"Error inesperado")+'</td></tr>';
+  $("adminIPVSession").textContent="Error al consultar el turno";
+ }
+}
+$("refreshAdminIPV")?.addEventListener("click",loadAdminIPV);
 async function loadAdminCloseouts(){
  if(!admin()||!navigator.onLine)return;
  const {data,error}=await client.from("worker_turn_closures").select("id,closure_no,worker_id,shift_no,business_date,session_no,total,rows,created_at,profiles(full_name)").order("created_at",{ascending:false}).limit(100);
