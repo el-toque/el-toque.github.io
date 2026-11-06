@@ -17,11 +17,21 @@
 <header class="topbar"><div class="brand"><div class="brand-mark"><img src="icons/icon-192.png" alt="Emblema EL TOQUE"></div><div><strong>IPV Digital</strong><small>Inventario y operaciones</small></div></div></header>
 <main class="wrap">
 <section id="loginPanel" class="panel auth-panel">
-  <p class="eyebrow">ACCESO SEGURO</p>
-  <div class="auth-brand"><img src="icons/icon-192.png" alt="Logo El Toque"><div><h1>IPV Digital</h1><p>Inventario y operaciones</p></div></div>
-  <div class="auth-account-status"><span class="auth-status-label">ESTADO DE LA CUENTA</span><span id="sessionLabel" class="demo-pill">CONECTANDO</span><small>Sin sesión iniciada</small></div>
-  <p class="muted auth-intro">Entra con el usuario creado para IPV Digital.</p>
-  <form id="loginForm" autocomplete="on"><label>Correo electrónico<input id="email" name="username" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required></label><label>Contraseña<input id="password" name="password" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required></label><button class="primary full" type="submit">Entrar</button><p id="loginError" class="form-error" role="alert"></p></form>
+  <div class="auth-heading">
+    <img class="auth-logo" src="icons/icon-192.png" alt="El Toque">
+    <h1>IPV Digital</h1>
+    <p>Inventario y operaciones</p>
+  </div>
+  <div class="auth-divider"></div>
+  <p class="eyebrow auth-eyebrow">ACCESO SEGURO</p>
+  <form id="loginForm" class="auth-form" autocomplete="on">
+    <label>Correo electrónico<input id="email" name="username" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="usuario@ejemplo.com" required></label>
+    <label>Contraseña<input id="password" name="password" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Introduce tu contraseña" required></label>
+    <button class="primary full" type="submit">Entrar</button>
+    <p id="loginError" class="form-error" role="alert"></p>
+  </form>
+  <div class="auth-status-line"><span>Estado de la cuenta</span><span id="sessionLabel" class="demo-pill">CONECTANDO</span></div>
+  <p class="auth-session-note">Sin sesión iniciada</p>
 </section>
 <section id="appPanel" class="hidden">
   <section class="hero hero-left"><button id="adminMenuToggle" class="admin-menu-toggle hidden" type="button" aria-label="Abrir menú" aria-expanded="false">☰</button><div><p class="eyebrow">PANEL DE CONTROL</p><h1>IPV Digital</h1><p id="welcome" class="muted">Inventario compartido y ventas</p></div><button id="workerLogoutBtn" class="secondary hidden">Cerrar sesión</button></section>
