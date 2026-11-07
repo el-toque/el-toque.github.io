@@ -4,7 +4,7 @@ const WORKER_ID="9e88ab77-640e-4251-9056-0d40225c9b9e";
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0)+" CUP";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-let client=null,user=null,profile=null,session=null,products=[],rows=[],sales=[],cart=[],closures=[];
+let client=null,user=null,profile=null,session=null,products=[],rows=[],sales=[],cart=[],closures=[],uiBound=false;
 function ensureUI(){
  const workerNav=$("workerTabs");
  if(workerNav&&!$('independentWorkerNav'))workerNav.insertAdjacentHTML("beforeend",'<button id="independentWorkerNav" class="tab" data-tab="independent"><span>IPV independiente</span></button>');
@@ -84,6 +84,7 @@ async function saveProduct(e){e.preventDefault();const id=$("indProductId").valu
 function clearProductForm(){$("indProductForm").reset();$("indProductId").value="";$("indProductMsg").textContent="";}
 async function addAdminStock(){const active=window.independentActiveSession,id=$("indAdminAddProduct").value,qty=Number($("indAdminStartQty").value);if(!active)throw new Error("Abre primero la sesión.");if(!id)throw new Error("Selecciona un producto.");if(qty<0||!Number.isInteger(qty))throw new Error("Cantidad inválida.");const p=products.find(x=>x.id===id);const {data:last,error:rowError}=await client.from("independent_inventory_items").select("row_no").eq("session_id",active.id).order("row_no",{ascending:false}).limit(1).maybeSingle();if(rowError)throw rowError;const rowNo=Number(last?.row_no||0)+1;const {error}=await client.from("independent_inventory_items").insert({session_id:active.id,row_no:rowNo,product_id:p.id,product_name:p.name,start_qty:qty,entry_qty:0,sold_qty:0,price:p.price});if(error)throw error;await loadAdmin();}
 function bindUI(){
+ if(uiBound)return;uiBound=true;
  $("indRefresh").onclick=()=>run(bootstrap);$("indSaveRows").onclick=()=>run(saveInventory);$("indAddRow").onclick=()=>{const p=products.find(x=>x.active&&!rows.some(r=>r.product_id===x.id));if(!p){notify("No hay productos nuevos disponibles en el catálogo.");return;}rows.push({product_id:p.id,product_name:p.name,start_qty:0,entry_qty:0,sold_qty:0,price:p.price});renderWorker();};
  $("indRows").addEventListener("change",()=>{readRows();renderWorker();});$("indSearch").oninput=renderShop;
  $("indShop").onclick=e=>{const b=e.target.closest("[data-ind-add]");if(!b)return;const id=b.dataset.indAdd,r=rows.find(x=>x.product_id===id),line=cart.find(x=>x.product_id===id);if(line)line.quantity++;else cart.push({product_id:id,quantity:1});if(line&&line.quantity>Number(r.final_qty??(r.start_qty+r.entry_qty-r.sold_qty))){line.quantity--;notify("No hay existencias suficientes.");}renderCart();};
