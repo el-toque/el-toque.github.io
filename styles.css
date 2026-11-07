@@ -688,3 +688,12 @@ body.admin-mode .topbar{display:none!important}
 #independentTab .admin-ipv-product-cell{max-width:100%;overflow:hidden}
 #independentTab .admin-ipv-thumb,#adminIndependentRows img.admin-ipv-thumb{display:inline-block!important;width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;max-width:38px!important;max-height:38px!important;object-fit:cover!important;flex:0 0 38px!important}
 @media(max-width:520px){#shopTab .shop-card-mark{height:100px;max-height:100px;min-height:100px}#shopTab .shop-card-mark .shop-product-image{width:100%!important;height:100%!important;object-fit:contain!important}}
+
+
+/* Administrador: botón del menú desplegable alineado al borde izquierdo (solo móvil) */
+@media(max-width:820px){
+  .admin-mode .admin-menu-toggle{
+    left:10px!important;
+    right:auto!important;
+  }
+}
