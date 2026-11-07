@@ -341,7 +341,8 @@ function renderDailyBillCounts(){
  body.innerHTML=dailyBillDenominations.map(value=>{const entered=Object.prototype.hasOwnProperty.call(dailyBillCounts,value);const quantity=entered?Math.max(0,Number(dailyBillCounts[value])||0):0;return `<tr><td><strong>${value.toLocaleString("es-ES")} CUP</strong></td><td><input class="daily-bill-input" type="number" min="0" step="1" inputmode="numeric" data-bill-denomination="${value}" value="${entered?quantity:""}" placeholder="Obligatorio" aria-label="Cantidad de billetes de ${value} CUP"></td><td>${money(value*quantity)}</td></tr>`}).join("");
  const total=dailyBillDenominations.reduce((sum,value)=>sum+value*(Number(dailyBillCounts[value])||0),0);
  $("dailyBillsTotal").textContent=money(total);
- $("dailyBillsStatus").textContent="El conteo se conserva en este teléfono para la cuenta y la fecha actuales.";
+ const missing=dailyBillDenominations.filter(value=>!Object.prototype.hasOwnProperty.call(dailyBillCounts,value)).length;
+ $("dailyBillsStatus").textContent=missing?`Faltan ${missing} denominación(es). Completa todas, escribiendo 0 donde no tengas billetes.`:"Conteo completo. El registro se conserva en este teléfono para esta cuenta y fecha.";
 }
 $("dailyBillsBody")?.addEventListener("input",e=>{
  const input=e.target.closest("[data-bill-denomination]");if(!input)return;
