@@ -35,12 +35,12 @@ async function persistRows(){
  else{status("Tabla guardada y sincronizada con la tienda.");window.dispatchEvent(new Event("ipv:turn-inventory-saved"));}
 }
 function shiftLabel(){return independentMode?"IPV Independiente":(shift===1?"Turno 1":"Turno 2");}
-function exportCurrent(format){
+async function exportCurrent(format){
  if(!session||(!shift&&!independentMode)||!rows.length){status("No hay datos del turno para exportar.");return;}
  const savedRows=rows.filter(r=>r.product.trim()!=="").map(r=>{const c=calc(r);return {product:r.product,start:Number(r.start)||0,entry:Number(r.entry)||0,available:c.available,final:c.final,sold:Number(r.sold)||0,price:Number(r.price)||0,amount:c.amount};});
  if(!savedRows.length){status("Añade al menos un producto antes de exportar.");return;}
  const match=($("turnDocumentNo").textContent.match(/\d+/)||[])[0]||"01";
- exportData(savedRows,Number(match),shift,businessDate,format);
+ await exportData(savedRows,Number(match),shift,businessDate,format,false);
  status(format==="xlsx"?"Archivo Excel preparado.":"Archivo PDF preparado.");
 }
 function setMeta(){ const d=new Date(businessDate+"T12:00:00"); $("turnShift").textContent=shiftLabel();$("turnDate").textContent=d.toLocaleDateString("es-ES",{weekday:"long",year:"numeric",month:"long",day:"numeric"}); }
@@ -111,25 +111,32 @@ async function history(){
  const {data,error}=result;if(error){$("turnHistory").innerHTML="<p>No se pudo cargar el historial.</p>";return;}
  $("turnHistory").innerHTML=(data||[]).map(x=>"<div class=\"turn-history-row\"><strong>N°"+String(independentMode?x.id:x.closure_no).padStart(2,"0")+" · "+(independentMode?"IPV Independiente":"Turno "+x.shift_no)+"</strong><span>"+esc(x.business_date)+" · "+money(x.total)+"</span></div>").join("")||"<p class=\"muted small\">Todavía no hay turnos cerrados.</p>";
 }
-function exportData(savedRows,number,shiftNo,date,format="both"){
+async function exportData(savedRows,number,shiftNo,date,format="both",archive=false){
  const billCounts={};document.querySelectorAll("#dailyBillsBody [data-bill-denomination]").forEach(el=>billCounts[el.dataset.billDenomination]=Number(el.value)||0);
  const bills=denominations.filter(v=>billCounts[v]>0).map(v=>({"Denominación":v+" CUP","Cantidad de billetes":billCounts[v],"Importe":v*billCounts[v]}));
  const billTotal=denominations.reduce((n,v)=>n+v*(billCounts[v]||0),0);
  bills.push({"Denominación":"TOTAL EFECTIVO CONTADO","Cantidad de billetes":denominations.reduce((n,v)=>n+(billCounts[v]||0),0),"Importe":billTotal});
- if((format==="xlsx"||format==="both")&&window.XLSX){const data=savedRows.map(r=>({Producto:r.product,Inicio:r.start,Entrada:r.entry,Disponible:r.available,Final:r.final,Vendido:r.sold,Precio:r.price,Importe:r.amount}));
- data.push({Producto:"TOTAL GENERAL",Inicio:"",Entrada:"",Disponible:"",Final:"",Vendido:"",Precio:"",Importe:savedRows.reduce((n,r)=>n+r.amount,0)});
- const wb=XLSX.utils.book_new();
- XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet([{Cuenta:session.user.user_metadata?.full_name||session.user.email,Correo:session.user.email,Turno:"Turno "+shiftNo,Documento:"N°"+String(number).padStart(2,"0"),Fecha:date,Total:money(savedRows.reduce((n,r)=>n+r.amount,0))}]),"Datos");
- XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data),"Turno");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(bills),"Conteo de billetes");
- XLSX.writeFile(wb,(independentMode?"IPV_Independiente_":"IPV_Turno_")+number+"_"+date+".xlsx");}
- if((format==="pdf"||format==="both")&&window.jspdf?.jsPDF){const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
- doc.setFontSize(16);doc.text("IPV Digital · "+shiftLabel()+" · N°"+String(number).padStart(2,"0"),14,14);doc.setFontSize(9);
- doc.text("Cuenta: "+(session.user.user_metadata?.full_name||session.user.email),14,20);doc.text("Correo: "+session.user.email+" · Fecha: "+date,14,25);
- const tableRows=savedRows.map(r=>[r.product,r.start,r.entry,r.available,r.final,r.sold,r.price.toFixed(2),r.amount.toFixed(2)]);
- tableRows.push(["","","","","","","TOTAL",savedRows.reduce((n,r)=>n+r.amount,0).toFixed(2)]);
- doc.autoTable({startY:30,head:[["Producto","Inicio","Entrada","Disponible","Final","Vendido","Precio","Importe"]],body:tableRows,styles:{fontSize:8},headStyles:{fillColor:[45,38,24]}});
- doc.autoTable({startY:doc.lastAutoTable.finalY+8,head:[["Denominación","Cantidad","Importe"]],body:bills.map(b=>[b["Denominación"],b["Cantidad de billetes"],b.Importe.toFixed(2)]),styles:{fontSize:8}});
- doc.save((independentMode?"IPV_Independiente_":"IPV_Turno_")+number+"_"+date+".pdf");}
+ const base=(independentMode?"independent-":"turn-"+shiftNo+"-")+sessionNo+"-"+date;
+ if((format==="xlsx"||format==="both")&&window.XLSX){
+  const data=savedRows.map(r=>({Producto:r.product,Inicio:r.start,Entrada:r.entry,Disponible:r.available,Final:r.final,Vendido:r.sold,Precio:r.price,Importe:r.amount}));
+  data.push({Producto:"TOTAL GENERAL",Inicio:"",Entrada:"",Disponible:"",Final:"",Vendido:"",Precio:"",Importe:savedRows.reduce((n,r)=>n+r.amount,0)});
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet([{Cuenta:session.user.user_metadata?.full_name||session.user.email,Correo:session.user.email,Turno:shiftLabel(),Documento:"N°"+String(number).padStart(2,"0"),Fecha:date,Total:money(savedRows.reduce((n,r)=>n+r.amount,0))}]),"Datos");
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data),"IPV");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(bills),"Conteo de billetes");
+  if(archive){const bytes=XLSX.write(wb,{bookType:"xlsx",type:"array"});const blob=new Blob([bytes],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});const path="workers/"+session.user.id+"/"+base+".xlsx";const {error}=await db.storage.from("ipv-archives").upload(path,blob,{upsert:true,contentType:blob.type});if(error)status("Cierre guardado, pero no se pudo archivar el Excel: "+error.message);}
+  XLSX.writeFile(wb,(independentMode?"IPV_Independiente_":"IPV_Turno_")+number+"_"+date+".xlsx");
+ }
+ if((format==="pdf"||format==="both")&&window.jspdf?.jsPDF){
+  const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
+  doc.setFontSize(16);doc.text("IPV Digital · "+shiftLabel()+" · N°"+String(number).padStart(2,"0"),14,14);doc.setFontSize(9);
+  doc.text("Cuenta: "+(session.user.user_metadata?.full_name||session.user.email),14,20);doc.text("Correo: "+session.user.email+" · Fecha: "+date,14,25);
+  const tableRows=savedRows.map(r=>[r.product,r.start,r.entry,r.available,r.final,r.sold,r.price.toFixed(2),r.amount.toFixed(2)]);
+  tableRows.push(["","","","","","","TOTAL",savedRows.reduce((n,r)=>n+r.amount,0).toFixed(2)]);
+  doc.autoTable({startY:30,head:[["Producto","Inicio","Entrada","Disponible","Final","Vendido","Precio","Importe"]],body:tableRows,styles:{fontSize:8},headStyles:{fillColor:[45,38,24]}});
+  doc.autoTable({startY:doc.lastAutoTable.finalY+8,head:[["Denominación","Cantidad","Importe"]],body:bills.map(b=>[b["Denominación"],b["Cantidad de billetes"],b.Importe.toFixed(2)]),styles:{fontSize:8}});
+  if(archive){const blob=doc.output("blob");const path="workers/"+session.user.id+"/"+base+".pdf";const {error}=await db.storage.from("ipv-archives").upload(path,blob,{upsert:true,contentType:"application/pdf"});if(error)status("Cierre guardado, pero no se pudo archivar el PDF: "+error.message);}
+  doc.save((independentMode?"IPV_Independiente_":"IPV_Turno_")+number+"_"+date+".pdf");
+ }
 }
 async function init(){
  if(ready||!window.IPV_CONFIG?.url||!window.supabase)return;
@@ -161,7 +168,7 @@ $("closeTurnBtn")?.addEventListener("click",async()=>{
   for(const r of payload){if([r.start,r.entry,r.sold,r.price].some(n=>!Number.isFinite(n)||n<0)||r.sold>r.start+r.entry)throw new Error("Revisa "+r.product+": Vendido no puede superar Disponible y no se admiten valores negativos.");}
   const billCounts={};document.querySelectorAll("#dailyBillsBody [data-bill-denomination]").forEach(el=>{const n=Number(el.value);if(!Number.isInteger(n)||n<0)throw new Error("Completa el conteo de billetes de todas las denominaciones.");billCounts[el.dataset.billDenomination]=n;});if(Object.keys(billCounts).length!==denominations.length)throw new Error("El conteo de billetes debe incluir todas las denominaciones.");const {data,error}=independentMode?await db.rpc("worker_independent_close",{p_session_id:independentSessionId,p_rows:payload,p_bill_counts:billCounts}):await db.rpc("close_worker_turn",{p_rows:payload,p_business_date:businessDate,p_session_no:sessionNo,p_bill_counts:billCounts});if(error)throw error;
   closure=data;const date=data.business_date,number=data.closure_no;$("turnDocumentNo").textContent="N°"+String(number).padStart(2,"0");
-  exportData(data.rows,number,data.shift_no||0,date);
+  await exportData(data.rows,number,data.shift_no||0,date,"both",true);
   localStorage.removeItem(key());
   status("Turno cerrado correctamente. Documento N°"+String(number).padStart(2,"0")+". Total: "+money(data.total)+".");
   await history();
