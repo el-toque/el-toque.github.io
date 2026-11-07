@@ -672,3 +672,11 @@ body.admin-mode .topbar{display:none!important}
 }
 
 .login-screen .topbar-live{display:none!important}
+
+/* Control de tamaño para fotos del IPV Independiente y tienda */
+#shopTab .shop-card-mark{position:relative!important;width:100%!important;height:128px!important;min-height:0!important;max-height:128px!important;aspect-ratio:unset!important;overflow:hidden!important;display:flex!important;}
+#shopTab .shop-card-mark>img.shop-product-image{display:block!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;min-width:0!important;min-height:0!important;object-fit:contain!important;object-position:center!important;flex:0 0 100%!important;}
+#shopTab .shop-card-mark>span,#shopTab .shop-card-mark>small{position:relative;z-index:1}
+#independentTab .admin-ipv-thumb{display:block;width:38px;height:38px;max-width:38px;max-height:38px;object-fit:cover;border-radius:6px;flex:0 0 38px}
+@media(max-width:680px){#shopTab .shop-card-mark{height:86px!important;max-height:86px!important}}
+@media(max-width:380px){#shopTab .shop-card-mark{height:100px!important;min-height:100px!important;max-height:100px!important}}
