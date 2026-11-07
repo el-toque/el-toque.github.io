@@ -7,14 +7,14 @@
 <link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="styles.css?v=71">
+<link rel="stylesheet" href="styles.css?v=72">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body class="login-screen">
-<header class="topbar"><div class="brand"><div class="brand-mark"><img src="icons/icon-192.png" alt="Emblema EL TOQUE"></div><div><strong>IPV Digital</strong><small>Inventario y operaciones</small></div></div></header>
+<header class="topbar"><div class="brand"><div class="brand-mark"><img src="icons/icon-192.png" alt="Emblema EL TOQUE"></div><div><strong>IPV Digital</strong><small>Inventario y operaciones</small></div></div><div class="topbar-live" aria-live="polite"><div class="topbar-live-item"><span class="topbar-live-label">ESTADO DE LA PÁGINA</span><strong id="headerPageStatus" class="topbar-live-value offline">CONECTANDO…</strong></div><div class="topbar-live-divider"></div><div class="topbar-live-item"><span class="topbar-live-label">TURNO ACTIVO</span><strong id="headerTurnStatus" class="topbar-live-value">Consultando…</strong></div></div></header>
 <main class="wrap">
 <section id="loginPanel" class="panel auth-panel">
   <div class="auth-heading">
