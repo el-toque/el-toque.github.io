@@ -13,7 +13,18 @@ async function localGet(key){const db=await offlineDB();return new Promise((reso
 async function localPut(key,value){const db=await offlineDB();return new Promise((resolve,reject)=>{const tx=db.transaction("records","readwrite");tx.objectStore("records").put(value,key);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
 async function localDelete(key){const db=await offlineDB();return new Promise((resolve,reject)=>{const tx=db.transaction("records","readwrite");tx.objectStore("records").delete(key);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
 async function pendingSales(){return (await localGet("pending_sales"))||[];}
-async function updatePendingBadge(){const queue=await pendingSales(),n=queue.length;const status=$("offlineStatus");if(status){status.textContent=n?`${n} venta(s) pendiente(s) de sincronizar`:(navigator.onLine?"EN LÍNEA":"SIN CONEXIÓN");status.classList.toggle("pending",n>0);status.classList.toggle("offline",!navigator.onLine);status.classList.toggle("online",navigator.onLine&&n===0);}const syncBtn=$("syncPendingBtn");if(syncBtn){syncBtn.classList.toggle("hidden",n===0);syncBtn.disabled=!navigator.onLine||syncingPending;syncBtn.textContent=syncingPending?"Sincronizando…":"Sincronizar ventas pendientes";}const close=$("closeDaily");if(close){const pendingCounts=workerPermission("can_count_stock")&&Array.isArray(dailyStockRows)?dailyStockRows.filter(x=>x.physical===null).length:0;close.disabled=!!activeCloseout||n>0||!navigator.onLine||pendingCounts>0||!workerPermission("can_close_day")||!workerPermission("can_view_own_closeout");close.title=n?"Sincroniza las ventas pendientes antes de cerrar":pendingCounts?"Completa el conteo físico de todos los productos antes de cerrar":"";}for(const id of ["exportDaily","exportDailyPdf","refreshDaily"]){const b=$(id);if(b){b.disabled=!navigator.onLine;b.title=navigator.onLine?"":"Necesitas conexión para consultar el cuadre actualizado";}}return n;}
+function updateHeaderIndicators(pendingCount=null){
+ const page=$("headerPageStatus"),turn=$("headerTurnStatus");
+ if(page){const pending=Number(pendingCount)||0;page.textContent=pending?pending+" VENTA(S) PENDIENTE(S)":(navigator.onLine?"EN LÍNEA":"SIN CONEXIÓN");page.classList.toggle("online",navigator.onLine&&pending===0);page.classList.toggle("offline",!navigator.onLine);page.classList.toggle("pending",pending>0);}
+ if(turn){
+  let label="Sin turno activo";
+  if(admin()&&adminIPVTarget)label="Turno "+adminIPVTarget.shift_no+" · Sesión "+adminIPVTarget.session_no;
+  else if(!admin()&&window.IPV_TURN_CONTEXT?.shift&&window.IPV_TURN_CONTEXT?.sessionNo)label="Turno "+window.IPV_TURN_CONTEXT.shift+" · Sesión "+window.IPV_TURN_CONTEXT.sessionNo;
+  else if(!admin()&&!navigator.onLine){try{const ctx=JSON.parse(localStorage.getItem("ipv_turn_context_"+user?.id)||"null");if(ctx?.shift&&ctx?.sessionNo)label="Turno "+ctx.shift+" · Sesión "+ctx.sessionNo+" (sin conexión");}catch(_){}}
+  turn.textContent=label;
+ }
+}
+async function updatePendingBadge(){const queue=await pendingSales(),n=queue.length;updateHeaderIndicators(n);const status=$("offlineStatus");if(status){status.textContent=n?`${n} venta(s) pendiente(s) de sincronizar`:(navigator.onLine?"EN LÍNEA":"SIN CONEXIÓN");status.classList.toggle("pending",n>0);status.classList.toggle("offline",!navigator.onLine);status.classList.toggle("online",navigator.onLine&&n===0);}const syncBtn=$("syncPendingBtn");if(syncBtn){syncBtn.classList.toggle("hidden",n===0);syncBtn.disabled=!navigator.onLine||syncingPending;syncBtn.textContent=syncingPending?"Sincronizando…":"Sincronizar ventas pendientes";}const close=$("closeDaily");if(close){const pendingCounts=workerPermission("can_count_stock")&&Array.isArray(dailyStockRows)?dailyStockRows.filter(x=>x.physical===null).length:0;close.disabled=!!activeCloseout||n>0||!navigator.onLine||pendingCounts>0||!workerPermission("can_close_day")||!workerPermission("can_view_own_closeout");close.title=n?"Sincroniza las ventas pendientes antes de cerrar":pendingCounts?"Completa el conteo físico de todos los productos antes de cerrar":"";}for(const id of ["exportDaily","exportDailyPdf","refreshDaily"]){const b=$(id);if(b){b.disabled=!navigator.onLine;b.title=navigator.onLine?"":"Necesitas conexión para consultar el cuadre actualizado";}}return n;}
 async function saveOfflineSale(items,method,code,id=crypto.randomUUID()){
  const queue=await pendingSales();
  if(queue.some(x=>x.id===id))return queue.find(x=>x.id===id);
@@ -54,7 +65,7 @@ const workerPermission=key=>admin()||profile?.worker_permissions?.[key]!==false;
 function fail(el,msg){$(el).textContent=msg}
 async function init(){
  if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js?v=61",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
- window.addEventListener("online",()=>{syncPendingSales();});window.addEventListener("offline",()=>{updatePendingBadge();});
+ window.addEventListener("online",()=>{updateHeaderIndicators(0);syncPendingSales();});window.addEventListener("offline",()=>{updateHeaderIndicators(0);updatePendingBadge();});window.addEventListener("ipv:turn-context-updated",()=>updateHeaderIndicators(0));
  if(!cfg.url||!cfg.publishableKey){$("sessionLabel").textContent="CONFIGURACIÓN PENDIENTE";document.body.classList.add("login-screen");$("loginPanel").classList.remove("hidden");fail("loginError","Falta configurar config.js con la URL y la clave publicable del proyecto.");return}
  try{
   client=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
@@ -73,7 +84,7 @@ async function init(){
   }
  }catch(error){showLogin();fail("loginError","No se pudo preparar el acceso: "+(error?.message||"Error inesperado")+". Recarga la página e inténtalo de nuevo.");}
 }
-function showLogin(){user=null;profile=null;document.body.classList.add("login-screen");document.body.classList.remove("admin-mode","worker-mode","admin-sidebar-open");$("adminSidebar")?.classList.add("hidden");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.classList.add("hidden");$("appPanel").classList.add("hidden");$("loginPanel").classList.remove("hidden");$("sessionLabel").textContent="SIN SESIÓN"}
+function showLogin(){user=null;profile=null;adminIPVTarget=null;updateHeaderIndicators(0);document.body.classList.add("login-screen");document.body.classList.remove("admin-mode","worker-mode","admin-sidebar-open");$("adminSidebar")?.classList.add("hidden");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.classList.add("hidden");$("appPanel").classList.add("hidden");$("loginPanel").classList.remove("hidden");$("sessionLabel").textContent="SIN SESIÓN"}
 async function enter(authUser){
  user=authUser;
  let data=null,error=null;
@@ -84,7 +95,7 @@ async function enter(authUser){
  if(!navigator.onLine&&profile?.role!=="worker"){showLogin();fail("loginError","La administración requiere conexión a internet.");return;}
  data=profile;
  document.body.classList.toggle("admin-mode",data.role!=="worker");document.body.classList.toggle("worker-mode",data.role==="worker");$("adminSidebar")?.classList.remove("hidden");document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.classList.remove("hidden");$("sidebarRoleLabel").textContent=admin()?"ADMINISTRACIÓN":"PUNTO DE VENTA";
- document.body.classList.remove("login-screen");$("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden");$("sessionLabel").textContent=admin()?"ADMINISTRADOR":"TRABAJADOR";$("welcome").textContent=`Hola, ${data.full_name||user.email} · ${data.role}`;
+ document.body.classList.remove("login-screen");$("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden");$("sessionLabel").textContent=admin()?"ADMINISTRADOR":"TRABAJADOR";updateHeaderIndicators(0);$("welcome").textContent=`Hola, ${data.full_name||user.email} · ${data.role}`;
  $("addBtn")?.classList.toggle("hidden",!admin());$("exportInventory")?.classList.toggle("hidden",!admin());$("exportInventoryPdf")?.classList.toggle("hidden",!admin());$("manageCategoriesBtn")?.classList.toggle("hidden",!admin());$("workersNav").classList.toggle("hidden",!admin());$("workerLogoutBtn")?.classList.toggle("hidden",admin());$("logoutBtn")?.classList.toggle("hidden",!admin());$("adminTabs").classList.toggle("hidden",!admin());$("workerTabs").classList.toggle("hidden",admin());if(!admin()){document.querySelector('[data-tab="daily"]').classList.toggle("hidden",!workerPermission("can_view_own_closeout"));$("shopSellBtn").disabled=!workerPermission("can_sell");}
  document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
  if(admin()){document.querySelector('[data-tab="dashboard"]').classList.add("active");showSection("dashboard");}else{document.querySelector('[data-tab="shop"]').classList.add("active");showSection("shop");}
@@ -439,7 +450,7 @@ async function loadAdminIPV(){
   if(targetError)throw targetError;
   const target=Array.isArray(targets)?targets[0]:targets;
   if(!target){
-   adminIPVTarget=null;
+   adminIPVTarget=null;updateHeaderIndicators(0);
    body.innerHTML='<tr><td colspan="8" class="muted">No hay un trabajador activo disponible para recibir propuestas.</td></tr>';
    $("adminIPVSession").textContent="Sin turno activo";
    $("adminIPVTotal").textContent=money(0);
@@ -447,7 +458,7 @@ async function loadAdminIPV(){
    $("adminIPVLastUpdate").textContent="Sin actividad reciente";
    return;
   }
-  adminIPVTarget={worker_id:target.worker_id,business_date:target.business_date,session_no:Number(target.session_no),shift_no:Number(target.shift_no)};
+  adminIPVTarget={worker_id:target.worker_id,business_date:target.business_date,session_no:Number(target.session_no),shift_no:Number(target.shift_no)};updateHeaderIndicators(0);
   const {data:items,error:itemError}=await client.from("worker_turn_inventory_items")
    .select("worker_id,shift_no,business_date,session_no,row_no,product_name,start_qty,entry_qty,available_qty,final_qty,sold_qty,price,amount,updated_at")
    .eq("worker_id",target.worker_id).eq("shift_no",target.shift_no)
