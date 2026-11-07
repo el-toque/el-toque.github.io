@@ -373,11 +373,11 @@ function renderDailyStockCounts(){
 }
 function renderDailyBillCounts(){
  const body=$("dailyBillsBody");if(!body)return;
- dailyBillDenominations.forEach(value=>{const quantity=Number(dailyBillCounts[value]);dailyBillCounts[value]=Number.isInteger(quantity)&&quantity>=0?quantity:0;});
- body.innerHTML=dailyBillDenominations.map(value=>{const quantity=dailyBillCounts[value];return `<tr><td><strong>${value.toLocaleString("es-ES")} CUP</strong></td><td><input class="daily-bill-input" type="number" min="0" step="1" inputmode="numeric" data-bill-denomination="${value}" value="${quantity}" aria-label="Cantidad de billetes de ${value} CUP"></td><td>${money(value*quantity)}</td></tr>`}).join("");
+ body.innerHTML=dailyBillDenominations.map(value=>{const declared=Object.prototype.hasOwnProperty.call(dailyBillCounts,value);const quantity=declared?Math.max(0,Number(dailyBillCounts[value])||0):0;return `<tr><td><strong>${value.toLocaleString("es-ES")} CUP</strong></td><td><input class="daily-bill-input" type="number" min="0" step="1" inputmode="numeric" data-bill-denomination="${value}" value="${quantity}" aria-label="Cantidad de billetes de ${value} CUP"></td><td>${money(value*quantity)}</td></tr>`}).join("");
  const total=dailyBillDenominations.reduce((sum,value)=>sum+value*(Number(dailyBillCounts[value])||0),0);
  $("dailyBillsTotal").textContent=money(total);
- $("dailyBillsStatus").textContent="Todas las denominaciones comienzan en 0. Cambia únicamente las cantidades que hayas recaudado."; 
+ const missing=dailyBillDenominations.filter(value=>!Object.prototype.hasOwnProperty.call(dailyBillCounts,value)).length;
+ $("dailyBillsStatus").textContent=missing?`Hay ${missing} denominación(es) aún sin declarar. El 0 inicial es solo visual; confirma cada cantidad, incluso los ceros.`:"Conteo completo. Puedes exportar o cerrar la jornada."; 
 }
 $("dailyBillsBody")?.addEventListener("input",e=>{
  const input=e.target.closest("[data-bill-denomination]");if(!input)return;
