@@ -411,10 +411,19 @@ const exportDailyButton=$("exportDaily");if(exportDailyButton)exportDailyButton.
 };
 
 
-const exportDailyPdfButton=$("exportDailyPdf");if(exportDailyPdfButton)exportDailyPdfButton.onclick=()=>{
+const exportDailyPdfButton=$("exportDailyPdf");if(exportDailyPdfButton)exportDailyPdfButton.onclick=async()=>{
  if(!dailyExportRows.length){toast("No hay ventas de hoy para exportar.");return}
- const missingBillCounts=dailyBillDenominations.filter(value=>!Object.prototype.hasOwnProperty.call(dailyBillCounts,value)||dailyBillCounts[value]===""||!Number.isInteger(Number(dailyBillCounts[value]))||Number(dailyBillCounts[value])<0);
- if(missingBillCounts.length){toast("No puedes exportar el PDF: completa la contadora de dinero para todas las denominaciones. Escribe 0 donde no tengas billetes.");const first=$(`[data-bill-denomination="${missingBillCounts[0]}"]`);first?.focus();first?.scrollIntoView({behavior:"smooth",block:"center"});return}
+ const billInputs=[...($("dailyBillsBody")?.querySelectorAll("[data-bill-denomination]")||[])];
+ const missingBillCounts=dailyBillDenominations.filter(value=>{
+  const input=billInputs.find(el=>Number(el.dataset.billDenomination)===value);
+  if(!input||input.value.trim()==="")return true;
+  const quantity=Number(input.value);
+  if(!Number.isInteger(quantity)||quantity<0)return true;
+  dailyBillCounts[value]=quantity;
+  return false;
+ });
+ if(missingBillCounts.length){toast("Exportación bloqueada: debes introducir la cantidad de las 12 denominaciones. Escribe 0 en las que no tengas.");const first=$(`[data-bill-denomination="${missingBillCounts[0]}"]`);first?.focus();first?.scrollIntoView({behavior:"smooth",block:"center"});return}
+ try{await localPut("daily_bill_counts_"+user.id+"_"+localBusinessDate(),dailyBillCounts);}catch(error){toast("No se pudo guardar la contadora de dinero. No se exportó el PDF.");return;}
  if(!window.jspdf?.jsPDF){toast("No se pudo cargar el módulo PDF. Comprueba tu conexión e inténtalo de nuevo.");return}
  const {jsPDF}=window.jspdf;const doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
  const cash=dailyExportRows.filter(x=>x.payment_method==="cash").reduce((a,x)=>a+Number(x.total),0);
