@@ -641,3 +641,9 @@ body.admin-mode .topbar{display:none!important}
  .admin-menu-toggle{transition:transform .22s ease,opacity .18s ease!important;}
  body.menu-toggle-scrolled .admin-menu-toggle{transform:translateY(-140%)!important;opacity:0!important;pointer-events:none!important;z-index:90!important;}
 }
+
+/* Asegurar que el botón se oculte detrás del encabezado durante el desplazamiento */
+@media(max-width:820px){
+ body.menu-toggle-scrolled .admin-menu-toggle{transform:translate3d(0,-160%,0)!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important;z-index:90!important;}
+ body:not(.menu-toggle-scrolled) .admin-menu-toggle{visibility:visible!important;}
+}
