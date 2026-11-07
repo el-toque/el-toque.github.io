@@ -1,5 +1,5 @@
-const CACHE_NAME = "ipv-digital-shell-v72";
-const APP_FILES = ["./", "./index.html", "./styles.css", "./app.js", "./turn-inventory.js", "./config.js", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png"];
+const CACHE_NAME = "ipv-digital-shell-v73";
+const APP_FILES = ["./", "./index.html", "./styles.css", "./app.js", "./turn-inventory.js", "./config.js", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/logo-transparent.svg"];
 const CDN_FILES = [
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
   "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js",
