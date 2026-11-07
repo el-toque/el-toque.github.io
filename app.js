@@ -16,6 +16,14 @@ async function pendingSales(){return (await localGet("pending_sales"))||[];}
 function updateHeaderIndicators(pendingCount=null){
  const page=$("headerPageStatus"),turn=$("headerTurnStatus");
  if(page){const pending=Number(pendingCount)||0;page.textContent=pending?pending+" VENTA(S) PENDIENTE(S)":(navigator.onLine?"EN LÍNEA":"SIN CONEXIÓN");page.classList.toggle("online",navigator.onLine&&pending===0);page.classList.toggle("offline",!navigator.onLine);page.classList.toggle("pending",pending>0);}
+ // El administrador no tiene cola de ventas propia: mostrar directamente el estado real de red.
+ const sidebarStatus=$("offlineStatus");
+ if(sidebarStatus&&profile?.role==="admin"){
+  sidebarStatus.textContent=navigator.onLine?"EN LÍNEA":"SIN CONEXIÓN";
+  sidebarStatus.classList.toggle("online",navigator.onLine);
+  sidebarStatus.classList.toggle("offline",!navigator.onLine);
+  sidebarStatus.classList.remove("pending");
+ }
  if(turn){
   let label="Sin turno activo";
   // El nombre visible procede del nombre asignado por el administrador en profiles.full_name.
