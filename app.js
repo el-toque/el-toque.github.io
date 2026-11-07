@@ -706,7 +706,7 @@ $("manageCategoriesBtn")?.addEventListener("click",async()=>{await loadCategorie
 async function loadCategoriesList(){const {data,error}=await client.from("product_categories").select("id,name,active").order("name");if(error){fail("categoryMessage",error.message);return}categories=(data||[]).filter(c=>c.active);$("categoryList").innerHTML=categories.map(c=>`<div class="category-list-row">${esc(c.name)}</div>`).join("")||'<p class="muted small">Todavía no hay categorías.</p>';renderCategoryControls();}
 $("closeCategory").onclick=$("cancelCategory").onclick=()=>$("categoryDialog").close();
 $("categoryForm").addEventListener("submit",async e=>{e.preventDefault();const name=$("categoryName").value.trim();if(!name)return;const {error}=await client.from("product_categories").insert({name});if(error){fail("categoryMessage",error.message);return}$("categoryName").value="";fail("categoryMessage","Categoría creada");await loadCategoriesList();await loadProducts()});
-$("newWorkerBtn").addEventListener("click",()=>{$("workerForm").classList.remove("hidden");fail("workerMessage","");$("workerName").focus()});
+$("newWorkerBtn").addEventListener("click",()=>{$("workerForm").classList.remove("hidden");$("workerEmail").value="dependiente3@eltoque.com";$("workerIpvMode").value="independent";fail("workerMessage","");$("workerName").focus()});
 $("cancelWorker").addEventListener("click",()=>{$("workerForm").reset();$("workerForm").classList.add("hidden")});
 $("workerForm").addEventListener("submit",async e=>{
  e.preventDefault();const btn=$("createWorkerBtn");btn.disabled=true;fail("workerMessage","Creando acceso…");
