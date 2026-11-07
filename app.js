@@ -20,7 +20,7 @@ function updateHeaderIndicators(pendingCount=null){
   let label="Sin turno activo";
   if(admin()&&adminIPVTarget)label="Turno "+adminIPVTarget.shift_no+" · Sesión "+adminIPVTarget.session_no;
   else if(!admin()&&window.IPV_TURN_CONTEXT?.shift&&window.IPV_TURN_CONTEXT?.sessionNo)label="Turno "+window.IPV_TURN_CONTEXT.shift+" · Sesión "+window.IPV_TURN_CONTEXT.sessionNo;
-  else if(!admin()&&!navigator.onLine){try{const ctx=JSON.parse(localStorage.getItem("ipv_turn_context_"+user?.id)||"null");if(ctx?.shift&&ctx?.sessionNo)label="Turno "+ctx.shift+" · Sesión "+ctx.sessionNo+" (sin conexión");}catch(_){}}
+  else if(!admin()&&!navigator.onLine){try{const ctx=JSON.parse(localStorage.getItem("ipv_turn_context_"+user?.id)||"null");if(ctx?.shift&&ctx?.sessionNo)label="Turno "+ctx.shift+" · Sesión "+ctx.sessionNo+" (sin conexión";}catch(_){}}
   turn.textContent=label;
  }
 }
