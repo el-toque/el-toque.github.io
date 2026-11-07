@@ -581,3 +581,14 @@ body.admin-mode .topbar{display:none!important}
 @media(max-width:820px){
   .admin-mode .wrap,.worker-mode .wrap{padding-top:70px!important}
 }
+
+
+/* Ajuste del menú móvil: botón separado del logo y oculto mientras el panel está abierto. */
+@media(max-width:820px){
+  .admin-menu-toggle{
+    top:calc(env(safe-area-inset-top, 0px) + 10px)!important;
+    right:12px!important;
+    left:auto!important;
+  }
+  body.admin-sidebar-open .admin-menu-toggle{display:none!important;}
+}
