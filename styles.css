@@ -672,3 +672,17 @@ body.admin-mode .topbar{display:none!important}
 }
 
 .login-screen .topbar-live{display:none!important}
+
+/* IPV independiente */
+#independentTab .turn-table input{width:76px;min-width:65px;padding:7px 5px}
+#independentTab .turn-table td:first-child{min-width:145px}
+#independentAdminTab .form-grid{align-items:end}
+#independentAdminTab .form-grid button{min-height:42px}
+#independentAdminTab .worker-form{display:grid;gap:12px;margin:14px 0}
+#independentAdminTab .worker-form .form-grid{margin:0}
+#independentAdminTab .turn-table{min-width:760px}
+#independentTab .shop-card{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;border:1px solid var(--line,#ddd);border-radius:12px;background:var(--panel,#fff)}
+#independentTab .shop-card-info{display:grid;gap:5px}
+#independentTab .shop-card-info span{font-size:.88rem;color:var(--muted,#777)}
+#independentTab .order-payment-panel{padding:16px;border:1px solid var(--line,#ddd);border-radius:14px}
+#independentTab .order-payment-panel label{display:grid;gap:6px;margin:12px 0}
