@@ -630,3 +630,8 @@ body.admin-mode .topbar{display:none!important}
 
 /* El logo de la tienda usa una máscara de luminancia: elimina el negro del archivo original */
 .shop-welcome-logo img{mix-blend-mode:normal!important;filter:none!important;background:transparent!important;object-fit:contain}
+
+/* Aumentar el emblema junto al título de bienvenida de la tienda */
+.shop-welcome-logo{width:clamp(104px,24vw,148px)!important;height:clamp(104px,24vw,148px)!important;flex:0 0 clamp(104px,24vw,148px)!important}
+.shop-welcome-logo img{width:100%!important;height:100%!important}
+@media(max-width:650px){.shop-welcome-logo{width:clamp(112px,27vw,150px)!important;height:clamp(112px,27vw,150px)!important;flex-basis:clamp(112px,27vw,150px)!important}}
