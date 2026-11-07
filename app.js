@@ -480,9 +480,9 @@ $("adminIndependentRows")?.addEventListener("click",async e=>{
  if(!workerId||!sessionId){toast("No existe una jornada independiente activa.");return;}
  if(!name||!Number.isInteger(qty)||qty<1||!Number.isFinite(price)||price<0){toast("Completa el producto, la cantidad y el precio.");return;}
  button.disabled=true;try{const {error}=await client.rpc("admin_create_independent_entry_request",{p_worker_id:workerId,p_session_id:sessionId,p_product_name:name,p_quantity:qty,p_price:price});if(error)throw error;if(input)input.value="";if(!isExisting){body.querySelector("[data-independent-new-product]").value="";body.querySelector("[data-independent-price]").value="0";}toast("Entrada enviada para aprobación del trabajador.");}catch(err){toast("No se pudo enviar la entrada: "+err.message);}finally{button.disabled=false;}
-});if(error)throw error;toast("Entrada enviada para aprobación del trabajador.");await loadAdminIndependentIPV();}catch(err){toast("No se pudo enviar la entrada: "+err.message);}finally{b.disabled=false;}
 });
-\nasync function loadAdminIPV(){
+
+async function loadAdminIPV(){
  if(!admin()||!navigator.onLine)return;
  const body=$("adminIPVRows");
  $("adminIPVSession").textContent="Consultando el turno activo…";
