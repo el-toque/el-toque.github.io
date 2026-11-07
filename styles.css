@@ -635,3 +635,9 @@ body.admin-mode .topbar{display:none!important}
 .shop-welcome-logo{width:clamp(104px,24vw,148px)!important;height:clamp(104px,24vw,148px)!important;flex:0 0 clamp(104px,24vw,148px)!important}
 .shop-welcome-logo img{width:100%!important;height:100%!important}
 @media(max-width:650px){.shop-welcome-logo{width:clamp(112px,27vw,150px)!important;height:clamp(112px,27vw,150px)!important;flex-basis:clamp(112px,27vw,150px)!important}}
+
+/* El botón se desliza por detrás del encabezado al bajar por la página */
+@media(max-width:820px){
+ .admin-menu-toggle{transition:transform .22s ease,opacity .18s ease!important;}
+ body.menu-toggle-scrolled .admin-menu-toggle{transform:translateY(-140%)!important;opacity:0!important;pointer-events:none!important;z-index:90!important;}
+}
