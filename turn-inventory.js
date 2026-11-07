@@ -3,7 +3,7 @@
 const $=id=>document.getElementById(id), money=n=>new Intl.NumberFormat("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0)+" CUP";
 const dateKey=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let db=null,session=null,shift=0,rows=[],closure=null,ready=false,working=false,businessDate=dateKey(),sessionNo=1;
+let db=null,session=null,shift=0,rows=[],closure=null,ready=false,working=false,businessDate=dateKey(),sessionNo=1,independentMode=false,independentSessionId=null;
 const denominations=[5000,2000,1000,500,200,100,50,20,10,5,3,1];
 const key=()=> "ipv_turn_draft_"+session.user.id+"_"+businessDate+"_"+shift+"_"+sessionNo;
 function row(product="",start=0,entry=0,sold=0,price=0){return {product,start,entry,sold,price};}
@@ -30,13 +30,13 @@ async function persistRows(){
  await saveDraft();
  if(!navigator.onLine||!db||!session)return;
  const payload=rows.filter(r=>r.product.trim()!=="").map(r=>({product:r.product.trim(),start:Number(r.start)||0,entry:Number(r.entry)||0,sold:Number(r.sold)||0,price:Number(r.price)||0}));
- const {error}=await db.rpc("worker_save_turn_inventory",{p_rows:payload,p_business_date:businessDate,p_session_no:sessionNo});
+ const {error}=independentMode?await db.rpc("worker_independent_save_inventory",{p_session_id:independentSessionId,p_rows:payload}):await db.rpc("worker_save_turn_inventory",{p_rows:payload,p_business_date:businessDate,p_session_no:sessionNo});
  if(error)status("No se pudo sincronizar la tabla: "+error.message);
  else{status("Tabla guardada y sincronizada con la tienda.");window.dispatchEvent(new Event("ipv:turn-inventory-saved"));}
 }
-function shiftLabel(){return shift===1?"Turno 1":"Turno 2";}
+function shiftLabel(){return independentMode?"IPV Independiente":(shift===1?"Turno 1":"Turno 2");}
 function exportCurrent(format){
- if(!session||!shift||!rows.length){status("No hay datos del turno para exportar.");return;}
+ if(!session||(!shift&&!independentMode)||!rows.length){status("No hay datos del turno para exportar.");return;}
  const savedRows=rows.filter(r=>r.product.trim()!=="").map(r=>{const c=calc(r);return {product:r.product,start:Number(r.start)||0,entry:Number(r.entry)||0,available:c.available,final:c.final,sold:Number(r.sold)||0,price:Number(r.price)||0,amount:c.amount};});
  if(!savedRows.length){status("Añade al menos un producto antes de exportar.");return;}
  const match=($("turnDocumentNo").textContent.match(/\d+/)||[])[0]||"01";
