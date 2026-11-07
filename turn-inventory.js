@@ -45,6 +45,7 @@ async function exportCurrent(format){
 }
 function setMeta(){ const d=new Date(businessDate+"T12:00:00"); $("turnShift").textContent=shiftLabel();$("turnDate").textContent=d.toLocaleDateString("es-ES",{weekday:"long",year:"numeric",month:"long",day:"numeric"}); }
 async function load(){
+ if(independentMode)return loadIndependent();
  const day=dateKey();
  const {data:last,error}=await db.rpc("get_last_worker_turn_v2",{p_business_date:day});
  if(error)throw error;
@@ -109,7 +110,7 @@ $("turnPendingRequests")?.addEventListener("click",async e=>{
 async function history(){
  const result=independentMode?await db.from("worker_independent_closures").select("id,session_no,business_date,total,created_at").eq("worker_id",session.user.id).order("session_no",{ascending:false}).limit(12):await db.from("worker_turn_closures").select("closure_no,shift_no,business_date,total,created_at").eq("worker_id",session.user.id).order("closure_no",{ascending:false}).limit(12);
  const {data,error}=result;if(error){$("turnHistory").innerHTML="<p>No se pudo cargar el historial.</p>";return;}
- $("turnHistory").innerHTML=(data||[]).map(x=>"<div class=\"turn-history-row\"><strong>N°"+String(independentMode?x.id:x.closure_no).padStart(2,"0")+" · "+(independentMode?"IPV Independiente":"Turno "+x.shift_no)+"</strong><span>"+esc(x.business_date)+" · "+money(x.total)+"</span></div>").join("")||"<p class=\"muted small\">Todavía no hay turnos cerrados.</p>";
+ $("turnHistory").innerHTML=(data||[]).map(x=>"<div class=\"turn-history-row\"><strong>N°"+String(independentMode?x.session_no:x.closure_no).padStart(2,"0")+" · "+(independentMode?"IPV Independiente":"Turno "+x.shift_no)+"</strong><span>"+esc(x.business_date)+" · "+money(x.total)+"</span></div>").join("")||"<p class=\"muted small\">Todavía no hay turnos cerrados.</p>";
 }
 async function exportData(savedRows,number,shiftNo,date,format="both",archive=false){
  const billCounts={};document.querySelectorAll("#dailyBillsBody [data-bill-denomination]").forEach(el=>billCounts[el.dataset.billDenomination]=Number(el.value)||0);
