@@ -605,3 +605,14 @@ body.admin-mode .topbar{display:none!important}
   }
   .worker-mode.admin-sidebar-open .admin-menu-toggle{display:none!important;}
 }
+
+
+/* Trabajador: 1,5 px entre encabezado, botón y contenido */
+@media(max-width:820px){
+  .worker-mode .admin-menu-toggle{
+    top:calc(env(safe-area-inset-top, 0px) + 49.5px)!important;
+  }
+  .worker-mode .wrap{
+    padding-top:45px!important;
+  }
+}
