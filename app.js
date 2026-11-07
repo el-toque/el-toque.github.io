@@ -591,13 +591,14 @@ async function loadAdminIPVHistory(){
   const lines=Array.isArray(c.rows)?c.rows:[];
   const sold=lines.reduce((n,x)=>n+Number(x.sold||0),0);
   const doc=c.closure_no??c.id;
-  return "<tr><td>"+esc(String(doc))+"</td><td>"+esc(c.business_date||"—")+"</td><td>Turno "+Number(c.shift_no||0)+"</td><td>"+Number(c.session_no||1)+"</td><td>"+esc(c.profiles?.full_name||"Trabajador")+"</td><td>"+lines.length+"</td><td>"+sold+"</td><td>"+money(c.total)+"</td><td>"+esc(new Date(c.created_at).toLocaleString("es-ES"))+"</td><td><button type='button' class='mini-btn' data-open-ipv-closeout='"+esc(String(c.id))+"'>Ver tabla IPV</button></td></tr>";
+  const base="workers/"+c.worker_id+"/turn-"+Number(c.shift_no||0)+"-"+Number(c.session_no||1)+"-"+c.business_date;return "<tr><td>"+esc(String(doc))+"</td><td>"+esc(c.business_date||"—")+"</td><td>Turno "+Number(c.shift_no||0)+"</td><td>"+Number(c.session_no||1)+"</td><td>"+esc(c.profiles?.full_name||"Trabajador")+"</td><td>"+lines.length+"</td><td>"+sold+"</td><td>"+money(c.total)+"</td><td>"+esc(new Date(c.created_at).toLocaleString("es-ES"))+"</td><td><button type='button' class='mini-btn' data-open-ipv-closeout='"+esc(String(c.id))+"'>Ver tabla IPV</button></td><td><button type='button' class='mini-btn' data-archive-file='"+esc(base+".pdf")+"'>PDF</button> <button type='button' class='mini-btn' data-archive-file='"+esc(base+".xlsx")+"'>Excel</button></td></tr>";
  }).join("");
  $("adminIPVHistoryEmpty").classList.toggle("hidden",records.length>0);
  $("adminIPVHistoryDetail").innerHTML='<p class="muted small">Selecciona un cierre para revisar la tabla IPV que quedó guardada.</p>';
 }
 $("refreshAdminIPVHistory").addEventListener("click",loadAdminIPVHistory);
-$("adminIPVHistoryBody").addEventListener("click",e=>{
+$("adminIPVHistoryBody").addEventListener("click",async e=>{
+ const fileButton=e.target.closest("[data-archive-file]");if(fileButton){fileButton.disabled=true;try{const {data,error}=await client.storage.from("ipv-archives").createSignedUrl(fileButton.dataset.archiveFile,120);if(error)throw error;window.open(data.signedUrl,"_blank","noopener");}catch(err){toast("No se pudo abrir el documento archivado: "+err.message);}finally{fileButton.disabled=false;}return;}
  const button=e.target.closest("[data-open-ipv-closeout]");
  if(!button)return;
  const c=allAdminIPVClosures.find(x=>String(x.id)===button.dataset.openIpvCloseout);
