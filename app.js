@@ -33,7 +33,7 @@ async function saveOfflineSale(items,method,code,id=crypto.randomUUID()){
  for(const line of items){const allocation=workerAllocations.find(a=>a.product_id===line.product_id);if(!allocation||Number(allocation.quantity_remaining)<Number(line.quantity))throw new Error("Existencia local insuficiente para completar la venta.");}
  const turnCtx=navigator.onLine?await ensureTurnContext():(window.IPV_TURN_CONTEXT||JSON.parse(localStorage.getItem("ipv_turn_context_"+user.id)||"null"));
  if(!turnCtx)throw new Error("No se pudo identificar la sesión activa para guardar la venta sin conexión.");
- const entry={id,worker_id:user?.id||null,turn_inventory:true,session_no:turnCtx.sessionNo,items:items.map(x=>({product_id:x.product_id,quantity:x.quantity})),payment_method:method,transfer_code:method==="transfer"?code:null,business_date:turnCtx.businessDate,created_at:new Date().toISOString(),status:"pending"};
+ const entry={id,worker_id:user?.id||null,turn_inventory:true,independent_inventory:!!turnCtx.independent,session_id:turnCtx.sessionId||null,session_no:turnCtx.sessionNo,items:items.map(x=>({product_id:x.product_id,quantity:x.quantity})),payment_method:method,transfer_code:method==="transfer"?code:null,business_date:turnCtx.businessDate,created_at:new Date().toISOString(),status:"pending"};
  queue.push(entry);await localPut("pending_sales",queue);
  for(const line of entry.items){const allocation=workerAllocations.find(a=>a.product_id===line.product_id);allocation.quantity_remaining-=line.quantity;}
  await cacheWorkerState();await updatePendingBadge();renderShopProducts();return entry;
@@ -90,7 +90,7 @@ async function enter(authUser){
  user=authUser;
  let data=null,error=null;
  if(!navigator.onLine){const cached=await localGet("worker_profile_"+user.id),snapshot=await localGet("worker_snapshot_"+user.id);if(cached?.active&&cached.role==="worker"&&snapshot){profile=cached;products=snapshot.products||[];categories=snapshot.categories||[];workerAllocations=snapshot.workerAllocations||[];renderCategoryControls();renderProducts();renderShopProducts();data=cached;}else{showLogin();fail("loginError","Para entrar sin conexión debes haber iniciado sesión antes en este teléfono y tener el catálogo guardado.");return;}}
- else ({data,error}=await client.from("profiles").select("full_name,role,active,worker_permissions").eq("id",user.id).single());
+ else ({data,error}=await client.from("profiles").select("full_name,role,active,worker_permissions,ipv_mode").eq("id",user.id).single());
  if(navigator.onLine&&(error||!data||!data.active)){const detail=error?.message||(!data?"No se encontró el perfil de este usuario.":"El perfil está desactivado.");throw new Error("No se pudo cargar el perfil: "+detail);}
  if(navigator.onLine){profile=data;if(!admin())await localPut("worker_profile_"+user.id,data);}
  if(!navigator.onLine&&profile?.role!=="worker"){showLogin();fail("loginError","La administración requiere conexión a internet.");return;}
@@ -103,12 +103,12 @@ async function enter(authUser){
  if(admin()){document.querySelector('[data-tab="dashboard"]').classList.add("active");showSection("dashboard");}else{document.querySelector('[data-tab="shop"]').classList.add("active");showSection("shop");}$("appPanel").classList.remove("hidden");const initialPanel=$(admin()?"dashboardTab":"shopTab");if(initialPanel)initialPanel.classList.remove("hidden");
  // La autenticación ya está confirmada. Los errores de módulos no deben expulsar al usuario.
  const tasks=admin()
-  ?[loadProducts,loadSales,loadWorkers,loadAdminDashboard,loadAdminCloseouts,loadAdminIPV]
+  ?[loadProducts,loadSales,loadWorkers,loadAdminDashboard,loadAdminCloseouts,loadAdminIPV,loadAdminIndependentIPV]
   :[loadProducts,loadWorkerAllocations,...(workerPermission("can_view_own_closeout")?[loadDailySales]:[]),cacheWorkerState,updatePendingBadge];
  const results=await Promise.allSettled(tasks.map(fn=>Promise.resolve().then(fn)));
  const failed=results.filter(x=>x.status==="rejected");
  if(failed.length){console.error("[IPV module loading]",failed.map(x=>x.reason));toast("Sesión activa. Algunos datos no pudieron actualizarse; puedes reintentar desde la sección correspondiente.");}
- if(admin()&&!window.ipvAdminIPVChannel){window.ipvAdminIPVChannel=client.channel("admin-ipv-live").on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_inventory_items"},()=>{if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();}).on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_closures"},()=>{if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();}).subscribe((status,error)=>{if(status==="SUBSCRIBED"){console.info("[IPV realtime] Sincronización automática activa.");if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();}else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"){console.warn("[IPV realtime] Canal no disponible; se mantiene la actualización manual.",error);}});}
+ if(admin()&&!window.ipvAdminIPVChannel){window.ipvAdminIPVChannel=client.channel("admin-ipv-live").on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_inventory_items"},()=>{if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();}).on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_closures"},()=>{if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();}).on("postgres_changes",{event:"*",schema:"public",table:"worker_independent_inventory_items"},()=>{if(!$("independentTab").classList.contains("hidden"))loadAdminIndependentIPV();}).on("postgres_changes",{event:"*",schema:"public",table:"worker_independent_closures"},()=>{if(!$("independentTab").classList.contains("hidden"))loadAdminIndependentIPV();}).subscribe((status,error)=>{if(status==="SUBSCRIBED"){console.info("[IPV realtime] Sincronización automática activa.");if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();}else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"){console.warn("[IPV realtime] Canal no disponible; se mantiene la actualización manual.",error);}});}
  if(!admin()&&!window.ipvWorkerProductImagesChannel){window.ipvWorkerProductImagesChannel=client.channel("worker-product-images").on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_product_images"},()=>{if(!$("shopTab").classList.contains("hidden"))loadProducts();}).subscribe((status,error)=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("[IPV product images realtime] Canal no disponible; se actualizará al recargar la tienda.",error);});}
 }
 $("loginForm").addEventListener("submit",async e=>{
@@ -131,8 +131,8 @@ $("loginForm").addEventListener("submit",async e=>{
  finally{loginInProgress=false;if(btn){btn.disabled=false;btn.textContent=original;}}
 });
 const logout=async()=>{try{await client.auth.signOut();showLogin();}catch(error){toast("No se pudo cerrar la sesión: "+(error?.message||"Error inesperado"));}};$("logoutBtn").addEventListener("click",logout);$("workerLogoutBtn")?.addEventListener("click",logout);
-function showSection(tab){const sections=["dashboard","inventory","sales","closeouts","ipvHistory","workers","shop","daily"];sections.forEach(t=>{const panel=$(t+"Tab");if(panel)panel.classList.toggle("hidden",t!==tab);});const active=$(tab+"Tab");if(active)active.classList.remove("hidden");return !!active;}
-document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(b.closest("#adminTabs")||b.closest("#workerTabs")){document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.setAttribute("aria-expanded","false");}if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","workers","ipvHistory"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="inventory")loadAdminIPV();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="ipvHistory")loadAdminIPVHistory();}));
+function showSection(tab){const sections=["dashboard","inventory","independent","sales","closeouts","ipvHistory","workers","shop","daily"];sections.forEach(t=>{const panel=$(t+"Tab");if(panel)panel.classList.toggle("hidden",t!==tab);});const active=$(tab+"Tab");if(active)active.classList.remove("hidden");return !!active;}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(b.closest("#adminTabs")||b.closest("#workerTabs")){document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.setAttribute("aria-expanded","false");}if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","independent","sales","workers","ipvHistory"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="inventory")loadAdminIPV();if(b.dataset.tab==="independent")loadAdminIndependentIPV();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="ipvHistory")loadAdminIPVHistory();}));
 /* Ocultar el botón del menú bajo el encabezado al desplazar la página hacia abajo. */
 /* Detectar el desplazamiento real tanto de la página como de contenedores internos. */
 let menuToggleLastY=0;
@@ -162,23 +162,30 @@ $("adminSidebarClose").addEventListener("click",()=>setAdminSidebar(false));
 $("adminSidebarOverlay").addEventListener("click",()=>setAdminSidebar(false));
 async function ensureTurnContext(){
  const day=localBusinessDate();
+ if(profile?.ipv_mode==="independent"){
+  const {data,error}=await client.rpc("worker_independent_get_context",{p_business_date:day});
+  if(error)throw error;
+  const context={businessDate:data.business_date||day,sessionNo:Number(data.session_no)||1,sessionId:data.session_id,independent:true};
+  window.IPV_INDEPENDENT_CONTEXT=context;window.IPV_TURN_CONTEXT=context;
+  localStorage.setItem("ipv_turn_context_"+user.id,JSON.stringify(context));
+  return context;
+ }
  const {data,error}=await client.rpc("get_last_worker_turn_v2",{p_business_date:day});
  if(error)throw error;
  if(!data?.is_my_turn)throw new Error("Este no es el turno activo. Actualiza IPV o espera el cierre del otro trabajador.");
  const context={businessDate:data.last_business_date||data.business_date||day,sessionNo:Number(data.session_no)||1,shift:Number((user?.email||"").toLowerCase()==="dependiente1@eltoque.com"?1:2)};
- window.IPV_TURN_CONTEXT=context;
- return context;
+ window.IPV_TURN_CONTEXT=context;return context;
 }
 async function loadProducts(){
  if(user&&!admin()){
   if(!navigator.onLine){const snap=await localGet("worker_snapshot_"+user.id);if(snap){products=snap.products||[];categories=[];workerAllocations=(snap.workerAllocations||[]);renderCategoryControls();renderProducts();}return;}
   let turnCtx;
   try{turnCtx=await ensureTurnContext();}catch(turnError){console.error("[IPV active turn]",turnError);toast("No se pudo identificar el turno activo: "+(turnError?.message||"Error inesperado"));products=[];workerAllocations=[];renderShopProducts();renderShopCart();return;}
-  let result=await client.rpc("worker_turn_shop_products",{p_business_date:turnCtx.businessDate,p_session_no:turnCtx.sessionNo});
+  let result=profile?.ipv_mode==="independent"?await client.rpc("worker_independent_shop_products",{p_session_id:turnCtx.sessionId}):await client.rpc("worker_turn_shop_products",{p_business_date:turnCtx.businessDate,p_session_no:turnCtx.sessionNo});
   // Si la primera petición llega sin un JWT vigente, renovar sesión y repetir una sola vez.
   if(result.error&&(result.error.code==="42501"||result.error.status===401||/permission denied|unauthorized|JWT/i.test(result.error.message||""))){
    const refreshed=await client.auth.refreshSession();
-   if(!refreshed.error&&refreshed.data?.session)result=await client.rpc("worker_turn_shop_products",{p_business_date:turnCtx.businessDate,p_session_no:turnCtx.sessionNo});
+   if(!refreshed.error&&refreshed.data?.session)result=profile?.ipv_mode==="independent"?await client.rpc("worker_independent_shop_products",{p_session_id:turnCtx.sessionId}):await client.rpc("worker_turn_shop_products",{p_business_date:turnCtx.businessDate,p_session_no:turnCtx.sessionNo});
   }
   const {data,error}=result;
   if(error){console.error("[IPV shop RPC]",{message:error.message,code:error.code,status:error.status});toast("No se pudo cargar la tienda del turno: "+error.message);products=[];workerAllocations=[];renderShopProducts();renderShopCart();return;}
@@ -297,7 +304,7 @@ function showShopOrder(show){$("shopCatalogView").classList.toggle("hidden",show
 $("viewOrderBtn").addEventListener("click",()=>showShopOrder(true));
 $("backToCatalog").addEventListener("click",()=>showShopOrder(false));
 $("shopPayment").addEventListener("change",()=>{$("transferCodeWrap").classList.toggle("hidden",$("shopPayment").value!=="transfer");if($("shopPayment").value!=="transfer")$("transferCode").value="";});
-$("shopSellBtn").addEventListener("click",async()=>{if(!cart.length){fail("shopMessage","Agrega al menos un producto al carrito.");return}const method=$("shopPayment").value,code=$("transferCode").value.trim();if(method==="transfer"&&!code){fail("shopMessage","Introduce el código de la transferencia antes de confirmar.");$("transferCode").focus();return}const btn=$("shopSellBtn");btn.disabled=true;if(!navigator.onLine){try{const entry=await saveOfflineSale(cart,method,code);cart=[];$("transferCode").value="";renderShopCart();showShopOrder(false);fail("shopMessage","Pendiente de sincronizar. Se guardó en este teléfono.");toast("Venta guardada sin conexión");}catch(e){fail("shopMessage","No se pudo guardar localmente. No cierres esta página.");}finally{btn.disabled=false;}return;}fail("shopMessage","Procesando venta…");const id=crypto.randomUUID();let turnCtx;try{turnCtx=await ensureTurnContext();}catch(e){btn.disabled=false;fail("shopMessage",e.message);return;}const {data,error}=await client.rpc("worker_turn_create_sale",{p_items:cart.map(x=>({turn_item_id:x.product_id,quantity:x.quantity})),p_payment_method:method,p_idempotency_key:id,p_transfer_code:method==="transfer"?code:null,p_business_date:turnCtx.businessDate,p_session_no:turnCtx.sessionNo});btn.disabled=false;if(error){if(!navigator.onLine||/fetch|network|failed to fetch|load failed/i.test(error.message||"")){try{await saveOfflineSale(cart,method,code,id);cart=[];renderShopCart();showShopOrder(false);fail("shopMessage","Pendiente de sincronizar. Se guardó en este teléfono.");}catch(e){fail("shopMessage","No se pudo guardar la venta localmente.");}return;}fail("shopMessage",error.message);return;}cart=[];$("transferCode").value="";renderShopCart();showShopOrder(false);fail("shopMessage","Venta confirmada. Folio: "+data);toast("Venta registrada y existencias descontadas");await (window.refreshWorkerTurnInventory?.()||Promise.resolve());await loadProducts();await loadWorkerAllocations();await loadDailySales();});
+$("shopSellBtn").addEventListener("click",async()=>{if(!cart.length){fail("shopMessage","Agrega al menos un producto al carrito.");return}const method=$("shopPayment").value,code=$("transferCode").value.trim();if(method==="transfer"&&!code){fail("shopMessage","Introduce el código de la transferencia antes de confirmar.");$("transferCode").focus();return}const btn=$("shopSellBtn");btn.disabled=true;if(!navigator.onLine){try{const entry=await saveOfflineSale(cart,method,code);cart=[];$("transferCode").value="";renderShopCart();showShopOrder(false);fail("shopMessage","Pendiente de sincronizar. Se guardó en este teléfono.");toast("Venta guardada sin conexión");}catch(e){fail("shopMessage","No se pudo guardar localmente. No cierres esta página.");}finally{btn.disabled=false;}return;}fail("shopMessage","Procesando venta…");const id=crypto.randomUUID();let turnCtx;try{turnCtx=await ensureTurnContext();}catch(e){btn.disabled=false;fail("shopMessage",e.message);return;}const saleArgs={p_items:cart.map(x=>({turn_item_id:x.product_id,quantity:x.quantity})),p_payment_method:method,p_idempotency_key:id,p_transfer_code:method==="transfer"?code:null};const {data,error}=profile?.ipv_mode==="independent"?await client.rpc("worker_independent_create_sale",{p_session_id:turnCtx.sessionId,...saleArgs}):await client.rpc("worker_turn_create_sale",{...saleArgs,p_business_date:turnCtx.businessDate,p_session_no:turnCtx.sessionNo});btn.disabled=false;if(error){if(!navigator.onLine||/fetch|network|failed to fetch|load failed/i.test(error.message||"")){try{await saveOfflineSale(cart,method,code,id);cart=[];renderShopCart();showShopOrder(false);fail("shopMessage","Pendiente de sincronizar. Se guardó en este teléfono.");}catch(e){fail("shopMessage","No se pudo guardar la venta localmente.");}return;}fail("shopMessage",error.message);return;}cart=[];$("transferCode").value="";renderShopCart();showShopOrder(false);fail("shopMessage","Venta confirmada. Folio: "+data);toast("Venta registrada y existencias descontadas");await (window.refreshWorkerTurnInventory?.()||Promise.resolve());await loadProducts();await loadWorkerAllocations();await loadDailySales();});
 $("refreshShop").onclick=loadProducts;
 function localBusinessDate(d=new Date()){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");return `${y}-${m}-${day}`;}
 let dailyExportRows=[];
@@ -442,7 +449,35 @@ async function loadAdminDashboard(){
  $("dashStockTotal").textContent=stockTotal.toLocaleString("es-ES");$("dashActiveWorkers").textContent=(workersResult.data||[]).length;
  $("dashboardUpdated").textContent="Actualizado: "+now.toLocaleString("es-ES");
 }
-async function loadAdminIPV(){
+async function loadAdminIndependentIPV(){
+ if(!admin()||!navigator.onLine)return;
+ const body=$("adminIndependentRows");if(!body)return;
+ body.innerHTML='<tr><td colspan="8" class="muted">Actualizando…</td></tr>';
+ try{
+  const {data,error}=await client.rpc("admin_get_active_independent_ipv");if(error)throw error;
+  if(!data){$("adminIndependentMeta").textContent="Todavía no existe un trabajador con IPV Independiente.";body.innerHTML='<tr><td colspan="8" class="muted">Crea el perfil desde Trabajadores y selecciona IPV Independiente.</td></tr>';$("adminIndependentTotal").textContent=money(0);$("adminIndependentCount").textContent="0 productos";$("adminIndependentHistory").innerHTML="";return;}
+  const rows=data.rows||[];body.innerHTML=rows.map(x=>'<tr><td>'+esc(x.product)+'</td><td>'+Number(x.start||0)+'</td><td>'+Number(x.entry||0)+'</td><td>'+Number(x.available||0)+'</td><td>'+Number(x.final||0)+'</td><td>'+Number(x.sold||0)+'</td><td>'+money(x.price)+'</td><td>'+money(x.amount)+'</td></tr>').join("")||'<tr><td colspan="8" class="muted">La jornada aún no tiene productos.</td></tr>';
+  const total=rows.reduce((n,x)=>n+Number(x.amount||0),0);$("adminIndependentTotal").textContent=money(total);$("adminIndependentCount").textContent=rows.length+" productos";
+  $("adminIndependentMeta").textContent=data.session_id?data.full_name+" · Sesión "+data.session_no+" · "+data.business_date:"Perfil: "+data.full_name+" · Sin jornada activa";
+  $("adminIndependentUpdate").textContent="Actualizado: "+new Date().toLocaleTimeString("es-ES");
+  if(data.session_id){const {data:reqs,error:reqErr}=await client.from("worker_independent_entry_requests").select("id,product_name,quantity,price,status,created_at").eq("session_id",data.session_id).order("created_at",{ascending:false}).limit(20);if(reqErr)throw reqErr;
+   $("adminIndependentHistory").innerHTML=(reqs||[]).map(x=>'<tr><td colspan="2">'+esc(x.product_name)+'</td><td>'+x.quantity+'</td><td>'+money(x.price)+'</td><td colspan="2">'+esc(x.status)+'</td></tr>').join("")||'<tr><td colspan="6" class="muted">Sin entradas pendientes o recientes.</td></tr>';
+   $("adminIndependentRows").dataset.workerId=data.worker_id;$("adminIndependentRows").dataset.sessionId=data.session_id;
+   const addRow='<tr class="admin-ipv-new-row"><td><input data-independent-new-product type="text" maxlength="120" placeholder="Nuevo producto"></td><td>0</td><td><input data-independent-entry-qty type="number" min="1" step="1" placeholder="Cantidad"></td><td>0</td><td>0</td><td>0</td><td><input data-independent-price type="number" min="0" step="0.01" value="0"></td><td><button type="button" class="mini-btn" data-independent-submit>Enviar</button></td></tr>';
+   body.insertAdjacentHTML("beforeend",addRow);
+  }else{$("adminIndependentHistory").innerHTML='<tr><td colspan="6" class="muted">No hay jornada activa.</td></tr>';}
+ }catch(e){body.innerHTML='<tr><td colspan="8" class="muted">No se pudo cargar IPV Independiente: '+esc(e.message||"Error")+'</td></tr>';$("adminIndependentMeta").textContent="Error al consultar";}
+}
+$("refreshIndependentIPV")?.addEventListener("click",loadAdminIndependentIPV);
+$("adminIndependentRows")?.addEventListener("click",async e=>{
+ const b=e.target.closest("[data-independent-submit]");if(!b)return;
+ const body=$("adminIndependentRows"),workerId=body.dataset.workerId,sessionId=body.dataset.sessionId;
+ const name=body.querySelector("[data-independent-new-product]")?.value.trim(),qty=Number(body.querySelector("[data-independent-entry-qty]")?.value),price=Number(body.querySelector("[data-independent-price]")?.value||0);
+ if(!workerId||!sessionId){toast("No existe una jornada independiente activa.");return;}
+ if(!name||!Number.isInteger(qty)||qty<1||!Number.isFinite(price)||price<0){toast("Completa el producto, la cantidad y el precio.");return;}
+ b.disabled=true;try{const {error}=await client.rpc("admin_create_independent_entry_request",{p_worker_id:workerId,p_session_id:sessionId,p_product_name:name,p_quantity:qty,p_price:price});if(error)throw error;toast("Entrada enviada para aprobación del trabajador.");await loadAdminIndependentIPV();}catch(err){toast("No se pudo enviar la entrada: "+err.message);}finally{b.disabled=false;}
+});
+\nasync function loadAdminIPV(){
  if(!admin()||!navigator.onLine)return;
  const body=$("adminIPVRows");
  $("adminIPVSession").textContent="Consultando el turno activo…";
@@ -666,7 +701,7 @@ $("newWorkerBtn").addEventListener("click",()=>{$("workerForm").classList.remove
 $("cancelWorker").addEventListener("click",()=>{$("workerForm").reset();$("workerForm").classList.add("hidden")});
 $("workerForm").addEventListener("submit",async e=>{
  e.preventDefault();const btn=$("createWorkerBtn");btn.disabled=true;fail("workerMessage","Creando acceso…");
- try{const {data:{session}}=await client.auth.getSession();const response=await fetch(cfg.url+"/functions/v1/create-worker",{method:"POST",headers:{"Content-Type":"application/json","apikey":cfg.publishableKey,"Authorization":"Bearer "+session.access_token},body:JSON.stringify({full_name:$("workerName").value.trim(),email:$("workerEmail").value.trim(),password:$("workerPassword").value})});const result=await response.json();if(!response.ok)throw new Error(result.error||"No se pudo crear el trabajador");
+ try{const {data:{session}}=await client.auth.getSession();const response=await fetch(cfg.url+"/functions/v1/create-worker",{method:"POST",headers:{"Content-Type":"application/json","apikey":cfg.publishableKey,"Authorization":"Bearer "+session.access_token},body:JSON.stringify({full_name:$("workerName").value.trim(),email:$("workerEmail").value.trim(),password:$("workerPassword").value,ipv_mode:$("workerIpvMode").value})});const result=await response.json();if(!response.ok)throw new Error(result.error||"No se pudo crear el trabajador");
  $("workerForm").reset();$("workerForm").classList.add("hidden");toast("Trabajador creado. Correo confirmado automáticamente.");await loadWorkers();
  }catch(err){fail("workerMessage",err.message)}finally{btn.disabled=false}
 });
