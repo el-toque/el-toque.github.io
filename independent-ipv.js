@@ -12,6 +12,8 @@ function ensureUI(){
  if(adminNav&&!$('independentAdminNav'))adminNav.insertAdjacentHTML("beforeend",'<button id="independentAdminNav" class="tab" data-tab="independentAdmin"><span>IPV independiente</span></button>');
  if(!$("independentTab"))$("appPanel").insertAdjacentHTML("beforeend",'<section id="independentTab" class="panel hidden"></section>');
  if(!$("independentAdminTab"))$("appPanel").insertAdjacentHTML("beforeend",'<section id="independentAdminTab" class="panel hidden"></section>');
+ if($("independentTab")&&!$("independentTab").innerHTML.trim())$("independentTab").innerHTML=workerMarkup();
+ if($("independentAdminTab")&&!$("independentAdminTab").innerHTML.trim())$("independentAdminTab").innerHTML=adminMarkup();
 }
 ensureUI();
 const notify=msg=>{const t=$("toast");if(t){t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2800)}else alert(msg)};
@@ -92,5 +94,5 @@ function bindUI(){
 async function saveInventoryAfterSale(){/* La RPC de venta ya actualizó el stock; no reenvía una tabla antigua. */}
 function run(fn){Promise.resolve().then(fn).catch(e=>{console.error("[IPV independiente]",e);notify(e.message||"No se pudo completar la operación.");});}
 window.addEventListener("ipv:independent-enter",e=>{client=e.detail.client;user=e.detail.user;profile=e.detail.profile;ensureUI();bindUI();showPanel("independent");run(bootstrap);});
-window.addEventListener("ipv:independent-admin-open",e=>{client=e.detail.client;user=e.detail.user;profile=e.detail.profile;run(loadAdmin);});
+window.addEventListener("ipv:independent-admin-open",e=>{client=e.detail.client;user=e.detail.user;profile=e.detail.profile;bindUI();run(loadAdmin);});
 })();
