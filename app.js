@@ -18,9 +18,10 @@ function updateHeaderIndicators(pendingCount=null){
  if(page){const pending=Number(pendingCount)||0;page.textContent=pending?pending+" VENTA(S) PENDIENTE(S)":(navigator.onLine?"EN LÍNEA":"SIN CONEXIÓN");page.classList.toggle("online",navigator.onLine&&pending===0);page.classList.toggle("offline",!navigator.onLine);page.classList.toggle("pending",pending>0);}
  if(turn){
   let label="Sin turno activo";
-  if(admin()&&adminIPVTarget)label="Turno "+adminIPVTarget.shift_no+" · Sesión "+adminIPVTarget.session_no;
-  else if(!admin()&&window.IPV_TURN_CONTEXT?.shift&&window.IPV_TURN_CONTEXT?.sessionNo)label="Turno "+window.IPV_TURN_CONTEXT.shift+" · Sesión "+window.IPV_TURN_CONTEXT.sessionNo;
-  else if(!admin()&&!navigator.onLine){try{const ctx=JSON.parse(localStorage.getItem("ipv_turn_context_"+user?.id)||"null");if(ctx?.shift&&ctx?.sessionNo)label="Turno "+ctx.shift+" · Sesión "+ctx.sessionNo+" (sin conexión";}catch(_){}}
+  // El nombre visible procede del nombre asignado por el administrador en profiles.full_name.
+  if(admin()&&adminIPVTarget)label=adminIPVTarget.full_name||("Turno "+adminIPVTarget.shift_no+" · Sesión "+adminIPVTarget.session_no);
+  else if(!admin()&&profile?.full_name)label=profile.full_name;
+  else if(!admin()&&!navigator.onLine){try{const cached=JSON.parse(localStorage.getItem("ipv_turn_context_"+user?.id)||"null");if(cached?.workerName)label=cached.workerName;}catch(_){}}
   turn.textContent=label;
  }
 }
