@@ -461,7 +461,7 @@ async function loadAdminIndependentIPV(){
   $("adminIndependentMeta").textContent=data.session_id?data.full_name+" · Sesión "+data.session_no+" · "+data.business_date:"Perfil: "+data.full_name+" · Sin jornada activa";
   $("adminIndependentUpdate").textContent="Actualizado: "+new Date().toLocaleTimeString("es-ES");
   const {data:archives,error:archiveError}=await client.from("worker_independent_closures").select("id,session_no,business_date,rows,total,bill_counts,cash_total,created_at").eq("worker_id",data.worker_id).order("session_no",{ascending:false}).limit(30);if(archiveError)throw archiveError;
-  $("adminIndependentHistory").innerHTML=(archives||[]).map(x=>'<tr><td>'+x.id+'</td><td>'+esc(x.business_date)+'</td><td>'+x.session_no+'</td><td>'+(Array.isArray(x.rows)?x.rows.length:0)+'</td><td>'+money(x.total)+'</td><td>'+money(x.cash_total)+'</td></tr>').join("")||'<tr><td colspan="6" class="muted">Todavía no hay cierres independientes.</td></tr>';
+  $("adminIndependentHistory").innerHTML=(archives||[]).map(x=>{const base="workers/"+data.worker_id+"/independent-"+x.session_no+"-"+x.business_date;return '<tr><td>'+x.id+'</td><td>'+esc(x.business_date)+'</td><td>'+x.session_no+'</td><td>'+(Array.isArray(x.rows)?x.rows.length:0)+'</td><td>'+money(x.total)+'</td><td>'+money(x.cash_total)+'</td><td><button type="button" class="mini-btn" data-archive-file="'+esc(base+'.pdf')+'">PDF</button> <button type="button" class="mini-btn" data-archive-file="'+esc(base+'.xlsx')+'">Excel</button></td></tr>';}).join("")||'<tr><td colspan="7" class="muted">Todavía no hay cierres independientes.</td></tr>';
    $("adminIndependentRows").dataset.workerId=data.worker_id;$("adminIndependentRows").dataset.sessionId=data.session_id;
    const addRow='<tr class="admin-ipv-new-row"><td><input data-independent-new-product type="text" maxlength="120" placeholder="Nuevo producto"></td><td>0</td><td><input data-independent-entry-qty type="number" min="1" step="1" placeholder="Cantidad"></td><td>0</td><td>0</td><td>0</td><td><input data-independent-price type="number" min="0" step="0.01" value="0"></td><td><button type="button" class="mini-btn" data-independent-submit>Enviar</button></td></tr>';
    body.insertAdjacentHTML("beforeend",addRow);
@@ -469,6 +469,8 @@ async function loadAdminIndependentIPV(){
  }catch(e){body.innerHTML='<tr><td colspan="8" class="muted">No se pudo cargar IPV Independiente: '+esc(e.message||"Error")+'</td></tr>';$("adminIndependentMeta").textContent="Error al consultar";}
 }
 $("refreshIndependentIPV")?.addEventListener("click",loadAdminIndependentIPV);
+$("adminIndependentHistory")?.addEventListener("click",async e=>{const b=e.target.closest("[data-archive-file]");if(!b)return;b.disabled=true;try{const {data,error}=await client.storage.from("ipv-archives").createSignedUrl(b.dataset.archiveFile,120);if(error)throw error;window.open(data.signedUrl,"_blank","noopener");}catch(err){toast("No se pudo abrir el documento archivado: "+err.message);}finally{b.disabled=false;}});
+
 $("adminIndependentRows")?.addEventListener("click",async e=>{
  const b=e.target.closest("[data-independent-submit]");if(!b)return;
  const body=$("adminIndependentRows"),workerId=body.dataset.workerId,sessionId=body.dataset.sessionId;
