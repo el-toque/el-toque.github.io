@@ -94,6 +94,7 @@ async function enter(authUser){
  if(navigator.onLine){profile=data;if(!admin())await localPut("worker_profile_"+user.id,data);}
  if(!navigator.onLine&&profile?.role!=="worker"){showLogin();fail("loginError","La administración requiere conexión a internet.");return;}
  data=profile;
+ window.IPV_ADMIN_CONTEXT={client,user,profile:data};
  if(user.id==="9e88ab77-640e-4251-9056-0d40225c9b9e" && data.role==="worker"){
   document.body.classList.remove("admin-mode");document.body.classList.add("worker-mode");$("adminSidebar")?.classList.remove("hidden");$("adminMenuToggle")?.classList.remove("hidden");$("adminTabs")?.classList.add("hidden");$("workerTabs")?.classList.remove("hidden");$("sidebarRoleLabel").textContent="IPV INDEPENDIENTE";$("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden");$("sessionLabel").textContent="TRABAJADOR · IPV INDEPENDIENTE";$("logoutBtn")?.classList.add("hidden");$("workerLogoutBtn")?.classList.remove("hidden");document.querySelectorAll("#workerTabs [data-tab]").forEach(b=>b.classList.toggle("hidden",b.dataset.tab!=="independent"));document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));showSection("independent");document.querySelector("#workerTabs [data-tab=independent]")?.classList.add("active");document.body.classList.remove("login-screen");updateHeaderIndicators(0);window.dispatchEvent(new CustomEvent("ipv:independent-enter",{detail:{client,user,profile:data}}));return;
  }
