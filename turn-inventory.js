@@ -50,7 +50,7 @@ async function load(){
  if(error)throw error;
  if(!last?.is_my_turn)throw new Error("Turno en espera. El otro trabajador debe cerrar y entregar sus existencias antes de que puedas iniciar tu sesión.");
 
- businessDate=day;sessionNo=Number(last.session_no)||1;
+ businessDate=last.last_business_date||last.business_date||day;sessionNo=Number(last.session_no)||1;
  window.IPV_TURN_CONTEXT={businessDate,sessionNo,shift};
  localStorage.setItem("ipv_turn_context_"+session.user.id,JSON.stringify(window.IPV_TURN_CONTEXT));
  window.dispatchEvent(new Event("ipv:turn-context-updated"));
