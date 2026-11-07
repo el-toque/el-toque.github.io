@@ -40,7 +40,7 @@ async function saveOfflineSale(items,method,code,id=crypto.randomUUID()){
 let syncingPending=false;
 $("syncPendingBtn").addEventListener("click",syncPendingSales);
 async function syncPendingSales(){
- if(syncingPending||!navigator.onLine||!client||!user||admin())return;
+ if(syncingPending||!navigator.onLine||!client||!user||admin()||user.id==="9e88ab77-640e-4251-9056-0d40225c9b9e")return;
  syncingPending=true;
  try{
   let queue=await pendingSales();if(!queue.length){await updatePendingBadge();return;}
@@ -128,7 +128,7 @@ $("loginForm").addEventListener("submit",async e=>{
   if(error)throw error;
   if(!data?.user)throw new Error("La autenticación no devolvió un usuario.");
   await enter(data.user);
-  if(navigator.onLine&&!admin())await syncPendingSales();
+  if(navigator.onLine&&!admin()&&user.id!=="9e88ab77-640e-4251-9056-0d40225c9b9e")await syncPendingSales();
  }catch(error){const message=error?.message||"No se pudo completar el inicio de sesión.";showLogin();$("email").value=email;$("password").value=password;fail("loginError","No se pudo completar el acceso: "+message);console.error("[IPV login]",error);}
  finally{loginInProgress=false;if(btn){btn.disabled=false;btn.textContent=original;}}
 });
