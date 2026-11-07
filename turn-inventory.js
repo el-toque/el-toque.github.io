@@ -121,7 +121,7 @@ function exportData(savedRows,number,shiftNo,date,format="both"){
  const wb=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet([{Cuenta:session.user.user_metadata?.full_name||session.user.email,Correo:session.user.email,Turno:"Turno "+shiftNo,Documento:"N°"+String(number).padStart(2,"0"),Fecha:date,Total:money(savedRows.reduce((n,r)=>n+r.amount,0))}]),"Datos");
  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data),"Turno");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(bills),"Conteo de billetes");
- XLSX.writeFile(wb,"IPV_Turno_"+number+"_"+date+".xlsx");}
+ XLSX.writeFile(wb,(independentMode?"IPV_Independiente_":"IPV_Turno_")+number+"_"+date+".xlsx");}
  if((format==="pdf"||format==="both")&&window.jspdf?.jsPDF){const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
  doc.setFontSize(16);doc.text("IPV Digital · "+shiftLabel()+" · N°"+String(number).padStart(2,"0"),14,14);doc.setFontSize(9);
  doc.text("Cuenta: "+(session.user.user_metadata?.full_name||session.user.email),14,20);doc.text("Correo: "+session.user.email+" · Fecha: "+date,14,25);
@@ -129,7 +129,7 @@ function exportData(savedRows,number,shiftNo,date,format="both"){
  tableRows.push(["","","","","","","TOTAL",savedRows.reduce((n,r)=>n+r.amount,0).toFixed(2)]);
  doc.autoTable({startY:30,head:[["Producto","Inicio","Entrada","Disponible","Final","Vendido","Precio","Importe"]],body:tableRows,styles:{fontSize:8},headStyles:{fillColor:[45,38,24]}});
  doc.autoTable({startY:doc.lastAutoTable.finalY+8,head:[["Denominación","Cantidad","Importe"]],body:bills.map(b=>[b["Denominación"],b["Cantidad de billetes"],b.Importe.toFixed(2)]),styles:{fontSize:8}});
- doc.save("IPV_Turno_"+number+"_"+date+".pdf");}
+ doc.save((independentMode?"IPV_Independiente_":"IPV_Turno_")+number+"_"+date+".pdf");}
 }
 async function init(){
  if(ready||!window.IPV_CONFIG?.url||!window.supabase)return;
@@ -159,19 +159,18 @@ $("closeTurnBtn")?.addEventListener("click",async()=>{
   const {error:syncError}=await db.rpc("worker_save_turn_inventory",{p_rows:payload,p_business_date:businessDate,p_session_no:sessionNo});if(syncError)throw syncError;
   if(!payload.length)throw new Error("Añade al menos un producto antes de cerrar.");
   for(const r of payload){if([r.start,r.entry,r.sold,r.price].some(n=>!Number.isFinite(n)||n<0)||r.sold>r.start+r.entry)throw new Error("Revisa "+r.product+": Vendido no puede superar Disponible y no se admiten valores negativos.");}
-  const {data,error}=await db.rpc("close_worker_turn",{p_rows:payload,p_business_date:businessDate,p_session_no:sessionNo});if(error)throw error;
+  const billCounts={};document.querySelectorAll("#dailyBillsBody [data-bill-denomination]").forEach(el=>{const n=Number(el.value);if(!Number.isInteger(n)||n<0)throw new Error("Completa el conteo de billetes de todas las denominaciones.");billCounts[el.dataset.billDenomination]=n;});if(Object.keys(billCounts).length!==denominations.length)throw new Error("El conteo de billetes debe incluir todas las denominaciones.");const {data,error}=independentMode?await db.rpc("worker_independent_close",{p_session_id:independentSessionId,p_rows:payload,p_bill_counts:billCounts}):await db.rpc("close_worker_turn",{p_rows:payload,p_business_date:businessDate,p_session_no:sessionNo,p_bill_counts:billCounts});if(error)throw error;
   closure=data;const date=data.business_date,number=data.closure_no;$("turnDocumentNo").textContent="N°"+String(number).padStart(2,"0");
-  exportData(data.rows,number,data.shift_no,date);
+  exportData(data.rows,number,data.shift_no||0,date);
   localStorage.removeItem(key());
   status("Turno cerrado correctamente. Documento N°"+String(number).padStart(2,"0")+". Total: "+money(data.total)+".");
   await history();
-  rows=(data.rows||[]).map(r=>row(r.product,r.final,0,0,r.price));render();
-  $("closeTurnBtn").disabled=true;
+  if(independentMode){localStorage.removeItem(key());await loadIndependent();}else{rows=(data.rows||[]).map(r=>row(r.product,r.final,0,0,r.price));render();$("closeTurnBtn").disabled=true;}
  }catch(e){status("No se pudo cerrar: "+(e.message||"Error inesperado"));$("closeTurnBtn").disabled=false;}
  finally{working=false;}
 });
 const observer=new MutationObserver(()=>{if($("appPanel")?.classList.contains("hidden")){ready=false;session=null;shift=0;rows=[];}else init();});
 observer.observe($("appPanel"),{attributes:true,attributeFilter:["class"]});
-window.refreshWorkerTurnInventory=async function(){if(!session||!navigator.onLine)return false;try{const {data,error}=await db.rpc("worker_get_turn_inventory_v2",{p_business_date:businessDate,p_session_no:sessionNo});if(error)throw error;if(Array.isArray(data)){rows=data.map(x=>row(x.product_name,x.start_qty,x.entry_qty,x.sold_qty,x.price));if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));render();await saveDraft();return true;}return false;}catch(e){status("No se pudo actualizar la tabla tras la venta: "+e.message);return false;}};window.addEventListener("online",()=>{ready=false;init();});
+window.refreshWorkerTurnInventory=async function(){if(!session||!navigator.onLine)return false;try{if(independentMode){await loadIndependent();return true;}const {data,error}=await db.rpc("worker_get_turn_inventory_v2",{p_business_date:businessDate,p_session_no:sessionNo});if(error)throw error;if(Array.isArray(data)){rows=data.map(x=>row(x.product_name,x.start_qty,x.entry_qty,x.sold_qty,x.price));if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));render();await saveDraft();return true;}return false;}catch(e){status("No se pudo actualizar la tabla tras la venta: "+e.message);return false;}};window.addEventListener("online",()=>{ready=false;init();});
 window.addEventListener("ipv:turn-inventory-refresh",()=>window.refreshWorkerTurnInventory?.());document.addEventListener("visibilitychange",()=>{if(!document.hidden)init();});
 })();
