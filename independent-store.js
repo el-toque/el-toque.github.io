@@ -33,7 +33,7 @@ function workerUI(){
  $("indStorePayment").onchange=()=>$("indStoreTransferWrap").classList.toggle("hidden",$("indStorePayment").value!=="transfer");
  $("indStoreSell").onclick=()=>sell().catch(err=>{$("indStoreSaleMsg").textContent=err.message||String(err);});
 }
-function clearForm(){$("indStoreProductForm").reset();$("indStoreProductId").value="";$("indStoreClearImage").value="0";preview("");$("indStoreProductMsg").textContent="";}
+function clearForm(){$("indStoreProductForm").reset();$("indStoreProductId").value="";$("indStoreProductMsg").textContent="";}
 async function loadWorker(){
  const {data,error}=await db.rpc("independent_worker_bootstrap");if(error)throw error;storeSession=data.session;storeProducts=data.products||[];storeRows=data.inventory||[];
  storePending=[];if(storeSession){const p=await db.rpc("independent_worker_list_entry_requests");if(p.error)throw p.error;storePending=p.data||[];}
