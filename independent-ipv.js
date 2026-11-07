@@ -40,7 +40,7 @@ function adminMarkup(){return `
  <hr><h3>Historial de cierres independientes</h3><div class="table-wrap"><table><thead><tr><th>Documento</th><th>Sesión</th><th>Apertura</th><th>Cierre</th><th>Ventas</th><th>Operaciones</th><th>Detalle</th></tr></thead><tbody id="indClosures"></tbody></table></div><div id="indClosureDetail" class="turn-inventory-section"></div>
  `;}
 function showPanel(tab){document.querySelectorAll("#appPanel>section").forEach(x=>x.classList.add("hidden"));const p=$(tab+"Tab");if(p)p.classList.remove("hidden");document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));}
-function navClick(e){const b=e.target.closest("[data-tab='independent'],[data-tab='independentAdmin']");if(!b)return;e.preventDefault();e.stopImmediatePropagation();showPanel(b.dataset.tab);if(b.dataset.tab==="independentAdmin")loadAdmin();}
+function navClick(e){const b=e.target.closest("[data-tab='independent'],[data-tab='independentAdmin']");if(!b)return;e.preventDefault();e.stopImmediatePropagation();showPanel(b.dataset.tab);if(b.dataset.tab==="independentAdmin")window.dispatchEvent(new CustomEvent("ipv:independent-admin-open",{detail:window.IPV_ADMIN_CONTEXT||{}}));}
 $("workerTabs")?.addEventListener("click",navClick,true);$("adminTabs")?.addEventListener("click",navClick,true);
 async function bootstrap(){const {data,error}=await client.rpc("independent_worker_bootstrap");if(error)throw error;session=data.session;products=data.products||[];rows=data.inventory||[];sales=data.sales||[];setHeader();renderWorker();}
 function renderWorker(){
