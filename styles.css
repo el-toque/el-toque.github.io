@@ -647,3 +647,26 @@ body.admin-mode .topbar{display:none!important}
  body.menu-toggle-scrolled .admin-menu-toggle{transform:translate3d(0,-160%,0)!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important;z-index:90!important;}
  body:not(.menu-toggle-scrolled) .admin-menu-toggle{visibility:visible!important;}
 }
+
+/* Indicadores compactos del estado y del turno activo en el encabezado */
+.topbar{justify-content:space-between;gap:12px}
+.topbar-live{display:flex;align-items:center;justify-content:flex-end;gap:13px;min-width:0;margin-left:auto}
+.topbar-live-item{display:flex;flex-direction:column;gap:2px;min-width:0}
+.topbar-live-label{color:#d8e7f6;font-size:.57rem;font-weight:850;letter-spacing:.09em;white-space:nowrap}
+.topbar-live-value{display:block;color:#fff;font-size:.72rem;font-weight:850;line-height:1.25;white-space:nowrap}
+.topbar-live-value::before{content:"";display:inline-block;width:7px;height:7px;margin:0 6px 1px 0;border-radius:50%;background:#e0b957}
+.topbar-live-value.online::before{background:#55d68b}
+.topbar-live-value.offline::before{background:#ff8b75}
+.topbar-live-value.pending::before{background:#ffc857}
+.topbar-live-divider{width:1px;height:28px;background:#ffffff45;flex:0 0 1px}
+@media(max-width:520px){
+ .topbar{align-items:center;gap:7px;padding:7px 9px}
+ .brand{gap:7px;flex:0 0 auto}
+ .brand-mark{width:35px;height:35px;flex-basis:35px}
+ .brand strong{font-size:.86rem}
+ .brand small{font-size:.59rem}
+ .topbar-live{gap:7px}
+ .topbar-live-label{font-size:.48rem;letter-spacing:.035em}
+ .topbar-live-value{font-size:.61rem;white-space:normal;max-width:112px}
+ .topbar-live-divider{height:25px}
+}
