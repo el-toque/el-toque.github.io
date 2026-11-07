@@ -16,8 +16,9 @@ function ensureUI(){
  if($("independentAdminTab")&&!$("independentAdminTab").innerHTML.trim())$("independentAdminTab").innerHTML=adminMarkup();
 }
 ensureUI();
+window.addEventListener("online",()=>setHeader());window.addEventListener("offline",()=>setHeader());
 const notify=msg=>{const t=$("toast");if(t){t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2800)}else alert(msg)};
-function setHeader(){const h=$("headerTurnStatus");if(h)h.textContent=session?"IPV independiente · Sesión "+session.session_no:"IPV independiente · Sin sesión";const p=$("headerPageStatus");if(p){p.textContent=navigator.onLine?"EN LÍNEA":"SIN CONEXIÓN";p.classList.toggle("online",navigator.onLine);p.classList.toggle("offline",!navigator.onLine)}}
+function setHeader(){const h=$("headerTurnStatus");if(h)h.textContent=session?"IPV independiente · Sesión "+session.session_no:"IPV independiente · Sin sesión";const online=navigator.onLine,p=$("headerPageStatus"),side=$("offlineStatus");if(p){p.textContent=online?"EN LÍNEA":"SIN CONEXIÓN";p.classList.toggle("online",online);p.classList.toggle("offline",!online)}if(side){side.textContent=online?"EN LÍNEA":"SIN CONEXIÓN";side.classList.toggle("online",online);side.classList.toggle("offline",!online)}}
 function workerMarkup(){return `
  <div class="toolbar"><div><p class="eyebrow">IPV DIGITAL · PUNTO DE VENTA</p><h2>IPV independiente</h2><p id="indWorkerStatus" class="muted small">Cargando sesión…</p></div><button id="indRefresh" class="secondary">Actualizar</button></div>
  <div id="indWorkerClosed" class="empty hidden">El administrador todavía no ha abierto tu sesión independiente. Tu acceso estará disponible cuando la abra.</div>
