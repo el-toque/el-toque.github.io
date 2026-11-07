@@ -48,9 +48,11 @@ async function syncPendingSales(){
   for(const entry of [...queue]){
    if(!navigator.onLine)break;
    if(entry.worker_id&&entry.worker_id!==user.id){toast("Hay ventas pendientes de otra cuenta. Entra con la cuenta que las registró para sincronizarlas.");break;}
-   const {data,error}=entry.turn_inventory
-    ? await client.rpc("worker_turn_create_sale",{p_items:entry.items.map(x=>({turn_item_id:x.product_id,quantity:x.quantity})),p_payment_method:entry.payment_method,p_idempotency_key:entry.id,p_transfer_code:entry.transfer_code,p_business_date:entry.business_date,p_session_no:Number(entry.session_no)||1})
-    : await client.rpc("create_sale",{p_items:entry.items,p_payment_method:entry.payment_method,p_idempotency_key:entry.id,p_notes:null,p_transfer_code:entry.transfer_code,p_business_date:entry.business_date});
+   const {data,error}=entry.independent_inventory
+    ? await client.rpc("worker_independent_create_sale",{p_session_id:entry.session_id,p_items:entry.items.map(x=>({turn_item_id:x.product_id,quantity:x.quantity})),p_payment_method:entry.payment_method,p_idempotency_key:entry.id,p_transfer_code:entry.transfer_code})
+    : entry.turn_inventory
+      ? await client.rpc("worker_turn_create_sale",{p_items:entry.items.map(x=>({turn_item_id:x.product_id,quantity:x.quantity})),p_payment_method:entry.payment_method,p_idempotency_key:entry.id,p_transfer_code:entry.transfer_code,p_business_date:entry.business_date,p_session_no:Number(entry.session_no)||1})
+      : await client.rpc("create_sale",{p_items:entry.items,p_payment_method:entry.payment_method,p_idempotency_key:entry.id,p_notes:null,p_transfer_code:entry.transfer_code,p_business_date:entry.business_date});
    if(error){entry.last_error=error.message;entry.status="error";queue=queue.map(x=>x.id===entry.id?entry:x);await localPut("pending_sales",queue);toast("Una venta sigue pendiente: "+error.message);break;}
    queue=queue.filter(x=>x.id!==entry.id);await localPut("pending_sales",queue);if(entry.turn_inventory)window.dispatchEvent(new Event("ipv:turn-inventory-refresh"));toast("Venta pendiente sincronizada. Folio: "+data);
   }
