@@ -121,19 +121,28 @@ const logout=async()=>{try{await client.auth.signOut();showLogin();}catch(error)
 function showSection(tab){["dashboard","inventory","sales","closeouts","workers","shop","daily"].forEach(t=>$(t+"Tab").classList.toggle("hidden",t!==tab));}
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(b.closest("#adminTabs")||b.closest("#workerTabs")){document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.setAttribute("aria-expanded","false");}if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","workers"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="inventory")loadAdminIPV();if(b.dataset.tab==="closeouts")loadAdminCloseouts();}));
 /* Ocultar el botón del menú bajo el encabezado al desplazar la página hacia abajo. */
-let menuToggleLastY=window.scrollY||0;
-let menuToggleScrollTick=false;
-window.addEventListener("scroll",()=>{
- if(menuToggleScrollTick)return;
- menuToggleScrollTick=true;
- requestAnimationFrame(()=>{
-  const y=window.scrollY||0;
-  if(y<=24||y<menuToggleLastY-3)document.body.classList.remove("menu-toggle-scrolled");
-  else if(y>menuToggleLastY+3)document.body.classList.add("menu-toggle-scrolled");
-  menuToggleLastY=y;
-  menuToggleScrollTick=false;
- });
-},{passive:true});
+/* Detectar el desplazamiento real tanto de la página como de contenedores internos. */
+let menuToggleLastY=0;
+const menuToggleScrollPositions=new WeakMap();
+function updateMenuToggleScroll(event){
+ const target=event && event.target;
+ let y=window.scrollY||document.documentElement.scrollTop||document.body.scrollTop||0;
+ if(target && target!==document && target!==window && typeof target.scrollTop==="number"){
+  y=target.scrollTop;
+  const previous=menuToggleScrollPositions.get(target)??y;
+  if(y>previous+2)document.body.classList.add("menu-toggle-scrolled");
+  else if(y<previous-2)document.body.classList.remove("menu-toggle-scrolled");
+  if(y<=24)document.body.classList.remove("menu-toggle-scrolled");
+  menuToggleScrollPositions.set(target,y);
+  return;
+ }
+ if(y>menuToggleLastY+2)document.body.classList.add("menu-toggle-scrolled");
+ else if(y<menuToggleLastY-2)document.body.classList.remove("menu-toggle-scrolled");
+ if(y<=24)document.body.classList.remove("menu-toggle-scrolled");
+ menuToggleLastY=y;
+}
+window.addEventListener("scroll",updateMenuToggleScroll,{passive:true});
+document.addEventListener("scroll",updateMenuToggleScroll,{passive:true,capture:true});
 function setAdminSidebar(open){document.body.classList.toggle("admin-sidebar-open",!!open);$("adminSidebarOverlay")?.classList.toggle("hidden",!open);$("adminMenuToggle")?.setAttribute("aria-expanded",open?"true":"false");$("adminMenuToggle")?.setAttribute("aria-label",open?"Cerrar menú":"Abrir menú");}
 $("adminMenuToggle").addEventListener("click",()=>setAdminSidebar(!document.body.classList.contains("admin-sidebar-open")));
 $("adminSidebarClose").addEventListener("click",()=>setAdminSidebar(false));
