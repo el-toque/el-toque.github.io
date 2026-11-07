@@ -456,7 +456,7 @@ async function loadAdminIndependentIPV(){
  try{
   const {data,error}=await client.rpc("admin_get_active_independent_ipv");if(error)throw error;
   if(!data){$("adminIndependentMeta").textContent="Todavía no existe un trabajador con IPV Independiente.";body.innerHTML='<tr><td colspan="8" class="muted">Crea el perfil desde Trabajadores y selecciona IPV Independiente.</td></tr>';$("adminIndependentTotal").textContent=money(0);$("adminIndependentCount").textContent="0 productos";$("adminIndependentHistory").innerHTML="";return;}
-  const rows=data.rows||[];body.innerHTML=rows.map(x=>'<tr><td>'+esc(x.product)+'</td><td>'+Number(x.start||0)+'</td><td>'+Number(x.entry||0)+'</td><td>'+Number(x.available||0)+'</td><td>'+Number(x.final||0)+'</td><td>'+Number(x.sold||0)+'</td><td>'+money(x.price)+'</td><td>'+money(x.amount)+'</td></tr>').join("")||'<tr><td colspan="8" class="muted">La jornada aún no tiene productos.</td></tr>';
+  const rows=data.rows||[];body.innerHTML=rows.map(x=>'<tr><td>'+esc(x.product)+'</td><td>'+Number(x.start||0)+'</td><td>'+Number(x.entry||0)+'<div class="admin-ipv-inline-entry"><input data-independent-entry-qty type="number" min="1" step="1" inputmode="numeric" placeholder="+ Entrada" aria-label="Nueva entrada para '+esc(x.product)+'"><button type="button" class="mini-btn" data-independent-submit-entry data-product="'+esc(x.product)+'">+</button></div></td><td>'+Number(x.available||0)+'</td><td>'+Number(x.final||0)+'</td><td>'+Number(x.sold||0)+'</td><td>'+money(x.price)+'</td><td>'+money(x.amount)+'</td></tr>').join("")||'<tr><td colspan="8" class="muted">La jornada aún no tiene productos.</td></tr>';
   const total=rows.reduce((n,x)=>n+Number(x.amount||0),0);$("adminIndependentTotal").textContent=money(total);$("adminIndependentCount").textContent=rows.length+" productos";
   $("adminIndependentMeta").textContent=data.session_id?data.full_name+" · Sesión "+data.session_no+" · "+data.business_date:"Perfil: "+data.full_name+" · Sin jornada activa";
   $("adminIndependentUpdate").textContent="Actualizado: "+new Date().toLocaleTimeString("es-ES");
@@ -474,12 +474,13 @@ $("refreshIndependentIPV")?.addEventListener("click",loadAdminIndependentIPV);
 $("adminIndependentHistory")?.addEventListener("click",async e=>{const b=e.target.closest("[data-archive-file]");if(!b)return;b.disabled=true;try{const {data,error}=await client.storage.from("ipv-archives").createSignedUrl(b.dataset.archiveFile,120);if(error)throw error;window.open(data.signedUrl,"_blank","noopener");}catch(err){toast("No se pudo abrir el documento archivado: "+err.message);}finally{b.disabled=false;}});
 
 $("adminIndependentRows")?.addEventListener("click",async e=>{
- const b=e.target.closest("[data-independent-submit]");if(!b)return;
+ const existing=e.target.closest("[data-independent-submit-entry]"),b=e.target.closest("[data-independent-submit]");if(!existing&&!b)return;
  const body=$("adminIndependentRows"),workerId=body.dataset.workerId,sessionId=body.dataset.sessionId;
- const name=body.querySelector("[data-independent-new-product]")?.value.trim(),qty=Number(body.querySelector("[data-independent-entry-qty]")?.value),price=Number(body.querySelector("[data-independent-price]")?.value||0);
+ const isExisting=!!existing,name=isExisting?(existing.dataset.product||""):(body.querySelector("[data-independent-new-product]")?.value.trim()||""),input=isExisting?existing.closest("tr")?.querySelector("[data-independent-entry-qty]"):body.querySelector("[data-independent-entry-qty]"),qty=Number(input?.value),price=isExisting?0:Number(body.querySelector("[data-independent-price]")?.value||0),button=existing||b;
  if(!workerId||!sessionId){toast("No existe una jornada independiente activa.");return;}
  if(!name||!Number.isInteger(qty)||qty<1||!Number.isFinite(price)||price<0){toast("Completa el producto, la cantidad y el precio.");return;}
- b.disabled=true;try{const {error}=await client.rpc("admin_create_independent_entry_request",{p_worker_id:workerId,p_session_id:sessionId,p_product_name:name,p_quantity:qty,p_price:price});if(error)throw error;toast("Entrada enviada para aprobación del trabajador.");await loadAdminIndependentIPV();}catch(err){toast("No se pudo enviar la entrada: "+err.message);}finally{b.disabled=false;}
+ button.disabled=true;try{const {error}=await client.rpc("admin_create_independent_entry_request",{p_worker_id:workerId,p_session_id:sessionId,p_product_name:name,p_quantity:qty,p_price:price});if(error)throw error;if(input)input.value="";if(!isExisting){body.querySelector("[data-independent-new-product]").value="";body.querySelector("[data-independent-price]").value="0";}toast("Entrada enviada para aprobación del trabajador.");}catch(err){toast("No se pudo enviar la entrada: "+err.message);}finally{button.disabled=false;}
+});if(error)throw error;toast("Entrada enviada para aprobación del trabajador.");await loadAdminIndependentIPV();}catch(err){toast("No se pudo enviar la entrada: "+err.message);}finally{b.disabled=false;}
 });
 \nasync function loadAdminIPV(){
  if(!admin()||!navigator.onLine)return;
