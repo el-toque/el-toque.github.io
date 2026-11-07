@@ -542,7 +542,7 @@ async function loadAdminIPVHistory(){
  if(!admin()||!navigator.onLine)return;
  const records=[];
  for(let from=0;;from+=1000){
-  const {data,error}=await client.from("worker_turn_closures").select("id,closure_no,worker_id,shift_no,business_date,session_no,total,rows,created_at,profiles(full_name)").order("created_at",{ascending:false}).range(from,from+999);
+  const {data,error}=await client.from("worker_turn_closures").select("id,closure_no,worker_id,shift_no,business_date,session_no,total,rows,created_at,profiles!worker_turn_closures_worker_id_fkey(full_name)").order("created_at",{ascending:false}).range(from,from+999);
   if(error){toast("No se pudo cargar el historial IPV: "+error.message);return;}
   records.push(...(data||[]));
   if(!data||data.length<1000)break;
