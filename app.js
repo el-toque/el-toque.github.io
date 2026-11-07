@@ -686,7 +686,7 @@ async function loadWorkers(){
  const response=await fetch(cfg.url+"/functions/v1/list-workers",{method:"POST",headers:{"Content-Type":"application/json","apikey":cfg.publishableKey,"Authorization":"Bearer "+session.access_token},body:"{}"});
  const result=await response.json();if(!response.ok){toast(result.error||"No se pudo cargar el equipo");return}
  workerRows=result.workers||[];$("workersEmpty")?.classList.toggle("hidden",workerRows.length>0);
- $("workersBody").innerHTML=workerRows.map(w=>`<tr><td>${esc(w.full_name)}</td><td>${esc(w.email||"—")}</td><td>${w.active?"Activo":"Desactivado"}</td><td><button class="mini-btn" data-worker-edit="${w.id}">Editar</button></td></tr>`).join("");
+ $("workersBody").innerHTML=workerRows.map(w=>`<tr><td>${esc(w.full_name)}</td><td>${esc(w.email||"—")}</td><td>${w.ipv_mode==="independent"?"IPV Independiente":"Turno 1 / 2"}</td><td>${w.active?"Activo":"Desactivado"}</td><td><button class="mini-btn" data-worker-edit="${w.id}">Editar</button></td></tr>`).join("");
 }
 async function loadWorkerAllocations(){if(!user||admin())return;workerAllocations=products.map(p=>({product_id:p.id,quantity_assigned:p.stock,quantity_remaining:p.stock}));renderShopProducts();renderShopCart();await cacheWorkerState();await updatePendingBadge();}
 let allocationCurrentWorker="",allocationExisting=[],allocationDraft=new Map(),allocationOtherRemaining=new Map();
