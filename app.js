@@ -324,6 +324,31 @@ let dailyStockRows=[];
 let dailyStockCounts=new Map();
 let dailyBillCounts={};
 const dailyBillDenominations=[5000,2000,1000,500,200,100,50,20,10,5,3,1];
+async function requireCompleteDailyBillCount(actionLabel="continuar"){
+ const inputs=[...($("dailyBillsBody")?.querySelectorAll("[data-bill-denomination]")||[])];
+ const missing=dailyBillDenominations.filter(value=>{
+  const input=inputs.find(el=>Number(el.dataset.billDenomination)===value);
+  if(!input||input.value.trim()==="")return true;
+  const quantity=Number(input.value);
+  if(!Number.isInteger(quantity)||quantity<0)return true;
+  dailyBillCounts[value]=quantity;
+  return false;
+ });
+ if(missing.length){
+  toast("Acción bloqueada: para "+actionLabel+" debes declarar las 12 denominaciones. Escribe 0 donde no tengas billetes.");
+  const first=$(`[data-bill-denomination="${missing[0]}"]`);
+  first?.focus();first?.scrollIntoView({behavior:"smooth",block:"center"});
+  return false;
+ }
+ try{
+  await localPut("daily_bill_counts_"+user.id+"_"+localBusinessDate(),dailyBillCounts);
+  return true;
+ }catch(error){
+  toast("No se pudo guardar la contadora de dinero. No se puede "+actionLabel+".");
+  return false;
+ }
+}
+
 let activeCloseout=null;
 async function loadDailySales(){if(!user||admin())return;const dayKey=localBusinessDate();dailyBillCounts=(await localGet("daily_bill_counts_"+user.id+"_"+dayKey))||{};renderDailyBillCounts();return;if(!navigator.onLine){$("dailyCloseStatus").textContent="Sin conexión: el cuadre requiere datos actualizados del servidor. Las ventas guardadas siguen pendientes de sincronizar.";await updatePendingBadge();return;}const now=new Date(),start=new Date(now.getFullYear(),now.getMonth(),now.getDate()),end=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1);$("dailyDate").textContent=start.toLocaleDateString("es-ES",{weekday:"long",year:"numeric",month:"long",day:"numeric"});const {data,error}=await client.from("sales").select("id,total,payment_method,transfer_code,created_at,status,sale_items(product_id,worker_turn_item_id,product_name,quantity,unit_price,products(name))").eq("status","completed").gte("created_at",start.toISOString()).lt("created_at",end.toISOString()).order("created_at",{ascending:false});if(error){toast("No se pudo cargar el cuadre: "+error.message);return}
  const {data:closed,error:closeErr}=await client.from("daily_closeouts").select("id,business_date,sales_count,cash_total,transfer_total,grand_total,cash_counted,cash_difference,bill_counts,stock_snapshot,closed_at").eq("business_date",dayKey).maybeSingle();
@@ -385,6 +410,7 @@ const closeDailyButton=$("closeDaily");if(closeDailyButton)closeDailyButton.oncl
  if(!navigator.onLine){toast("Necesitas conexión para cerrar la jornada.");return}
  if(await updatePendingBadge()){toast("Primero sincroniza todas las ventas pendientes.");return}
  if(activeCloseout){toast("Esta jornada ya está cerrada.");return}
+ if(!await requireCompleteDailyBillCount("cerrar la jornada"))return;
  if(!confirm("¿Confirmas el cierre de tu jornada? Se guardará el detalle y no podrás registrar más ventas con la fecha de hoy."))return;
  const now=new Date(),start=new Date(now.getFullYear(),now.getMonth(),now.getDate()),end=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1);
  const btn=$("closeDaily");btn.disabled=true;btn.textContent="Cerrando…";
@@ -399,8 +425,9 @@ async function loadCloseoutHistory(){
  $("closeoutHistoryEmpty").classList.toggle("hidden",!!(data||[]).length);
 }
 $("refreshDaily")?.addEventListener("click",async()=>{await loadDailySales();});
-const exportDailyButton=$("exportDaily");if(exportDailyButton)exportDailyButton.onclick=()=>{
+const exportDailyButton=$("exportDaily");if(exportDailyButton)exportDailyButton.onclick=async()=>{
  if(!dailyExportRows.length){toast("No hay ventas de hoy para exportar.");return}
+ if(!await requireCompleteDailyBillCount("exportar a Excel"))return;
  if(!window.XLSX){toast("No se pudo cargar el módulo de Excel. Comprueba tu conexión e inténtalo de nuevo.");return}
  const detail=[];
  for(const sale of dailyExportRows){
@@ -423,17 +450,7 @@ const exportDailyButton=$("exportDaily");if(exportDailyButton)exportDailyButton.
 
 const exportDailyPdfButton=$("exportDailyPdf");if(exportDailyPdfButton)exportDailyPdfButton.onclick=async()=>{
  if(!dailyExportRows.length){toast("No hay ventas de hoy para exportar.");return}
- const billInputs=[...($("dailyBillsBody")?.querySelectorAll("[data-bill-denomination]")||[])];
- const missingBillCounts=dailyBillDenominations.filter(value=>{
-  const input=billInputs.find(el=>Number(el.dataset.billDenomination)===value);
-  if(!input||input.value.trim()==="")return true;
-  const quantity=Number(input.value);
-  if(!Number.isInteger(quantity)||quantity<0)return true;
-  dailyBillCounts[value]=quantity;
-  return false;
- });
- if(missingBillCounts.length){toast("Exportación bloqueada: debes introducir la cantidad de las 12 denominaciones. Escribe 0 en las que no tengas.");const first=$(`[data-bill-denomination="${missingBillCounts[0]}"]`);first?.focus();first?.scrollIntoView({behavior:"smooth",block:"center"});return}
- try{await localPut("daily_bill_counts_"+user.id+"_"+localBusinessDate(),dailyBillCounts);}catch(error){toast("No se pudo guardar la contadora de dinero. No se exportó el PDF.");return;}
+ if(!await requireCompleteDailyBillCount("exportar a PDF"))return;
  if(!window.jspdf?.jsPDF){toast("No se pudo cargar el módulo PDF. Comprueba tu conexión e inténtalo de nuevo.");return}
  const {jsPDF}=window.jspdf;const doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
  const cash=dailyExportRows.filter(x=>x.payment_method==="cash").reduce((a,x)=>a+Number(x.total),0);
