@@ -450,7 +450,7 @@ const exportDailyPdfButton=$("exportDailyPdf");if(exportDailyPdfButton)exportDai
 async function loadAdminDashboard(){
  if(!admin()||!navigator.onLine)return;
  const now=new Date(),todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()),tomorrow=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1),monthStart=new Date(now.getFullYear(),now.getMonth(),1);
- const sales=[];for(let from=0;;from+=1000){const page=await client.from("sales").select("id,total,payment_method,created_at,profiles!sales_worker_id_fkey(ipv_mode)").eq("status","completed").gte("created_at",monthStart.toISOString()).lt("created_at",tomorrow.toISOString()).order("created_at",{ascending:false}).range(from,from+999);if(page.error){toast("No se pudo actualizar el resumen: "+page.error.message);return}sales.push(...(page.data||[]).filter(x=>x.profiles?.ipv_mode!=="independent"));if(!page.data||page.data.length<1000)break;}
+ const sales=[];for(let from=0;;from+=1000){const page=await client.from("sales").select("id,total,payment_method,created_at,profiles!sales_worker_id_fkey(ipv_mode)").eq("status","completed").gte("created_at",monthStart.toISOString()).lt("created_at",tomorrow.toISOString()).order("created_at",{ascending:false}).range(from,from+999);if(page.error){toast("No se pudo actualizar el resumen: "+page.error.message);return}sales.push(...(page.data||[]));if(!page.data||page.data.length<1000)break;}
  const [productsResult,workersResult]=await Promise.all([
   client.from("products").select("id,stock").eq("active",true),
   client.from("profiles").select("id").eq("role","worker").eq("active",true).eq("ipv_mode","shift")
