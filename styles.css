@@ -592,3 +592,16 @@ body.admin-mode .topbar{display:none!important}
   }
   body.admin-sidebar-open .admin-menu-toggle{display:none!important;}
 }
+
+
+/* Trabajadores: botón ☰ justo debajo del encabezado, alineado a la izquierda */
+@media(max-width:820px){
+  .worker-mode .admin-menu-toggle{
+    position:fixed!important;
+    top:calc(env(safe-area-inset-top, 0px) + 48.5px)!important;
+    left:10px!important;
+    right:auto!important;
+    z-index:240!important;
+  }
+  .worker-mode.admin-sidebar-open .admin-menu-toggle{display:none!important;}
+}
