@@ -129,8 +129,8 @@ $("loginForm").addEventListener("submit",async e=>{
  finally{loginInProgress=false;if(btn){btn.disabled=false;btn.textContent=original;}}
 });
 const logout=async()=>{try{await client.auth.signOut();showLogin();}catch(error){toast("No se pudo cerrar la sesión: "+(error?.message||"Error inesperado"));}};$("logoutBtn").addEventListener("click",logout);$("workerLogoutBtn")?.addEventListener("click",logout);
-function showSection(tab){["dashboard","inventory","sales","closeouts","workers","shop","daily"].forEach(t=>$(t+"Tab").classList.toggle("hidden",t!==tab));}
-document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(b.closest("#adminTabs")||b.closest("#workerTabs")){document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.setAttribute("aria-expanded","false");}if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","workers"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="inventory")loadAdminIPV();if(b.dataset.tab==="closeouts")loadAdminCloseouts();}));
+function showSection(tab){["dashboard","inventory","sales","closeouts","ipvHistory","workers","shop","daily"].forEach(t=>$(t+"Tab").classList.toggle("hidden",t!==tab));}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(b.closest("#adminTabs")||b.closest("#workerTabs")){document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.setAttribute("aria-expanded","false");}if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","sales","workers","ipvHistory"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="inventory")loadAdminIPV();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="ipvHistory")loadAdminIPVHistory();}));
 /* Ocultar el botón del menú bajo el encabezado al desplazar la página hacia abajo. */
 /* Detectar el desplazamiento real tanto de la página como de contenedores internos. */
 let menuToggleLastY=0;
@@ -537,6 +537,43 @@ $("adminIPVRows")?.addEventListener("change",async e=>{
  finally{if(button)button.disabled=false;input.value="";}
 });
 
+let allAdminIPVClosures=[];
+async function loadAdminIPVHistory(){
+ if(!admin()||!navigator.onLine)return;
+ const records=[];
+ for(let from=0;;from+=1000){
+  const {data,error}=await client.from("worker_turn_closures").select("id,closure_no,worker_id,shift_no,business_date,session_no,total,rows,created_at,profiles(full_name)").order("created_at",{ascending:false}).range(from,from+999);
+  if(error){toast("No se pudo cargar el historial IPV: "+error.message);return;}
+  records.push(...(data||[]));
+  if(!data||data.length<1000)break;
+ }
+ allAdminIPVClosures=records;
+ $("adminIPVHistoryBody").innerHTML=records.map(c=>{
+  const lines=Array.isArray(c.rows)?c.rows:[];
+  const sold=lines.reduce((n,x)=>n+Number(x.sold||0),0);
+  const doc=c.closure_no??c.id;
+  return "<tr><td>"+esc(String(doc))+"</td><td>"+esc(c.business_date||"—")+"</td><td>Turno "+Number(c.shift_no||0)+"</td><td>"+Number(c.session_no||1)+"</td><td>"+esc(c.profiles?.full_name||"Trabajador")+"</td><td>"+lines.length+"</td><td>"+sold+"</td><td>"+money(c.total)+"</td><td>"+esc(new Date(c.created_at).toLocaleString("es-ES"))+"</td><td><button type='button' class='mini-btn' data-open-ipv-closeout='"+esc(String(c.id))+"'>Ver tabla IPV</button></td></tr>";
+ }).join("");
+ $("adminIPVHistoryEmpty").classList.toggle("hidden",records.length>0);
+ $("adminIPVHistoryDetail").innerHTML='<p class="muted small">Selecciona un cierre para revisar la tabla IPV que quedó guardada.</p>';
+}
+$("refreshAdminIPVHistory").addEventListener("click",loadAdminIPVHistory);
+$("adminIPVHistoryBody").addEventListener("click",e=>{
+ const button=e.target.closest("[data-open-ipv-closeout]");
+ if(!button)return;
+ const c=allAdminIPVClosures.find(x=>String(x.id)===button.dataset.openIpvCloseout);
+ if(!c)return;
+ const lines=Array.isArray(c.rows)?c.rows:[];
+ const sold=lines.reduce((n,x)=>n+Number(x.sold||0),0);
+ const amount=lines.reduce((n,x)=>n+Number(x.amount||0),0);
+ $("adminIPVHistoryDetail").innerHTML=
+  '<div class="turn-document-head"><div><p class="eyebrow">COPIA HISTÓRICA DEL IPV</p><h2>Documento N°'+esc(String(c.closure_no??c.id))+'</h2><p class="muted small">'+esc(c.profiles?.full_name||"Trabajador")+' · Turno '+Number(c.shift_no||0)+' · Sesión '+Number(c.session_no||1)+' · '+esc(c.business_date||"")+'</p><p class="muted small">Guardado: '+esc(new Date(c.created_at).toLocaleString("es-ES"))+'</p></div><div class="turn-document-number">TOTAL DEL CIERRE<strong>'+money(c.total)+'</strong></div></div>'+
+  '<div class="table-wrap turn-table-wrap"><table class="turn-table"><thead><tr><th>Producto</th><th>Inicio</th><th>Entrada</th><th>Disponible</th><th>Final</th><th>Vendido</th><th>Precio</th><th>Importe</th></tr></thead><tbody>'+
+  lines.map(x=>'<tr><td>'+esc(x.product||"")+'</td><td>'+Number(x.start||0)+'</td><td>'+Number(x.entry||0)+'</td><td>'+Number(x.available||0)+'</td><td>'+Number(x.final||0)+'</td><td>'+Number(x.sold||0)+'</td><td>'+money(x.price||0)+'</td><td>'+money(x.amount||0)+'</td></tr>').join("")+
+  '</tbody><tfoot><tr><th colspan="5">TOTALES</th><th>'+sold+'</th><th></th><th>'+money(amount)+'</th></tr></tfoot></table></div>'+
+  '<p class="muted small">'+lines.length+' productos registrados · '+sold+' unidades vendidas · Importe calculado: '+money(amount)+'</p>';
+ button.textContent="Tabla abierta";
+});
 async function loadAdminCloseouts(){
  if(!admin()||!navigator.onLine)return;
  const {data,error}=await client.from("worker_turn_closures").select("id,closure_no,worker_id,shift_no,business_date,session_no,total,rows,created_at,profiles(full_name)").order("created_at",{ascending:false}).limit(100);
