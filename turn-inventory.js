@@ -107,9 +107,9 @@ $("turnPendingRequests")?.addEventListener("click",async e=>{
 });
 
 async function history(){
- const {data,error}=await db.from("worker_turn_closures").select("closure_no,shift_no,business_date,total,created_at").order("closure_no",{ascending:false}).limit(12);
- if(error){$("turnHistory").innerHTML="<p>No se pudo cargar el historial.</p>";return;}
- $("turnHistory").innerHTML=(data||[]).map(x=>`<div class="turn-history-row"><strong>N°${String(x.closure_no).padStart(2,"0")} · Turno ${x.shift_no}</strong><span>${esc(x.business_date)} · ${money(x.total)}</span></div>`).join("")||"<p class='muted small'>Todavía no hay turnos cerrados.</p>";
+ const result=independentMode?await db.from("worker_independent_closures").select("id,session_no,business_date,total,created_at").eq("worker_id",session.user.id).order("session_no",{ascending:false}).limit(12):await db.from("worker_turn_closures").select("closure_no,shift_no,business_date,total,created_at").eq("worker_id",session.user.id).order("closure_no",{ascending:false}).limit(12);
+ const {data,error}=result;if(error){$("turnHistory").innerHTML="<p>No se pudo cargar el historial.</p>";return;}
+ $("turnHistory").innerHTML=(data||[]).map(x=>"<div class=\"turn-history-row\"><strong>N°"+String(independentMode?x.id:x.closure_no).padStart(2,"0")+" · "+(independentMode?"IPV Independiente":"Turno "+x.shift_no)+"</strong><span>"+esc(x.business_date)+" · "+money(x.total)+"</span></div>").join("")||"<p class=\"muted small\">Todavía no hay turnos cerrados.</p>";
 }
 function exportData(savedRows,number,shiftNo,date,format="both"){
  const billCounts={};document.querySelectorAll("#dailyBillsBody [data-bill-denomination]").forEach(el=>billCounts[el.dataset.billDenomination]=Number(el.value)||0);
@@ -135,10 +135,11 @@ async function init(){
  if(ready||!window.IPV_CONFIG?.url||!window.supabase)return;
  const {url,publishableKey}=window.IPV_CONFIG;db=window.supabase.createClient(url,publishableKey);
  const {data,error}=await db.auth.getSession();if(error||!data.session)return;
- session=data.session;ready=true;const email=(session.user.email||"").toLowerCase();
+ session=data.session;const {data:workerProfile}=await db.from("profiles").select("ipv_mode").eq("id",session.user.id).maybeSingle();
+ independentMode=workerProfile?.ipv_mode==="independent";ready=true;const email=(session.user.email||"").toLowerCase();
  shift=email==="dependiente1@eltoque.com"?1:email==="dependiente2@eltoque.com"?2:0;
- if(!shift)return;
- try{await load();if(db.channel){db.channel("worker-entry-requests-"+session.user.id).on("postgres_changes",{event:"INSERT",schema:"public",table:"worker_turn_entry_requests",filter:"worker_id=eq."+session.user.id},()=>loadPendingRequests()).subscribe();}}catch(e){$("closeTurnBtn").disabled=true;$("addTurnRow").disabled=true;$("exportTurnXlsx").disabled=true;$("exportTurnPdf").disabled=true;rows=[];render();status(e.message||"No se pudo cargar el turno.");}
+ if(!shift&&!independentMode)return;
+ try{await load();if(db.channel){db.channel("worker-entry-requests-"+session.user.id).on("postgres_changes",{event:"INSERT",schema:"public",table:independentMode?"worker_independent_entry_requests":"worker_turn_entry_requests",filter:"worker_id=eq."+session.user.id},()=>loadPendingRequests()).subscribe();}}catch(e){$("closeTurnBtn").disabled=true;$("addTurnRow").disabled=true;$("exportTurnXlsx").disabled=true;$("exportTurnPdf").disabled=true;rows=[];render();status(e.message||"No se pudo cargar el turno.");}
 }
 $("addTurnRow")?.addEventListener("click",()=>{rows.push(row());render();persistRows();});
 $("exportTurnXlsx")?.addEventListener("click",()=>exportCurrent("xlsx"));
