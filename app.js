@@ -338,26 +338,29 @@ function renderDailyStockCounts(){
 }
 function renderDailyBillCounts(){
  const body=$("dailyBillsBody");if(!body)return;
- body.innerHTML=dailyBillDenominations.map(value=>{const quantity=Math.max(0,Number(dailyBillCounts[value])||0);return `<tr><td><strong>${value.toLocaleString("es-ES")} CUP</strong></td><td><input class="daily-bill-input" type="number" min="0" step="1" inputmode="numeric" data-bill-denomination="${value}" value="${quantity}" aria-label="Cantidad de billetes de ${value} CUP"></td><td>${money(value*quantity)}</td></tr>`}).join("");
+ body.innerHTML=dailyBillDenominations.map(value=>{const entered=Object.prototype.hasOwnProperty.call(dailyBillCounts,value);const quantity=entered?Math.max(0,Number(dailyBillCounts[value])||0):0;return `<tr><td><strong>${value.toLocaleString("es-ES")} CUP</strong></td><td><input class="daily-bill-input" type="number" min="0" step="1" inputmode="numeric" data-bill-denomination="${value}" value="${entered?quantity:""}" placeholder="Obligatorio" aria-label="Cantidad de billetes de ${value} CUP"></td><td>${money(value*quantity)}</td></tr>`}).join("");
  const total=dailyBillDenominations.reduce((sum,value)=>sum+value*(Number(dailyBillCounts[value])||0),0);
  $("dailyBillsTotal").textContent=money(total);
  $("dailyBillsStatus").textContent="El conteo se conserva en este teléfono para la cuenta y la fecha actuales.";
 }
 $("dailyBillsBody")?.addEventListener("input",e=>{
  const input=e.target.closest("[data-bill-denomination]");if(!input)return;
- const denomination=Number(input.dataset.billDenomination),quantity=input.value===""?0:Number(input.value);
- if(!Number.isInteger(quantity)||quantity<0)return;
- dailyBillCounts[denomination]=quantity;
- const row=input.closest("tr");if(row)row.cells[2].textContent=money(denomination*quantity);
+ const denomination=Number(input.dataset.billDenomination),quantity=input.value===""?null:Number(input.value);
+ if(quantity!==null&&(!Number.isInteger(quantity)||quantity<0))return;
+ if(quantity===null)delete dailyBillCounts[denomination];else dailyBillCounts[denomination]=quantity;
+ const row=input.closest("tr");if(row)row.cells[2].textContent=money(denomination*(quantity||0));
  const total=dailyBillDenominations.reduce((sum,value)=>sum+value*(Number(dailyBillCounts[value])||0),0);
  $("dailyBillsTotal").textContent=money(total);
+ const missing=dailyBillDenominations.filter(value=>!Object.prototype.hasOwnProperty.call(dailyBillCounts,value)).length;
+ $("dailyBillsStatus").textContent=missing?`Faltan ${missing} denominación(es). Indica la cantidad, incluso 0, en cada una.`:"Conteo completo. Puedes exportar el PDF.";
 });
 $("dailyBillsBody")?.addEventListener("change",async e=>{
  const input=e.target.closest("[data-bill-denomination]");if(!input)return;
- const quantity=input.value===""?0:Number(input.value);
- if(!Number.isInteger(quantity)||quantity<0){toast("Introduce una cantidad entera igual o mayor que cero.");return;}
- dailyBillCounts[Number(input.dataset.billDenomination)]=quantity;
- try{await localPut("daily_bill_counts_"+user.id+"_"+localBusinessDate(),dailyBillCounts);}
+ const quantity=input.value===""?null:Number(input.value);
+ if(quantity!==null&&(!Number.isInteger(quantity)||quantity<0)){toast("Introduce una cantidad entera igual o mayor que cero, o 0 si no tienes billetes de esa denominación.");return;}
+ const denomination=Number(input.dataset.billDenomination);
+ if(quantity===null)delete dailyBillCounts[denomination];else dailyBillCounts[denomination]=quantity;
+ try{await localPut("daily_bill_counts_"+user.id+"_"+localBusinessDate(),dailyBillCounts);renderDailyBillCounts();}
  catch(error){toast("No se pudo guardar el conteo de billetes en este teléfono.");}
 });
 $("dailyStockBody")?.addEventListener("change",async e=>{
@@ -409,6 +412,8 @@ const exportDailyButton=$("exportDaily");if(exportDailyButton)exportDailyButton.
 
 const exportDailyPdfButton=$("exportDailyPdf");if(exportDailyPdfButton)exportDailyPdfButton.onclick=()=>{
  if(!dailyExportRows.length){toast("No hay ventas de hoy para exportar.");return}
+ const missingBillCounts=dailyBillDenominations.filter(value=>!Object.prototype.hasOwnProperty.call(dailyBillCounts,value)||dailyBillCounts[value]===""||!Number.isInteger(Number(dailyBillCounts[value]))||Number(dailyBillCounts[value])<0);
+ if(missingBillCounts.length){toast("No puedes exportar el PDF: completa la contadora de dinero para todas las denominaciones. Escribe 0 donde no tengas billetes.");const first=$(`[data-bill-denomination="${missingBillCounts[0]}"]`);first?.focus();first?.scrollIntoView({behavior:"smooth",block:"center"});return}
  if(!window.jspdf?.jsPDF){toast("No se pudo cargar el módulo PDF. Comprueba tu conexión e inténtalo de nuevo.");return}
  const {jsPDF}=window.jspdf;const doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
  const cash=dailyExportRows.filter(x=>x.payment_method==="cash").reduce((a,x)=>a+Number(x.total),0);
