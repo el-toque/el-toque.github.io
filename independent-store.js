@@ -3,7 +3,7 @@
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0)+" CUP";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-let db=null,account=null,storeSession=null,storeProducts=[],storeRows=[],storePending=[],storeCart=[],adminSession=null,adminProducts=[];
+let db=null,account=null,storeSession=null,storeProducts=[],storeRows=[],storePending=[],storeCart=[],adminSession=null,adminProducts=[],entryChannel=null;
 function say(msg){const t=$("toast");if(t){t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600)}else alert(msg)}
 function workerUI(){
  const host=$("indWorkerContent");if(!host||$("indStoreComplete"))return;
@@ -69,6 +69,7 @@ async function loadAdmin(){
  $("indAdminEntrySend").disabled=!adminSession;
 }
 async function createEntry(){if(!adminSession)throw new Error("Abre primero la sesión independiente.");const id=$("indAdminEntryProduct").value,quantity=Number($("indAdminEntryQuantity").value),p=adminProducts.find(x=>x.id===id);if(!p)throw new Error("Selecciona un producto.");if(!Number.isInteger(quantity)||quantity<1)throw new Error("La cantidad debe ser un entero mayor que cero.");const {error}=await db.from("independent_entry_requests").insert({session_id:adminSession.id,worker_id:"9e88ab77-640e-4251-9056-0d40225c9b9e",product_id:p.id,product_name:p.name,quantity,price:p.price,created_by:account.id});if(error)throw error;$("indAdminEntryStatus").textContent="Entrada enviada. Esperando aprobación del trabajador.";$("indAdminEntryQuantity").value="1";await loadAdmin();}
-window.addEventListener("ipv:independent-enter",e=>{db=e.detail.client;account=e.detail.user;storeCart=[];workerUI();loadWorker().catch(err=>say("Tienda independiente: "+(err.message||String(err))));});
+function watchPendingRequests(){if(!db||!account||entryChannel||!db.channel)return;entryChannel=db.channel("independent-entry-requests-"+account.id).on("postgres_changes",{event:"INSERT",schema:"public",table:"independent_entry_requests",filter:"worker_id=eq."+account.id},()=>loadWorker().then(()=>say("Tienes una nueva entrada pendiente de aprobación.")).catch(err=>say(err.message||String(err)))).subscribe();}
+window.addEventListener("ipv:independent-enter",e=>{db=e.detail.client;account=e.detail.user;storeCart=[];workerUI();watchPendingRequests();loadWorker().catch(err=>say("Tienda independiente: "+(err.message||String(err))));});
 window.addEventListener("ipv:independent-admin-open",e=>{db=e.detail.client;account=e.detail.user;adminUI();loadAdmin().catch(err=>say("Asignaciones IPV independiente: "+(err.message||String(err))));});
 })();
