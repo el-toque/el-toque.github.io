@@ -670,3 +670,5 @@ body.admin-mode .topbar{display:none!important}
  .topbar-live-value{font-size:.61rem;white-space:normal;max-width:112px}
  .topbar-live-divider{height:25px}
 }
+
+.login-screen .topbar-live{display:none!important}
