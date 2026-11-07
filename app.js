@@ -450,7 +450,7 @@ const exportDailyPdfButton=$("exportDailyPdf");if(exportDailyPdfButton)exportDai
 async function loadAdminDashboard(){
  if(!admin()||!navigator.onLine)return;
  const now=new Date(),todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()),tomorrow=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1),monthStart=new Date(now.getFullYear(),now.getMonth(),1);
- const sales=[];for(let from=0;;from+=1000){const page=await client.from("sales").select("id,total,payment_method,created_at,profiles!sales_worker_id_fkey(ipv_mode)").eq("status","completed").gte("created_at",monthStart.toISOString()).lt("created_at",tomorrow.toISOString()).order("created_at",{ascending:false}).range(from,from+999);if(page.error){toast("No se pudo actualizar el resumen: "+page.error.message);return}sales.push(...(page.data||[]));if(!page.data||page.data.length<1000)break;}
+ const sales=[],independentSales=[];for(let from=0;;from+=1000){const page=await client.from("sales").select("id,total,payment_method,created_at,profiles!sales_worker_id_fkey(ipv_mode)").eq("status","completed").gte("created_at",monthStart.toISOString()).lt("created_at",tomorrow.toISOString()).order("created_at",{ascending:false}).range(from,from+999);if(page.error){toast("No se pudo actualizar el resumen: "+page.error.message);return}for(const sale of page.data||[]){if(sale.profiles?.ipv_mode==="independent")independentSales.push(sale);else sales.push(sale);}if(!page.data||page.data.length<1000)break;}
  const [productsResult,workersResult]=await Promise.all([
   client.from("products").select("id,stock").eq("active",true),
   client.from("profiles").select("id").eq("role","worker").eq("active",true).eq("ipv_mode","shift")
@@ -464,6 +464,10 @@ async function loadAdminDashboard(){
  $("dashSalesMonth").textContent=money(monthTotal);$("dashSalesMonthCount").textContent=sales.length+" operaciones";
  $("dashCashToday").textContent=money(todayCash);$("dashTransferToday").textContent=money(todayTransfer);
  $("dashStockTotal").textContent=stockTotal.toLocaleString("es-ES");$("dashActiveWorkers").textContent=(workersResult.data||[]).length;
+ const independentToday=independentSales.filter(x=>new Date(x.created_at)>=todayStart),independentTodayTotal=independentToday.reduce((n,x)=>n+Number(x.total||0),0),independentMonthTotal=independentSales.reduce((n,x)=>n+Number(x.total||0),0),independentCash=independentToday.filter(x=>x.payment_method==="cash").reduce((n,x)=>n+Number(x.total||0),0),independentTransfer=independentToday.filter(x=>x.payment_method==="transfer").reduce((n,x)=>n+Number(x.total||0),0);
+ $("dashIndependentToday").textContent=money(independentTodayTotal);$("dashIndependentTodayCount").textContent=independentToday.length+" operaciones";
+ $("dashIndependentMonth").textContent=money(independentMonthTotal);$("dashIndependentMonthCount").textContent=independentSales.length+" operaciones";
+ $("dashIndependentCash").textContent=money(independentCash);$("dashIndependentTransfer").textContent=money(independentTransfer);
  $("dashboardUpdated").textContent="Actualizado: "+now.toLocaleString("es-ES");
 }
 async function loadAdminIndependentIPV(){
