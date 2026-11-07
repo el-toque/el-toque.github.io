@@ -72,10 +72,22 @@ async function load(){
  await history();
 }
 
+async function loadIndependent(){
+ const {data,error}=await db.rpc("worker_independent_get_context",{p_business_date:dateKey()});if(error)throw error;
+ independentSessionId=data.session_id;businessDate=data.business_date||dateKey();sessionNo=Number(data.session_no)||1;
+ window.IPV_INDEPENDENT_CONTEXT={sessionId:independentSessionId,businessDate,sessionNo,independent:true};window.IPV_TURN_CONTEXT=window.IPV_INDEPENDENT_CONTEXT;
+ localStorage.setItem("ipv_turn_context_"+session.user.id,JSON.stringify(window.IPV_INDEPENDENT_CONTEXT));window.dispatchEvent(new Event("ipv:turn-context-updated"));
+ rows=(data.rows||[]).map(r=>row(r.product,r.start,r.entry,r.sold,r.price));
+ if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));
+ closure=null;setMeta();$("addTurnRow").disabled=false;$("exportTurnXlsx").disabled=false;$("exportTurnPdf").disabled=false;
+ $("turnDocumentNo").textContent="N°"+String(Number(data.last_closure_no||0)+1).padStart(2,"0");render();$("closeTurnBtn").disabled=false;
+ status("Jornada independiente "+sessionNo+" activa. Puedes cerrarla cuando decidas, sin límite de horas.");
+ await persistRows();await loadPendingRequests();await history();
+}
 async function loadPendingRequests(){
  const host=$("turnPendingRequests");if(!host||!db||!session||!navigator.onLine)return;
  try{
-  const {data,error}=await db.rpc("worker_list_entry_requests",{p_business_date:businessDate,p_session_no:sessionNo});
+  const {data,error}=independentMode?await db.rpc("worker_independent_list_entry_requests",{p_session_id:independentSessionId}):await db.rpc("worker_list_entry_requests",{p_business_date:businessDate,p_session_no:sessionNo});
   if(error)throw error;
   const list=data||[];
   host.innerHTML=list.length?list.map(x=>'<div class="turn-pending-row"><div><strong>'+esc(x.product_name)+'</strong><span>'+Number(x.quantity)+' unidades'+(Number(x.price)>0?' · '+money(x.price):'')+'</span></div><button type="button" class="primary" data-approve-entry="'+x.id+'">Aceptar</button></div>').join(''):'<p class="muted small">No tienes entradas pendientes.</p>';
@@ -85,7 +97,7 @@ $("turnPendingRequests")?.addEventListener("click",async e=>{
  const button=e.target.closest("[data-approve-entry]");if(!button||working)return;
  button.disabled=true;
  try{
-  const {error}=await db.rpc("worker_approve_entry_request",{p_request_id:button.dataset.approveEntry,p_business_date:businessDate,p_session_no:sessionNo});
+  const {error}=independentMode?await db.rpc("worker_independent_approve_entry_request",{p_request_id:button.dataset.approveEntry,p_session_id:independentSessionId}):await db.rpc("worker_approve_entry_request",{p_request_id:button.dataset.approveEntry,p_business_date:businessDate,p_session_no:sessionNo});
   if(error)throw error;
   await window.refreshWorkerTurnInventory?.();
   await loadPendingRequests();
