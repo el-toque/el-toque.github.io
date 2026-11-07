@@ -680,3 +680,11 @@ body.admin-mode .topbar{display:none!important}
 #independentTab .admin-ipv-thumb{display:block;width:38px;height:38px;max-width:38px;max-height:38px;object-fit:cover;border-radius:6px;flex:0 0 38px}
 @media(max-width:680px){#shopTab .shop-card-mark{height:86px!important;max-height:86px!important}}
 @media(max-width:380px){#shopTab .shop-card-mark{height:100px!important;min-height:100px!important;max-height:100px!important}}
+
+
+/* Limitar las fotos de IPV: nunca deben expandir la tarjeta ni la tabla. */
+#shopTab .shop-card-mark{width:100%;height:128px;min-height:0;max-height:128px;aspect-ratio:auto;overflow:hidden;display:flex;align-items:center;justify-content:center}
+#shopTab .shop-card-mark .shop-product-image{display:block!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important;flex:none}
+#independentTab .admin-ipv-product-cell{max-width:100%;overflow:hidden}
+#independentTab .admin-ipv-thumb,#adminIndependentRows img.admin-ipv-thumb{display:inline-block!important;width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;max-width:38px!important;max-height:38px!important;object-fit:cover!important;flex:0 0 38px!important}
+@media(max-width:520px){#shopTab .shop-card-mark{height:100px;max-height:100px;min-height:100px}#shopTab .shop-card-mark .shop-product-image{width:100%!important;height:100%!important;object-fit:contain!important}}
