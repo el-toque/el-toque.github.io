@@ -53,6 +53,7 @@ async function load(){
  businessDate=day;sessionNo=Number(last.session_no)||1;
  window.IPV_TURN_CONTEXT={businessDate,sessionNo,shift};
  localStorage.setItem("ipv_turn_context_"+session.user.id,JSON.stringify(window.IPV_TURN_CONTEXT));
+ window.dispatchEvent(new Event("ipv:turn-context-updated"));
  rows=(last.last_rows||[]).map(r=>row(r.product,r.final,0,0,r.price));
  if(!rows.length)rows=Array.from({length:20},()=>row());
  if(navigator.onLine){
