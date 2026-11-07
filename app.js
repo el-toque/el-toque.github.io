@@ -326,17 +326,21 @@ let dailyBillCounts={};
 const dailyBillDenominations=[5000,2000,1000,500,200,100,50,20,10,5,3,1];
 async function requireCompleteDailyBillCount(actionLabel="continuar"){
  const inputs=[...($("dailyBillsBody")?.querySelectorAll("[data-bill-denomination]")||[])];
- const missing=dailyBillDenominations.filter(value=>{
+ if(!Object.keys(dailyBillCounts).some(key=>dailyBillDenominations.includes(Number(key)))){
+  toast("Acción bloqueada: modifica al menos una denominación según el dinero recaudado. Las demás pueden permanecer en 0.");
+  return false;
+ }
+ const invalid=dailyBillDenominations.filter(value=>{
   const input=inputs.find(el=>Number(el.dataset.billDenomination)===value);
-  if(!input||input.value.trim()==="")return true;
+  if(!input)return true;
   const quantity=Number(input.value);
-  if(!Number.isInteger(quantity)||quantity<0)return true;
+  if(input.value.trim()===""||!Number.isInteger(quantity)||quantity<0)return true;
   dailyBillCounts[value]=quantity;
   return false;
  });
- if(missing.length){
-  toast("Acción bloqueada: para "+actionLabel+" debes declarar las 12 denominaciones. Escribe 0 donde no tengas billetes.");
-  const first=$(`[data-bill-denomination="${missing[0]}"]`);
+ if(invalid.length){
+  toast("Acción bloqueada: revisa las cantidades de la contadora de billetes.");
+  const first=$(`[data-bill-denomination="${invalid[0]}"]`);
   first?.focus();first?.scrollIntoView({behavior:"smooth",block:"center"});
   return false;
  }
