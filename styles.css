@@ -1275,3 +1275,13 @@ body.login-screen .auth-panel:before{
 /* Campos de cantidad de traspaso visibles y cómodos en móvil */
 .ipv-transfer-panel td input[data-transfer-row]{display:block!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:2;width:100%!important;max-width:88px!important;min-width:56px!important;min-height:40px!important;margin:0 auto!important;padding:8px 4px!important;border:2px solid #b28a42!important;border-radius:8px!important;background:#fff!important;color:#171717!important;text-align:center!important;font-size:1rem!important;font-weight:700!important;pointer-events:auto!important;-webkit-appearance:textfield!important;appearance:textfield!important}
 .ipv-transfer-panel td input[data-transfer-row]::placeholder{color:#777;opacity:1}
+
+/* Campos de cantidad de traspaso: diseño en filas independientes, visible en móviles */
+.ipv-transfer-product-list{display:grid;gap:9px;margin:10px 0 14px;min-width:0}
+.ipv-transfer-product-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;padding:12px;border:1px solid #51452d;border-radius:10px;background:#1a1a18}
+.ipv-transfer-product-info{display:grid;gap:5px;min-width:0;overflow-wrap:anywhere}
+.ipv-transfer-product-info strong{color:#f0e5ce;font-size:.95rem}
+.ipv-transfer-product-info small{color:#b9ad98;font-size:.78rem}
+.ipv-transfer-quantity-label{display:grid;gap:5px;flex:0 0 132px;min-width:112px;color:#e8ca7c;font-size:.76rem;font-weight:800}
+.ipv-transfer-quantity-label input[data-transfer-row]{display:block!important;visibility:visible!important;opacity:1!important;width:100%!important;min-width:0!important;min-height:44px!important;padding:8px!important;border:2px solid #c39a4d!important;border-radius:8px!important;background:#fff!important;color:#171717!important;text-align:center!important;font-size:1.1rem!important;font-weight:800!important;pointer-events:auto!important;-webkit-appearance:textfield!important;appearance:textfield!important}
+@media(max-width:420px){.ipv-transfer-product-row{gap:8px;padding:10px}.ipv-transfer-quantity-label{flex-basis:116px;min-width:108px;font-size:.7rem}}
