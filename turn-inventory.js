@@ -152,6 +152,52 @@ async function exportData(savedRows,number,shiftNo,date,format="both",archive=fa
   doc.save((independentMode?"IPV_Independiente_":"IPV_Turno_")+number+"_"+date+".pdf");
  }
 }
+
+function renderTransferProducts(){
+ const host=$("ipvTransferProducts");if(!host)return;
+ const items=rows.map((r,i)=>({r,i})).filter(x=>x.r.product.trim());
+ host.innerHTML=items.length?'<div class="table-wrap"><table><thead><tr><th>Producto</th><th>Disponible</th><th>Cantidad</th></tr></thead><tbody>'+items.map(({r,i})=>'<tr><td>'+esc(r.product)+'</td><td>'+calc(r).final+'</td><td><input type="number" min="0" max="'+Math.max(0,calc(r).final)+'" step="1" inputmode="numeric" data-transfer-row="'+(i+1)+'" value="0" aria-label="Cantidad de '+esc(r.product)+'"></td></tr>').join("")+'</tbody></table></div>':'<p class="muted small">No hay productos disponibles en la tabla IPV.</p>';
+}
+function transferStatusLabel(s){return s==="pending"?"Pendiente de recepción":s==="received"?"Recibido":"Recibido con diferencias";}
+async function loadTransferList(){
+ const host=$("ipvTransferList");if(!host||!db||!session||!navigator.onLine)return;
+ try{
+  const {data,error}=await db.rpc("worker_ipv_transfer_list");if(error)throw error;
+  const list=(data||[]).map(x=>typeof x==="string"?JSON.parse(x):x);
+  host.innerHTML=list.length?list.map(x=>{
+   const incoming=x.sender_id!==session.user.id;
+   const items=Array.isArray(x.items)?x.items:[];
+   const detail=items.map(it=>'<div class="ipv-transfer-item"><span>'+esc(it.product)+'</span><strong>'+Number(it.quantity)+' uds.</strong></div>').join("");
+   const receive=x.status==="pending"&&incoming;
+   return '<article class="ipv-transfer-card"><div class="ipv-transfer-card-head"><strong>'+(incoming?'Recibido de ':'Enviado a ')+esc(incoming?x.sender_name:x.receiver_name)+'</strong><span class="demo-pill '+(x.status==="pending"?"offline":"online")+'">'+transferStatusLabel(x.status)+'</span></div><small class="muted">'+new Date(x.created_at).toLocaleString("es-ES")+'</small>'+detail+(receive?'<div class="ipv-transfer-receive">'+items.map((it,i)=>'<label>'+esc(it.product)+' · enviados '+Number(it.quantity)+'<input type="number" min="0" max="'+Number(it.quantity)+'" step="1" value="'+Number(it.quantity)+'" data-receive-transfer="'+esc(x.id)+'" data-receive-index="'+i+'"></label>').join("")+'<label>Observación de diferencias (opcional)<input type="text" maxlength="250" data-transfer-note="'+esc(x.id)+'" placeholder="Indica qué ocurrió"></label><button type="button" class="primary" data-confirm-transfer="'+esc(x.id)+'">Confirmar recepción</button></div>':'')+(x.discrepancy_note?'<p class="muted small">Observación: '+esc(x.discrepancy_note)+'</p>':'')+'</article>';
+  }).join(""):'<p class="muted small">Todavía no hay traspasos registrados.</p>';
+ }catch(e){host.innerHTML='<p class="muted small">No se pudo cargar el historial de traspasos: '+esc(e.message||"Error")+'</p>';}
+}
+$("ipvTransferSendBtn")?.addEventListener("click",async()=>{
+ if(working||!navigator.onLine){$("ipvTransferStatus").textContent="Necesitas conexión para enviar mercancía.";return;}
+ const items=[...document.querySelectorAll("[data-transfer-row]")].map(el=>({row_no:Number(el.dataset.transferRow),quantity:Number(el.value)})).filter(x=>x.quantity>0);
+ if(!items.length){$("ipvTransferStatus").textContent="Selecciona al menos un producto y una cantidad.";return;}
+ if(items.some(x=>!Number.isInteger(x.quantity)||x.quantity<0||x.quantity>calc(rows[x.row_no-1]).final)){$("ipvTransferStatus").textContent="Hay cantidades superiores a las existencias disponibles.";return;}
+ const btn=$("ipvTransferSendBtn");btn.disabled=true;
+ try{const {data,error}=await db.rpc("worker_ipv_transfer_dispatch",{p_receiver_mode:$("ipvTransferDestination").value,p_items:items});if(error)throw error;
+  await load();await loadTransferList();$("ipvTransferStatus").textContent="Traspaso enviado. El receptor debe confirmar las cantidades antes de incorporarlas a su IPV.";window.dispatchEvent(new Event("ipv:turn-inventory-saved"));
+ }catch(e){$("ipvTransferStatus").textContent="No se pudo enviar: "+(e.message||"Error");}finally{btn.disabled=false;renderTransferProducts();}
+});
+$("ipvTransferList")?.addEventListener("click",async e=>{
+ const btn=e.target.closest("[data-confirm-transfer]");if(!btn)return;btn.disabled=true;
+ try{
+  const id=btn.dataset.confirmTransfer,inputs=[...document.querySelectorAll('[data-receive-transfer="'+id+'"]')];
+  const received_items=inputs.map(el=>({product:((JSON.parse(btn.closest(".ipv-transfer-card").querySelectorAll(".ipv-transfer-item")[Number(el.dataset.receiveIndex)]?.textContent||"{}"))),quantity:Number(el.value)}));
+  const card=btn.closest(".ipv-transfer-card"),transfer=(await db.rpc("worker_ipv_transfer_list")).data||[];
+  const parsed=transfer.map(x=>typeof x==="string"?JSON.parse(x):x).find(x=>x.id===id);
+  const values=inputs.map((el,i)=>({product:parsed.items[i].product,quantity:Number(el.value)}));
+  if(values.some((x,i)=>!Number.isInteger(x.quantity)||x.quantity<0||x.quantity>Number(parsed.items[i].quantity)))throw new Error("Revisa las cantidades recibidas.");
+  const note=card.querySelector("[data-transfer-note]")?.value||"";
+  const {error}=await db.rpc("worker_ipv_transfer_receive",{p_transfer_id:id,p_received_items:values,p_note:note});if(error)throw error;
+  await load();await loadTransferList();$("ipvTransferStatus").textContent="Recepción confirmada. Las cantidades recibidas ya están en tu IPV.";
+ }catch(err){btn.disabled=false;$("ipvTransferStatus").textContent="No se pudo confirmar: "+(err.message||"Error");}
+});
+
 async function init(){
  if(ready||!window.IPV_CONFIG?.url||!window.supabase)return;
  const {url,publishableKey}=window.IPV_CONFIG;db=window.supabase.createClient(url,publishableKey);
@@ -160,12 +206,12 @@ async function init(){
  independentMode=workerProfile?.ipv_mode==="independent";canCloseTurn=workerProfile?.worker_permissions?.can_close_day!==false;canCountStock=workerProfile?.worker_permissions?.can_count_stock!==false;ready=true;const email=(session.user.email||"").toLowerCase();
  shift=email==="dependiente1@eltoque.com"?1:email==="dependiente2@eltoque.com"?2:0;
  if(!shift&&!independentMode)return;
- try{await load();if(db.channel){db.channel("worker-entry-requests-"+session.user.id).on("postgres_changes",{event:"INSERT",schema:"public",table:independentMode?"worker_independent_entry_requests":"worker_turn_entry_requests",filter:"worker_id=eq."+session.user.id},()=>loadPendingRequests()).subscribe();}}catch(e){$("closeTurnBtn").disabled=true;$("addTurnRow").disabled=true;$("exportTurnXlsx").disabled=true;$("exportTurnPdf").disabled=true;rows=[];render();status(e.message||"No se pudo cargar el turno.");}
+ try{await load();renderTransferProducts();await loadTransferList();if(db.channel){db.channel("worker-entry-requests-"+session.user.id).on("postgres_changes",{event:"INSERT",schema:"public",table:independentMode?"worker_independent_entry_requests":"worker_turn_entry_requests",filter:"worker_id=eq."+session.user.id},()=>loadPendingRequests()).subscribe();}}catch(e){$("closeTurnBtn").disabled=true;$("addTurnRow").disabled=true;$("exportTurnXlsx").disabled=true;$("exportTurnPdf").disabled=true;rows=[];render();status(e.message||"No se pudo cargar el turno.");}
 }
 $("addTurnRow")?.addEventListener("click",()=>{rows.push(row());render();persistRows();});
 $("exportTurnXlsx")?.addEventListener("click",()=>exportCurrent("xlsx"));
 $("exportTurnPdf")?.addEventListener("click",()=>exportCurrent("pdf"));
-$("turnRows")?.addEventListener("change",()=>{physicalCountConfirmed=false;physicalCountResult="El inventario cambió. Debes repetir y confirmar el conteo físico.";renderPhysicalCount();persistRows();});
+$("turnRows")?.addEventListener("change",()=>{renderTransferProducts();physicalCountConfirmed=false;physicalCountResult="El inventario cambió. Debes repetir y confirmar el conteo físico.";renderPhysicalCount();persistRows();});
 $("physicalCountRows")?.addEventListener("input",e=>{
  const input=e.target.closest("[data-physical-input]");if(!input)return;
  const rowNo=Number(input.dataset.physicalInput);physicalCountValues[rowNo]=input.value===""?"":Number(input.value);
