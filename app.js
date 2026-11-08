@@ -483,30 +483,35 @@ async function loadAdminDashboard(){
  const now=new Date(),todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()),tomorrow=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1),monthStart=new Date(now.getFullYear(),now.getMonth(),1);
  const sales=[];for(let from=0;;from+=1000){const page=await client.from("sales").select("id,total,payment_method,created_at").eq("status","completed").gte("created_at",monthStart.toISOString()).lt("created_at",tomorrow.toISOString()).order("created_at",{ascending:false}).range(from,from+999);if(page.error){toast("No se pudo actualizar el resumen: "+page.error.message);return}sales.push(...(page.data||[]));if(!page.data||page.data.length<1000)break;}
  const [productsResult,workersResult,allocationsResult]=await Promise.all([
-  client.from("products").select("id,stock").eq("active",true),
-  client.from("profiles").select("id,ipv_mode").eq("role","worker").eq("active",true),
+  client.from("products").select("id,stock"),
+  client.from("profiles").select("id,ipv_mode,active").eq("role","worker"),
   client.from("worker_stock_allocations").select("worker_id,product_id,quantity_remaining")
  ]);
  for(const x of [productsResult,workersResult,allocationsResult])if(x.error){toast("No se pudo actualizar el resumen: "+x.error.message);return}
  const today=sales.filter(x=>new Date(x.created_at)>=todayStart);
  const todayTotal=today.reduce((n,x)=>n+Number(x.total||0),0),monthTotal=sales.reduce((n,x)=>n+Number(x.total||0),0);
  const todayCash=today.filter(x=>x.payment_method==="cash").reduce((n,x)=>n+Number(x.total||0),0),todayTransfer=today.filter(x=>x.payment_method==="transfer").reduce((n,x)=>n+Number(x.total||0),0);
- // Solo se suman asignaciones pendientes de trabajadores regulares activos.
- // Los perfiles IPV Independiente nunca entran en el cálculo del inventario regular.
+ // El stock de products ya representa el total por producto (almacén + trabajadores).
+ // Las asignaciones solo desglosan su ubicación: no se suman por segunda vez.
+ // Los perfiles IPV Independiente quedan excluidos del inventario regular.
  const regularWorkerIds=new Set((workersResult.data||[]).filter(w=>w.ipv_mode!=="independent").map(w=>w.id));
- const activeProducts=productsResult.data||[];
- const activeProductIds=new Set(activeProducts.map(p=>p.id));
  const workerStockByProduct=new Map();
  for(const allocation of allocationsResult.data||[]){
-  if(!regularWorkerIds.has(allocation.worker_id)||!activeProductIds.has(allocation.product_id))continue;
+  if(!regularWorkerIds.has(allocation.worker_id))continue;
   const id=allocation.product_id;
   workerStockByProduct.set(id,(workerStockByProduct.get(id)||0)+Math.max(0,Number(allocation.quantity_remaining)||0));
  }
- const warehouseStock=activeProducts.reduce((n,p)=>n+Math.max(0,Number(p.stock)||0),0);
- const workerStock=[...workerStockByProduct.values()].reduce((n,q)=>n+q,0);
- const stockTotal=warehouseStock+workerStock;
- const availableProducts=activeProducts.filter(p=>Math.max(0,Number(p.stock)||0)+(workerStockByProduct.get(p.id)||0)>0).length;
- const outOfStock=activeProducts.length-availableProducts;
+ const inventoryProducts=productsResult.data||[];
+ let warehouseStock=0,workerStock=0,stockTotal=0,availableProducts=0;
+ for(const product of inventoryProducts){
+  const total=Math.max(0,Number(product.stock)||0);
+  const assigned=Math.min(total,workerStockByProduct.get(product.id)||0);
+  stockTotal+=total;
+  workerStock+=assigned;
+  warehouseStock+=total-assigned;
+  if(total>0)availableProducts++;
+ }
+ const outOfStock=inventoryProducts.length-availableProducts;
  $("dashSalesToday").textContent=money(todayTotal);$("dashSalesTodayCount").textContent=today.length+" operaciones";
  $("dashSalesMonth").textContent=money(monthTotal);$("dashSalesMonthCount").textContent=sales.length+" operaciones";
  $("dashCashToday").textContent=money(todayCash);$("dashTransferToday").textContent=money(todayTransfer);
@@ -515,7 +520,7 @@ async function loadAdminDashboard(){
  $("dashStockWorkers").textContent=workerStock.toLocaleString("es-ES");
  $("dashStockProducts").textContent=availableProducts+" productos disponibles";
  $("dashStockOut").textContent=outOfStock+" agotados";
- $("dashActiveWorkers").textContent=(workersResult.data||[]).length;
+ $("dashActiveWorkers").textContent=(workersResult.data||[]).filter(w=>w.active).length;
  $("dashboardUpdated").textContent="Actualizado: "+now.toLocaleString("es-ES");
 }
 async function loadAdminIndependentIPV(){
