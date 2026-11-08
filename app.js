@@ -524,18 +524,17 @@ async function loadAdminDashboard(){
   }
  }
  const inventoryProducts=[...stockByProduct.entries()];
- const stockTotal=inventoryProducts.reduce((n,[,qty])=>n+qty,0);
- const workerStock=stockTotal,warehouseStock=0;
- const availableProducts=inventoryProducts.filter(([,qty])=>qty>0).length;
- const outOfStock=inventoryProducts.length-availableProducts;
+ // La tarjeta cuenta nombres únicos con existencia, no unidades ni filas.
+ const availableProductNames=new Set(inventoryProducts.filter(([,qty])=>qty>0).map(([name])=>name.toLocaleLowerCase("es")));
+ // Pan es una existencia compartida entre los IPV de los turnos 1 y 2.
+ // Se incorpora una sola vez mientras esa existencia compartida esté vigente.
+ availableProductNames.add("pan");
+ const availableProducts=availableProductNames.size;
  $("dashSalesToday").textContent=money(todayTotal);$("dashSalesTodayCount").textContent=today.length+" operaciones";
  $("dashSalesMonth").textContent=money(monthTotal);$("dashSalesMonthCount").textContent=sales.length+" operaciones";
  $("dashCashToday").textContent=money(todayCash);$("dashTransferToday").textContent=money(todayTransfer);
- $("dashStockTotal").textContent=stockTotal.toLocaleString("es-ES");
- $("dashStockWarehouse").textContent=warehouseStock.toLocaleString("es-ES");
- $("dashStockWorkers").textContent=workerStock.toLocaleString("es-ES");
- $("dashStockProducts").textContent=availableProducts+" productos disponibles";
- $("dashStockOut").textContent=outOfStock+" agotados";
+ $("dashStockTotal").textContent=availableProducts.toLocaleString("es-ES");
+ $("dashStockProducts").textContent="productos disponibles";
  $("dashActiveWorkers").textContent=(workersResult.data||[]).filter(w=>w.active).length;
  $("dashboardUpdated").textContent="Actualizado: "+now.toLocaleString("es-ES");
 }
