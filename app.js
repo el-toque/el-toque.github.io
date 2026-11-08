@@ -355,23 +355,28 @@ async function loadAdminDashboard(){
  if(!admin()||!navigator.onLine)return;
  const now=new Date(),todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()),tomorrow=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1),monthStart=new Date(now.getFullYear(),now.getMonth(),1);
  const sales=[];for(let from=0;;from+=1000){const page=await client.from("sales").select("id,total,payment_method,created_at").eq("status","completed").gte("created_at",monthStart.toISOString()).lt("created_at",tomorrow.toISOString()).order("created_at",{ascending:false}).range(from,from+999);if(page.error){toast("No se pudo actualizar el resumen: "+page.error.message);return}sales.push(...(page.data||[]));if(!page.data||page.data.length<1000)break;}
- const [inventoryResult,workersResult,independentResult]=await Promise.all([
-  client.from("worker_turn_inventory_items").select("worker_id,session_no,product_name,final_qty,available_qty,updated_at"),
-  client.from("profiles").select("id,ipv_mode,active").eq("role","worker"),
-  client.from("worker_independent_inventory_items").select("worker_id,session_id,product_name,start_qty,entry_qty,sold_qty,updated_at")
- ]);
- for(const x of [inventoryResult,workersResult,independentResult])if(x.error){toast("No se pudo actualizar el resumen: "+x.error.message);return}
+ const {data:workerProfiles,error:workersError}=await client.from("profiles").select("id,ipv_mode,active").eq("role","worker");
+ if(workersError){toast("No se pudo actualizar el resumen: "+workersError.message);return}
  const today=sales.filter(x=>new Date(x.created_at)>=todayStart);
  const todayTotal=today.reduce((n,x)=>n+Number(x.total||0),0),monthTotal=sales.reduce((n,x)=>n+Number(x.total||0),0);
  const todayCash=today.filter(x=>x.payment_method==="cash").reduce((n,x)=>n+Number(x.total||0),0),todayTransfer=today.filter(x=>x.payment_method==="transfer").reduce((n,x)=>n+Number(x.total||0),0);
  // Se incluyen las existencias vigentes de los tres turnos.
  // Turnos 1 y 2: última sesión de cada trabajador regular.
  // Turno 3: sesión independiente activa, sin sumar sesiones cerradas.
- const workerList=workersResult.data||[];
+ const workerList=workerProfiles||[];
  const {data:activeTargetData,error:activeTargetError}=await client.rpc("admin_get_active_worker_turn",{p_business_date:localBusinessDate()});
  if(activeTargetError){toast("No se pudo identificar el turno activo para el resumen: "+activeTargetError.message);return;}
  const activeTarget=Array.isArray(activeTargetData)?activeTargetData[0]:activeTargetData;
- const currentRows=(inventoryResult.data||[]).filter(row=>activeTarget&&row.worker_id===activeTarget.worker_id&&Number(row.session_no)===Number(activeTarget.session_no));
+ let currentRows=[];
+ if(activeTarget){
+  const {data:regularRows,error:regularRowsError}=await client.from("worker_turn_inventory_items")
+   .select("worker_id,shift_no,business_date,session_no,product_name,final_qty,available_qty,updated_at")
+   .eq("worker_id",activeTarget.worker_id).eq("shift_no",activeTarget.shift_no)
+   .eq("business_date",activeTarget.business_date).eq("session_no",activeTarget.session_no)
+   .order("row_no",{ascending:true}).limit(500);
+  if(regularRowsError){toast("No se pudo cargar el IPV activo: "+regularRowsError.message);return;}
+  currentRows=regularRows||[];
+ }
  const stockByProduct=new Map();
  for(const row of currentRows){
   const name=String(row.product_name||"").trim();
@@ -385,7 +390,12 @@ async function loadAdminDashboard(){
   const {data:activeSession,error:sessionError}=await client.from("worker_independent_sessions").select("id,session_no").eq("worker_id",independentWorker.id).eq("status","active").order("session_no",{ascending:false}).limit(1).maybeSingle();
   if(sessionError){toast("No se pudo actualizar el IPV Independiente: "+sessionError.message);return;}
   if(activeSession){
-   for(const row of (independentResult.data||[]).filter(x=>x.worker_id===independentWorker.id&&x.session_id===activeSession.id)){
+   const {data:independentRows,error:independentRowsError}=await client.from("worker_independent_inventory_items")
+    .select("worker_id,session_id,product_name,start_qty,entry_qty,sold_qty")
+    .eq("worker_id",independentWorker.id).eq("session_id",activeSession.id)
+    .order("row_no",{ascending:true}).limit(500);
+   if(independentRowsError){toast("No se pudo cargar el IPV Independiente: "+independentRowsError.message);return;}
+   for(const row of independentRows||[]){
     const name=String(row.product_name||"").trim();if(!name)continue;
     const qty=Math.max(0,Number(row.start_qty||0)+Number(row.entry_qty||0)-Number(row.sold_qty||0));
     stockByProduct.set(name,(stockByProduct.get(name)||0)+qty);
@@ -406,7 +416,7 @@ async function loadAdminDashboard(){
  $("dashStockTotal").textContent=availableProducts.toLocaleString("es-ES");
  $("dashStockProducts").textContent="productos disponibles";
  $("dashStockOut").textContent=outOfStockProducts.toLocaleString("es-ES")+" productos agotados";
- $("dashActiveWorkers").textContent=(workersResult.data||[]).filter(w=>w.active).length;
+ $("dashActiveWorkers").textContent=workerList.filter(w=>w.active).length;
  $("dashboardUpdated").textContent="Actualizado: "+now.toLocaleString("es-ES");
 }
 async function loadAdminIndependentIPV(){
