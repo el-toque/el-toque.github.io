@@ -697,3 +697,148 @@ body.admin-mode .topbar{display:none!important}
     right:auto!important;
   }
 }
+
+
+/* Rediseño moderno del Resumen del negocio — paleta azul, oro y blanco */
+#dashboardTab{
+  position:relative;
+  overflow:hidden;
+  padding:clamp(18px,2.6vw,28px);
+  border:1px solid #d8e3ef;
+  border-radius:18px;
+  background:
+    radial-gradient(ellipse at 100% 0%,rgba(255,190,91,.13),transparent 34%),
+    linear-gradient(145deg,#fff 0%,#f7faff 72%,#fffaf2 100%);
+  box-shadow:0 12px 34px rgba(7,54,111,.09),0 2px 7px rgba(7,54,111,.04);
+}
+#dashboardTab:before{
+  content:"";
+  position:absolute;
+  inset:0 0 auto;
+  height:5px;
+  background:linear-gradient(90deg,#0755a4 0%,#1d75bd 58%,#d4a443 100%);
+}
+#dashboardTab .toolbar{
+  position:relative;
+  align-items:center;
+  margin:0 0 21px;
+  padding:5px 2px 16px;
+  border-bottom:1px solid #e4ebf3;
+}
+#dashboardTab .toolbar .eyebrow{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  color:#a8751c;
+  letter-spacing:.16em;
+}
+#dashboardTab .toolbar .eyebrow:before{
+  content:"";
+  width:20px;height:3px;border-radius:3px;
+  background:linear-gradient(90deg,#0755a4,#d4a443);
+}
+#dashboardTab .toolbar h2{
+  margin:2px 0 4px;
+  color:#07366f;
+  font-size:clamp(1.25rem,2.3vw,1.65rem);
+  font-weight:900;
+  letter-spacing:-.04em;
+}
+#dashboardTab .toolbar .muted{font-size:.8rem;color:#71839a}
+#dashboardTab #refreshDashboard{
+  border:1px solid #cbd9e8;
+  border-radius:11px;
+  background:linear-gradient(180deg,#fff,#f1f6fc);
+  color:#0755a4;
+  box-shadow:0 3px 9px rgba(7,54,111,.07);
+}
+#dashboardTab #refreshDashboard:hover{
+  border-color:#d2a64c;
+  background:#fffaf0;
+  transform:translateY(-1px);
+}
+#dashboardTab .stats{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:13px;
+  margin:0;
+}
+#dashboardTab .stat{
+  position:relative;
+  isolation:isolate;
+  min-height:112px;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:7px;
+  padding:17px 18px 16px;
+  border:1px solid #dce6f0;
+  border-radius:15px;
+  background:linear-gradient(145deg,#fff 0%,#f7faff 100%);
+  box-shadow:0 5px 15px rgba(7,54,111,.055);
+  transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;
+}
+#dashboardTab .stat:before{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  top:0;left:0;bottom:0;
+  width:4px;
+  background:linear-gradient(180deg,#0755a4,#4b91ce);
+}
+#dashboardTab .stat:after{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  width:94px;height:94px;
+  right:-31px;top:-39px;
+  border:1px solid rgba(7,85,164,.09);
+  border-radius:50%;
+  box-shadow:0 0 0 12px rgba(7,85,164,.025),0 0 0 25px rgba(7,85,164,.018);
+}
+#dashboardTab .stat:nth-child(2):before,
+#dashboardTab .stat:nth-child(4):before{background:linear-gradient(180deg,#c28a2d,#e4c16e)}
+#dashboardTab .stat:nth-child(3):before,
+#dashboardTab .stat:nth-child(5):before{background:linear-gradient(180deg,#168b78,#70bba5)}
+#dashboardTab .stat:nth-child(6):before{background:linear-gradient(180deg,#526c9d,#91a9d0)}
+#dashboardTab .stat:hover{
+  transform:translateY(-3px);
+  border-color:#c6d6e8;
+  box-shadow:0 12px 24px rgba(7,54,111,.11);
+}
+#dashboardTab .stat span{
+  color:#63758b;
+  font-size:.76rem;
+  font-weight:800;
+  letter-spacing:.025em;
+}
+#dashboardTab .stat strong{
+  margin:0;
+  color:#07366f;
+  font-size:clamp(1.25rem,2.1vw,1.75rem);
+  font-weight:900;
+  line-height:1.15;
+  letter-spacing:-.045em;
+  overflow-wrap:anywhere;
+}
+#dashboardTab .stat small{
+  color:#8998aa;
+  font-size:.7rem;
+  font-weight:650;
+}
+@media(max-width:850px){
+  #dashboardTab{padding:18px 15px;border-radius:15px}
+  #dashboardTab .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  #dashboardTab .stat{min-height:105px;padding:14px}
+}
+@media(max-width:420px){
+  #dashboardTab .toolbar{gap:10px}
+  #dashboardTab .toolbar h2{font-size:1.18rem}
+  #dashboardTab #refreshDashboard{padding:8px 10px;font-size:.75rem}
+  #dashboardTab .stat{min-height:100px;padding:12px 11px;border-radius:12px}
+  #dashboardTab .stat strong{font-size:1.23rem}
+  #dashboardTab .stat span{font-size:.7rem}
+}
+@media(prefers-reduced-motion:reduce){
+  #dashboardTab .stat{transition:none}
+}
