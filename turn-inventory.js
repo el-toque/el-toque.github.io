@@ -3,7 +3,7 @@
 const $=id=>document.getElementById(id), money=n=>new Intl.NumberFormat("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0)+" CUP";
 const dateKey=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let db=null,session=null,shift=0,rows=[],closure=null,ready=false,working=false,businessDate=dateKey(),sessionNo=1,independentMode=false,independentSessionId=null,canCloseTurn=true,physicalCountValues={},physicalCountConfirmed=false,physicalCountResult="";
+let db=null,session=null,shift=0,rows=[],closure=null,ready=false,working=false,businessDate=dateKey(),sessionNo=1,independentMode=false,independentSessionId=null,canCloseTurn=true,canCountStock=true,physicalCountValues={},physicalCountConfirmed=false,physicalCountResult="";
 const denominations=[5000,2000,1000,500,200,100,50,20,10,5,3,1];
 const key=()=> "ipv_turn_draft_"+session.user.id+"_"+businessDate+"_"+shift+"_"+sessionNo;
 function row(product="",start=0,entry=0,sold=0,price=0){return {product,start,entry,sold,price};}
@@ -28,10 +28,10 @@ function render(){
 function renderPhysicalCount(){
  const body=$("physicalCountRows");if(!body)return;
  const items=rows.filter(r=>r.product.trim()!=="");
- body.innerHTML=items.map((r,i)=>{const rowNo=i+1,expected=calc(r).final,has=Object.prototype.hasOwnProperty.call(physicalCountValues,rowNo),physical=has?physicalCountValues[rowNo]:"",difference=has&&physical!==""?Number(physical)-expected:null;return `<tr data-physical-row="${rowNo}"><td>${esc(r.product)}</td><td class="calculated">${expected}</td><td><input type="number" min="0" step="1" inputmode="numeric" data-physical-input="${rowNo}" value="${physical}" aria-label="Conteo físico de ${esc(r.product)}"></td><td class="calculated">${difference===null?"—":difference===0?"0":(difference>0?"+":"")+difference}</td></tr>`;}).join("");
- const button=$("confirmPhysicalCountBtn");if(button)button.disabled=!items.length;
+ body.innerHTML=items.map((r,i)=>{const rowNo=i+1,expected=calc(r).final,has=Object.prototype.hasOwnProperty.call(physicalCountValues,rowNo),physical=has?physicalCountValues[rowNo]:"",difference=has&&physical!==""?Number(physical)-expected:null;return `<tr data-physical-row="${rowNo}"><td>${esc(r.product)}</td><td class="calculated">${expected}</td><td><input type="number" min="0" step="1" inputmode="numeric" data-physical-input="${rowNo}" value="${physical}" ${canCountStock?"":"disabled"} aria-label="Conteo físico de ${esc(r.product)}"></td><td class="calculated">${difference===null?"—":difference===0?"0":(difference>0?"+":"")+difference}</td></tr>`;}).join("");
+ const button=$("confirmPhysicalCountBtn");if(button)button.disabled=!items.length||!canCountStock;
  const closeButton=$("closeTurnBtn");if(closeButton)closeButton.disabled=!canCloseTurn||!physicalCountConfirmed;
- const statusNode=$("physicalCountStatus");if(statusNode)statusNode.textContent=physicalCountResult||(items.length?"Cuenta físicamente todos los productos e introduce cada cantidad, incluso cuando sea cero.":"Añade productos al IPV antes de realizar el conteo físico.");
+ const statusNode=$("physicalCountStatus");if(statusNode)statusNode.textContent=physicalCountResult||(!canCountStock?"Tu cuenta no tiene permiso para registrar el conteo físico. Solicítalo al administrador.":items.length?"Cuenta físicamente todos los productos e introduce cada cantidad, incluso cuando sea cero.":"Añade productos al IPV antes de realizar el conteo físico.");
  const badge=$("physicalCountBadge");if(badge){badge.textContent=physicalCountConfirmed?"CONTEO CONFIRMADO":"PENDIENTE DE CONTEO";badge.classList.toggle("online",physicalCountConfirmed);badge.classList.toggle("offline",!physicalCountConfirmed);}
 }
 function status(t){$("turnStatus").textContent=t;}
@@ -157,7 +157,7 @@ async function init(){
  const {url,publishableKey}=window.IPV_CONFIG;db=window.supabase.createClient(url,publishableKey);
  const {data,error}=await db.auth.getSession();if(error||!data.session)return;
  session=data.session;const {data:workerProfile}=await db.from("profiles").select("ipv_mode,worker_permissions").eq("id",session.user.id).maybeSingle();
- independentMode=workerProfile?.ipv_mode==="independent";canCloseTurn=workerProfile?.worker_permissions?.can_close_day!==false;ready=true;const email=(session.user.email||"").toLowerCase();
+ independentMode=workerProfile?.ipv_mode==="independent";canCloseTurn=workerProfile?.worker_permissions?.can_close_day!==false;canCountStock=workerProfile?.worker_permissions?.can_count_stock!==false;ready=true;const email=(session.user.email||"").toLowerCase();
  shift=email==="dependiente1@eltoque.com"?1:email==="dependiente2@eltoque.com"?2:0;
  if(!shift&&!independentMode)return;
  try{await load();if(db.channel){db.channel("worker-entry-requests-"+session.user.id).on("postgres_changes",{event:"INSERT",schema:"public",table:independentMode?"worker_independent_entry_requests":"worker_turn_entry_requests",filter:"worker_id=eq."+session.user.id},()=>loadPendingRequests()).subscribe();}}catch(e){$("closeTurnBtn").disabled=true;$("addTurnRow").disabled=true;$("exportTurnXlsx").disabled=true;$("exportTurnPdf").disabled=true;rows=[];render();status(e.message||"No se pudo cargar el turno.");}
@@ -176,6 +176,7 @@ $("physicalCountRows")?.addEventListener("input",e=>{
  const statusNode=$("physicalCountStatus");if(statusNode)statusNode.textContent=physicalCountResult;
 });
 $("confirmPhysicalCountBtn")?.addEventListener("click",async()=>{
+ if(!canCountStock){status("Tu cuenta no tiene permiso para registrar el conteo físico. Solicítalo al administrador.");return;}
  if(working||!navigator.onLine){status("Necesitas conexión para guardar y confirmar el conteo físico.");return;}
  const items=rows.filter(r=>r.product.trim()!=="");if(!items.length){status("No hay productos para contar.");return;}
  const countRows=items.map((r,i)=>({row_no:i+1,product:r.product.trim(),physical_qty:physicalCountValues[i+1]}));
