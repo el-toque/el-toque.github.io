@@ -1207,3 +1207,12 @@ body.login-screen .auth-panel:before{
   #dashboardTab .stock-summary-breakdown{grid-template-columns:minmax(0,1fr)}
   #dashboardTab .stock-summary-foot{flex-direction:column}
 }
+
+.ipv-transfer-panel{margin-top:18px;padding:14px;border:1px solid var(--ei-border,#51452d);border-radius:12px;background:linear-gradient(145deg,#171816,#111314)}
+.ipv-transfer-send{display:grid;gap:10px;margin:12px 0}
+.ipv-transfer-send label,.ipv-transfer-receive label{display:grid;gap:6px;font-size:.82rem;color:var(--ei-muted)}
+.ipv-transfer-send input,.ipv-transfer-send select,.ipv-transfer-receive input{min-width:0;width:100%;padding:9px;border:1px solid #51452d;border-radius:8px;background:#101112;color:inherit}
+.ipv-transfer-card{margin-top:12px;padding:12px;border:1px solid #51452d;border-radius:10px;background:#121313}
+.ipv-transfer-card-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.ipv-transfer-item{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #303238;font-size:.84rem}
+.ipv-transfer-receive{display:grid;gap:10px;margin-top:12px}
