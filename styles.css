@@ -1037,3 +1037,55 @@ body.login-screen .auth-panel:after{height:4px;box-shadow:0 0 16px #d9aa4350}
  body.login-screen .auth-panel{box-shadow:0 18px 48px #000b,0 0 0 1px #e3bd5b12,inset 0 1px #ffffff0c}
 }
 @media(prefers-reduced-motion:reduce){.auth-form input,.auth-form .full{transition:none}}
+
+
+/* Pantalla de autenticación · mismos detalles de acabado del panel IPV */
+body.login-screen .auth-panel{
+  border-radius:16px;
+  background:
+    radial-gradient(circle at 94% 8%,#d5ad5812 0,transparent 26%),
+    radial-gradient(ellipse at 50% 0%,#49371935,transparent 46%),
+    linear-gradient(155deg,#1b1b19 0%,#121416 72%,#0e1011 100%);
+}
+body.login-screen .auth-panel:before{
+  left:18px;right:18px;
+  background:linear-gradient(90deg,transparent,#8d6a30 18%,#f0d181 50%,#8d6a30 82%,transparent);
+}
+.auth-heading{position:relative}
+.auth-heading:after{
+  content:"";width:42px;height:2px;margin-top:15px;border-radius:2px;
+  background:linear-gradient(90deg,transparent,#d9b45c,transparent);
+}
+.auth-heading h1{color:#f1dfb5!important}
+.auth-eyebrow{
+  justify-content:center;
+  text-shadow:0 1px 8px #0006;
+}
+.auth-eyebrow:before,.auth-eyebrow:after{
+  max-width:46px;
+}
+.auth-form label{display:block}
+.auth-form input{
+  width:100%;box-sizing:border-box;
+  border-radius:10px;
+}
+.auth-form .full{
+  border-radius:10px;
+  letter-spacing:.045em;
+  background:linear-gradient(110deg,#d5a849,#f0ce79 55%,#d8ad55);
+}
+.auth-status-line{
+  padding:13px 12px;margin-top:22px;
+  border:1px solid #403827;border-radius:10px;
+  background:linear-gradient(110deg,#171816,#111314);
+}
+.auth-status-line>span:first-child{color:#cfc2a5;font-weight:700}
+.auth-status-line .demo-pill{
+  min-width:100px;text-align:center;
+  border-radius:20px;letter-spacing:.06em;
+}
+.auth-session-note{padding-right:3px}
+@media(max-width:520px){
+  body.login-screen .auth-panel{padding:25px 19px 20px}
+  .auth-heading:after{margin-top:12px}
+}
