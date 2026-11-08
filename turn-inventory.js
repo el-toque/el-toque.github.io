@@ -159,6 +159,7 @@ function renderTransferProducts(){
  host.innerHTML=items.length?'<div class="table-wrap"><table><thead><tr><th>Producto</th><th>Disponible</th><th>Cantidad</th></tr></thead><tbody>'+items.map(({r,i})=>'<tr><td>'+esc(r.product)+'</td><td>'+calc(r).final+'</td><td><input type="number" min="0" max="'+Math.max(0,calc(r).final)+'" step="1" inputmode="numeric" data-transfer-row="'+(i+1)+'" value="0" aria-label="Cantidad de '+esc(r.product)+'"></td></tr>').join("")+'</tbody></table></div>':'<p class="muted small">No hay productos disponibles en la tabla IPV.</p>';
 }
 function transferStatusLabel(s){return s==="pending"?"Pendiente de recepción":s==="received"?"Recibido":"Recibido con diferencias";}
+$("refreshWorkerTransfers")?.addEventListener("click",loadTransferList);
 async function loadTransferList(){
  const host=$("ipvTransferList");if(!host||!db||!session||!navigator.onLine)return;
  try{
@@ -202,7 +203,7 @@ async function init(){
  const {url,publishableKey}=window.IPV_CONFIG;db=window.supabase.createClient(url,publishableKey);
  const {data,error}=await db.auth.getSession();if(error||!data.session)return;
  session=data.session;const {data:workerProfile}=await db.from("profiles").select("ipv_mode,worker_permissions").eq("id",session.user.id).maybeSingle();
- independentMode=workerProfile?.ipv_mode==="independent";canCloseTurn=workerProfile?.worker_permissions?.can_close_day!==false;canCountStock=workerProfile?.worker_permissions?.can_count_stock!==false;ready=true;const email=(session.user.email||"").toLowerCase();
+ independentMode=workerProfile?.ipv_mode==="independent";if($("ipvTransferDestination")){$("ipvTransferDestination").value=independentMode?"shift":"independent";$("ipvTransferDestination").disabled=true;}canCloseTurn=workerProfile?.worker_permissions?.can_close_day!==false;canCountStock=workerProfile?.worker_permissions?.can_count_stock!==false;ready=true;const email=(session.user.email||"").toLowerCase();
  shift=email==="dependiente1@eltoque.com"?1:email==="dependiente2@eltoque.com"?2:0;
  if(!shift&&!independentMode)return;
  try{await load();renderTransferProducts();await loadTransferList();if(db.channel){db.channel("worker-entry-requests-"+session.user.id).on("postgres_changes",{event:"INSERT",schema:"public",table:independentMode?"worker_independent_entry_requests":"worker_turn_entry_requests",filter:"worker_id=eq."+session.user.id},()=>loadPendingRequests()).subscribe();}}catch(e){$("closeTurnBtn").disabled=true;$("addTurnRow").disabled=true;$("exportTurnXlsx").disabled=true;$("exportTurnPdf").disabled=true;rows=[];render();status(e.message||"No se pudo cargar el turno.");}
