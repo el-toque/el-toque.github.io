@@ -187,7 +187,6 @@ $("ipvTransferList")?.addEventListener("click",async e=>{
  const btn=e.target.closest("[data-confirm-transfer]");if(!btn)return;btn.disabled=true;
  try{
   const id=btn.dataset.confirmTransfer,inputs=[...document.querySelectorAll('[data-receive-transfer="'+id+'"]')];
-  const received_items=inputs.map(el=>({product:((JSON.parse(btn.closest(".ipv-transfer-card").querySelectorAll(".ipv-transfer-item")[Number(el.dataset.receiveIndex)]?.textContent||"{}"))),quantity:Number(el.value)}));
   const card=btn.closest(".ipv-transfer-card"),transfer=(await db.rpc("worker_ipv_transfer_list")).data||[];
   const parsed=transfer.map(x=>typeof x==="string"?JSON.parse(x):x).find(x=>x.id===id);
   const values=inputs.map((el,i)=>({product:parsed.items[i].product,quantity:Number(el.value)}));
