@@ -368,14 +368,10 @@ async function loadAdminDashboard(){
  // Turnos 1 y 2: última sesión de cada trabajador regular.
  // Turno 3: sesión independiente activa, sin sumar sesiones cerradas.
  const workerList=workersResult.data||[];
- const regularWorkers=workerList.filter(w=>w.active&&w.ipv_mode!=="independent");
- const latestSessionByWorker=new Map();
- for(const row of inventoryResult.data||[]){
-  if(!regularWorkers.some(w=>w.id===row.worker_id))continue;
-  const n=Number(row.session_no)||0;
-  latestSessionByWorker.set(row.worker_id,Math.max(latestSessionByWorker.get(row.worker_id)||0,n));
- }
- const currentRows=(inventoryResult.data||[]).filter(row=>latestSessionByWorker.get(row.worker_id)===(Number(row.session_no)||0));
+ const {data:activeTargetData,error:activeTargetError}=await client.rpc("admin_get_active_worker_turn",{p_business_date:localBusinessDate()});
+ if(activeTargetError){toast("No se pudo identificar el turno activo para el resumen: "+activeTargetError.message);return;}
+ const activeTarget=Array.isArray(activeTargetData)?activeTargetData[0]:activeTargetData;
+ const currentRows=(inventoryResult.data||[]).filter(row=>activeTarget&&row.worker_id===activeTarget.worker_id&&Number(row.session_no)===Number(activeTarget.session_no));
  const stockByProduct=new Map();
  for(const row of currentRows){
   const name=String(row.product_name||"").trim();
@@ -402,9 +398,6 @@ async function loadAdminDashboard(){
  const normalizeProductName=name=>String(name||"").trim().toLocaleLowerCase("es");
  const availableProductNames=new Set(inventoryProducts.filter(([,qty])=>qty>0).map(([name])=>normalizeProductName(name)));
  const outOfStockProductNames=new Set(inventoryProducts.filter(([,qty])=>qty<=0).map(([name])=>normalizeProductName(name)));
- // Pan es una existencia compartida entre los turnos 1 y 2: se cuenta una vez.
- availableProductNames.add("pan");
- outOfStockProductNames.delete("pan");
  const availableProducts=availableProductNames.size;
  const outOfStockProducts=[...outOfStockProductNames].filter(name=>!availableProductNames.has(name)).length;
  $("dashSalesToday").textContent=money(todayTotal);$("dashSalesTodayCount").textContent=today.length+" operaciones";
