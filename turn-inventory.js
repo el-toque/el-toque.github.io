@@ -30,13 +30,14 @@ function renderPhysicalCount(){
  const items=rows.filter(r=>r.product.trim()!=="");
  body.innerHTML=items.map((r,i)=>{const rowNo=i+1,expected=calc(r).final,has=Object.prototype.hasOwnProperty.call(physicalCountValues,rowNo),physical=has?physicalCountValues[rowNo]:"",difference=has&&physical!==""?Number(physical)-expected:null;return `<tr data-physical-row="${rowNo}"><td>${esc(r.product)}</td><td class="calculated">${expected}</td><td><input type="number" min="0" step="1" inputmode="numeric" data-physical-input="${rowNo}" value="${physical}" aria-label="Conteo físico de ${esc(r.product)}"></td><td class="calculated">${difference===null?"—":difference===0?"0":(difference>0?"+":"")+difference}</td></tr>`;}).join("");
  const button=$("confirmPhysicalCountBtn");if(button)button.disabled=!items.length;
+ const closeButton=$("closeTurnBtn");if(closeButton)closeButton.disabled=!canCloseTurn||!physicalCountConfirmed;
  const statusNode=$("physicalCountStatus");if(statusNode)statusNode.textContent=physicalCountResult||(items.length?"Cuenta físicamente todos los productos e introduce cada cantidad, incluso cuando sea cero.":"Añade productos al IPV antes de realizar el conteo físico.");
  const badge=$("physicalCountBadge");if(badge){badge.textContent=physicalCountConfirmed?"CONTEO CONFIRMADO":"PENDIENTE DE CONTEO";badge.classList.toggle("online",physicalCountConfirmed);badge.classList.toggle("offline",!physicalCountConfirmed);}
 }
 function status(t){$("turnStatus").textContent=t;}
 async function saveDraft(){try{localStorage.setItem(key(),JSON.stringify(rows));}catch(e){status("No se pudo guardar el borrador en este teléfono.");}}
 async function persistRows(){
- physicalCountConfirmed=false;physicalCountResult="El inventario cambió. Debes repetir y confirmar el conteo físico.";
+ physicalCountConfirmed=false;physicalCountValues={};physicalCountResult="El inventario cambió. Debes repetir y confirmar el conteo físico.";
  await saveDraft();
  if(!navigator.onLine||!db||!session)return;
  const payload=rows.filter(r=>r.product.trim()!=="").map(r=>({product:r.product.trim(),start:Number(r.start)||0,entry:Number(r.entry)||0,sold:Number(r.sold)||0,price:Number(r.price)||0}));
@@ -77,7 +78,7 @@ async function load(){
  if(!rows.some(r=>r.product.trim())&&saved){try{const draft=JSON.parse(saved);if(Array.isArray(draft)&&draft.length)rows=draft;}catch(_){}}
  if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));
  closure=null;setMeta();$("addTurnRow").disabled=false;$("exportTurnXlsx").disabled=false;$("exportTurnPdf").disabled=false;$("turnDocumentNo").textContent="N°"+String((last.last_closure_no||0)+1).padStart(2,"0");render();
- $("closeTurnBtn").disabled=!canCloseTurn;
+ $("closeTurnBtn").disabled=!canCloseTurn||!physicalCountConfirmed;
  status("Sesión "+sessionNo+" activa. Puedes editar las celdas habilitadas.");
  await persistRows();
  await loadPendingRequests();
@@ -93,7 +94,7 @@ async function loadIndependent(){
  rows=(data.rows||[]).map(r=>row(r.product,r.start,r.entry,r.sold,r.price));
  if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));
  closure=null;setMeta();$("addTurnRow").disabled=false;$("exportTurnXlsx").disabled=false;$("exportTurnPdf").disabled=false;
- $("turnDocumentNo").textContent="N°"+String(Number(data.last_closure_no||0)+1).padStart(2,"0");render();$("closeTurnBtn").disabled=!canCloseTurn;
+ $("turnDocumentNo").textContent="N°"+String(Number(data.last_closure_no||0)+1).padStart(2,"0");render();$("closeTurnBtn").disabled=!canCloseTurn||!physicalCountConfirmed;
  status("Jornada independiente "+sessionNo+" activa. Puedes cerrarla cuando decidas, sin límite de horas.");
  await persistRows();await loadPendingRequests();await history();
 }
@@ -195,6 +196,7 @@ $("confirmPhysicalCountBtn")?.addEventListener("click",async()=>{
 $("turnRows")?.addEventListener("input",e=>{
  const input=e.target.closest("[data-field]");if(!input)return;const tr=input.closest("[data-row]"),i=Number(tr.dataset.row),field=input.dataset.field;
  rows[i][field]=field==="product"?input.value:(input.value===""?0:Number(input.value));
+ physicalCountConfirmed=false;physicalCountValues={};physicalCountResult="El inventario cambió. Debes repetir el conteo físico.";renderPhysicalCount();
  const c=calc(rows[i]);tr.cells[3].textContent=c.available;tr.cells[4].textContent=c.final;tr.cells[7].textContent=money(c.amount);$("turnGrandTotal").textContent=money(total());saveDraft();
 });
 $("closeTurnBtn")?.addEventListener("click",async()=>{
@@ -215,7 +217,7 @@ $("closeTurnBtn")?.addEventListener("click",async()=>{
   status("Turno cerrado correctamente. Documento N°"+String(number).padStart(2,"0")+". Total: "+money(data.total)+".");
   await history();
   if(independentMode){localStorage.removeItem(key());await loadIndependent();}else{rows=(data.rows||[]).map(r=>row(r.product,r.final,0,0,r.price));render();$("closeTurnBtn").disabled=true;}
- }catch(e){status("No se pudo cerrar: "+(e.message||"Error inesperado"));$("closeTurnBtn").disabled=!canCloseTurn;}
+ }catch(e){status("No se pudo cerrar: "+(e.message||"Error inesperado"));$("closeTurnBtn").disabled=!canCloseTurn||!physicalCountConfirmed;}
  finally{working=false;}
 });
 const observer=new MutationObserver(()=>{if($("appPanel")?.classList.contains("hidden")){ready=false;session=null;shift=0;rows=[];}else init();});
