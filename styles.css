@@ -1099,3 +1099,63 @@ body.login-screen .auth-panel:before{
 .stock-summary-breakdown strong{display:block;margin-top:2px;color:#e8bd58;font-size:1rem;font-weight:850;font-variant-numeric:tabular-nums}
 .stock-summary-foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:5px;margin-top:4px;padding-top:7px;border-top:1px solid #303238;color:#aaa39a;font-size:.68rem}
 .stock-summary-foot span:last-child{color:#e4b65b}
+
+
+/* Menú lateral: acabado visual coherente con «Resumen del negocio» */
+.admin-sidebar{
+  padding:15px 13px!important;
+  border:1px solid #37322a!important;
+  border-radius:14px!important;
+  background:linear-gradient(155deg,#1b1b19 0%,#141516 58%,#101112 100%)!important;
+  box-shadow:0 8px 28px #0007, inset 0 1px #ffffff08!important;
+}
+.admin-sidebar-brand{border-bottom:1px solid #403827!important;padding-bottom:16px!important}
+.admin-sidebar-caption{color:#d2ad59!important;margin-top:17px!important}
+.admin-sidebar #adminTabs{gap:8px!important}
+.admin-sidebar #adminTabs .tab{
+  min-height:45px!important;
+  padding:10px 12px!important;
+  border:1px solid #403827!important;
+  border-radius:10px!important;
+  background:linear-gradient(120deg,#1b1b19,#151617)!important;
+  color:#d8d0c1!important;
+  box-shadow:0 3px 10px #0003!important;
+}
+.admin-sidebar #adminTabs .tab:hover,
+.admin-sidebar #adminTabs .tab:focus-visible{
+  border-color:#8d6b30!important;
+  background:linear-gradient(120deg,#282216,#1a1915)!important;
+  color:#f2d995!important;
+}
+.admin-sidebar #adminTabs .tab.active{
+  border-color:#a17a31!important;
+  background:linear-gradient(120deg,#342817,#211b11)!important;
+  color:#f4d887!important;
+  box-shadow:inset 3px 0 #d5a943,0 5px 14px #0005!important;
+}
+.admin-sidebar #adminTabs .tab-icon{stroke:#d6b45f!important}
+.admin-sidebar-status{
+  margin-top:auto!important;
+  padding:14px 10px 12px!important;
+  border:1px solid #403827!important;
+  border-radius:10px!important;
+  background:linear-gradient(120deg,#1b1b19,#141516)!important;
+}
+.admin-sidebar-status-label{color:#d2ad59!important}
+.admin-sidebar-footer{
+  margin-top:12px!important;
+  padding:13px 4px 3px!important;
+  border-top:1px solid #403827!important;
+}
+.admin-sidebar-footer #logoutBtn,
+.admin-sidebar-footer #workerLogoutBtn{
+  border:1px solid #806333!important;
+  border-radius:9px!important;
+  background:linear-gradient(120deg,#211d15,#171613)!important;
+  color:#e8ca7c!important;
+}
+.admin-sidebar-footer #logoutBtn:hover,
+.admin-sidebar-footer #workerLogoutBtn:hover{
+  border-color:#c89a3c!important;
+  background:linear-gradient(120deg,#302516,#211b12)!important;
+}
