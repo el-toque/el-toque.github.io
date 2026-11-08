@@ -819,3 +819,142 @@ body.admin-mode .topbar{display:none!important}
   #dashboardTab .stat span{font-size:.62rem}
   #dashboardTab .stat small{font-size:.62rem}
 }
+
+
+/* Acabado visual EL TOQUE · menú lateral y pantallas de administración y trabajadores */
+.admin-sidebar{
+  border-color:#6b5329;
+  background:
+    radial-gradient(ellipse at 12% 0%,#3a2c1740,transparent 42%),
+    linear-gradient(180deg,#191816 0%,#101112 58%,#0b0c0d 100%);
+  box-shadow:8px 0 34px #0008,inset -1px 0 #ffffff08;
+}
+.admin-sidebar-brand{border-bottom-color:#514329;padding-bottom:19px}
+.admin-sidebar-mark{background:linear-gradient(145deg,#382b16,#17130c);box-shadow:0 3px 12px #0006}
+.admin-sidebar-caption{display:flex;align-items:center;gap:8px;color:#c3a45e}
+.admin-sidebar-caption:after{content:"";height:1px;flex:1;background:linear-gradient(90deg,#5d4826,transparent)}
+.admin-sidebar #adminTabs .tab,
+.worker-mode .admin-sidebar #workerTabs .tab{
+  position:relative;overflow:hidden;
+  border-color:transparent;
+  transition:background .18s,border-color .18s,transform .18s,box-shadow .18s;
+}
+.admin-sidebar #adminTabs .tab:hover,
+.worker-mode .admin-sidebar #workerTabs .tab:hover{transform:translateX(2px);border-color:#5b4828}
+.admin-sidebar #adminTabs .tab.active,
+.worker-mode .admin-sidebar #workerTabs .tab.active{
+  background:linear-gradient(105deg,#493719 0%,#282013 72%,#1b1914 100%);
+  border-color:#8c6a2d;
+  box-shadow:inset 3px 0 #e0b957,0 5px 16px #0005;
+}
+.admin-sidebar #adminTabs .tab.active:after,
+.worker-mode .admin-sidebar #workerTabs .tab.active:after{
+  content:"";position:absolute;right:10px;top:50%;width:5px;height:5px;
+  border-radius:50%;background:#f0d27b;box-shadow:0 0 9px #e9c46c;transform:translateY(-50%);
+}
+.admin-sidebar-footer,.admin-sidebar-status{border-top-color:#514329}
+.admin-sidebar-footer #logoutBtn,.worker-mode .admin-sidebar-footer #workerLogoutBtn{
+  border-color:#80622d;background:linear-gradient(120deg,#302515,#1a1711);
+  box-shadow:inset 0 1px #ffffff12,0 4px 12px #0004;
+}
+.admin-sidebar-footer #logoutBtn:hover,.worker-mode .admin-sidebar-footer #workerLogoutBtn:hover{
+  border-color:#d1a64c;background:linear-gradient(120deg,#493719,#292013);
+}
+.admin-mode #appPanel>.hero,.worker-mode #appPanel>.hero{
+  position:relative;overflow:hidden;
+  background:radial-gradient(ellipse at 95% 0%,#5a431c38,transparent 42%),linear-gradient(115deg,#171512,#211b10 72%,#171512);
+  border-color:#65502b;box-shadow:0 10px 28px #0006,inset 0 1px #ffffff0a;
+}
+.admin-mode #appPanel>.hero:after,.worker-mode #appPanel>.hero:after{
+  content:"";position:absolute;right:20px;top:-48px;width:132px;height:132px;
+  border:1px solid #d5ad5540;border-radius:50%;
+  box-shadow:0 0 0 12px #d5ad5509,0 0 0 25px #d5ad5506;pointer-events:none;
+}
+.admin-mode #appPanel>.hero h1,.worker-mode #appPanel>.hero h1{text-shadow:0 2px 12px #0008}
+.admin-mode #appPanel>.hero #welcome,.worker-mode #appPanel>.hero #welcome{position:relative;z-index:1}
+.admin-mode #appPanel>.hero #logoutBtn,.worker-mode #appPanel>.hero #logoutBtn{
+  position:relative;z-index:1;box-shadow:0 4px 12px #0005,inset 0 1px #ffffff55;
+}
+.admin-mode #appPanel>.panel,.worker-mode #appPanel>.panel{
+  position:relative;
+  border:1px solid #3d382e;
+  border-radius:13px;
+  background:linear-gradient(155deg,#17191b 0%,#121416 75%,#101112 100%);
+  box-shadow:0 8px 25px #0005,inset 0 1px #ffffff08;
+}
+.admin-mode #appPanel>.panel:before,.worker-mode #appPanel>.panel:before{
+  content:"";position:absolute;top:0;left:18px;right:18px;height:1px;
+  background:linear-gradient(90deg,transparent,#c9a14d88 25%,#e5c575 50%,#c9a14d88 75%,transparent);
+  pointer-events:none;
+}
+.admin-mode #appPanel>.panel>.toolbar,.worker-mode #appPanel>.panel>.toolbar{
+  padding-bottom:12px;border-bottom:1px solid #3b3529;
+}
+.admin-mode #appPanel>.panel .toolbar h2,.worker-mode #appPanel>.panel .toolbar h2{
+  color:#f0dfb5;letter-spacing:-.02em;
+}
+.admin-mode #appPanel>.panel .toolbar .eyebrow,.worker-mode #appPanel>.panel .toolbar .eyebrow{
+  color:#d9b45e;letter-spacing:.15em;
+}
+.admin-mode #appPanel>.panel .toolbar .secondary,.worker-mode #appPanel>.panel .toolbar .secondary{
+  border-color:#66532f;background:linear-gradient(145deg,#302719,#201b13);
+  color:#edcf82;box-shadow:inset 0 1px #ffffff10,0 3px 9px #0004;
+}
+.admin-mode #appPanel>.panel .toolbar .secondary:hover,.worker-mode #appPanel>.panel .toolbar .secondary:hover{
+  border-color:#b18a43;background:#3a2e1a;
+}
+.admin-mode #appPanel>.panel h2,.admin-mode #appPanel>.panel h3,
+.worker-mode #appPanel>.panel h2,.worker-mode #appPanel>.panel h3{color:#e9d39d}
+.admin-mode #appPanel>.panel .notice,.worker-mode #appPanel>.panel .notice{
+  border-color:#5a4828;border-left-color:#d5aa4d;
+  background:linear-gradient(100deg,#241e13,#1a1915);color:#e7d7b2;
+}
+.admin-mode #appPanel>.panel .table-wrap,.worker-mode #appPanel>.panel .table-wrap{
+  border-color:#49402e;border-radius:10px;box-shadow:0 4px 14px #0003;
+}
+.admin-mode #appPanel>.panel table,.worker-mode #appPanel>.panel table{background:#141618}
+.admin-mode #appPanel>.panel th,.worker-mode #appPanel>.panel th{
+  background:linear-gradient(180deg,#302819,#242016);color:#ebce83;
+  border-bottom-color:#66532f;
+}
+.admin-mode #appPanel>.panel td,.worker-mode #appPanel>.panel td{border-bottom-color:#34312a}
+.admin-mode #appPanel>.panel tbody tr:hover,.worker-mode #appPanel>.panel tbody tr:hover{background:#292316}
+.admin-mode #appPanel>.panel .stat,.worker-mode #appPanel>.panel .stat,
+.admin-mode #appPanel>.panel .dashboard-card,.worker-mode #appPanel>.panel .dashboard-card{
+  border-color:#48402f;background:linear-gradient(145deg,#1c1d1c,#141516);
+  box-shadow:0 4px 14px #0004;
+}
+.admin-mode #appPanel>.panel input:focus,.admin-mode #appPanel>.panel select:focus,
+.admin-mode #appPanel>.panel textarea:focus,.worker-mode #appPanel>.panel input:focus,
+.worker-mode #appPanel>.panel select:focus,.worker-mode #appPanel>.panel textarea:focus{
+  border-color:#bd9849;box-shadow:0 0 0 3px #c49a3b20;
+}
+.admin-mode #appPanel>.panel .primary,.worker-mode #appPanel>.panel .primary{
+  background:linear-gradient(115deg,#d7ad52,#f0ce79);border-color:#d2a64b;color:#1b160c;
+  box-shadow:inset 0 1px #ffffff65,0 4px 12px #0004;
+}
+.admin-mode #appPanel>.panel .primary:hover,.worker-mode #appPanel>.panel .primary:hover{
+  filter:brightness(1.08);box-shadow:0 6px 16px #c99b3b25;
+}
+.admin-mode #appPanel>.panel .secondary,.worker-mode #appPanel>.panel .secondary{
+  border-color:#51462f;background:#1b1c1b;color:#e7c878;
+}
+.admin-mode #appPanel>.panel .empty,.worker-mode #appPanel>.panel .empty{color:#aaa18e}
+.worker-mode #dailyTab .daily-total{
+  border-color:#69532b;border-left-color:#d7ad52;
+  background:linear-gradient(110deg,#262013,#171613);
+  box-shadow:0 5px 16px #0004;
+}
+.worker-mode #dailyTab .daily-total strong{color:#f0d080}
+.worker-mode #dailyTab .daily-bills-section,
+.worker-mode #dailyTab .panel{border-color:#48402f}
+.worker-mode #shopTab .shop-section-head h3{color:#f0dfb5}
+.worker-mode #shopTab .shop-live-tag{padding:5px 9px;border:1px solid #34513b;border-radius:20px;background:#17251d}
+@media(max-width:820px){
+  .admin-sidebar{box-shadow:12px 0 38px #000b,inset -1px 0 #ffffff0a}
+  .admin-mode #appPanel>.hero,.worker-mode #appPanel>.hero{border-radius:11px}
+  .admin-mode #appPanel>.panel,.worker-mode #appPanel>.panel{border-radius:11px}
+}
+@media(prefers-reduced-motion:reduce){
+  .admin-sidebar #adminTabs .tab,.worker-mode .admin-sidebar #workerTabs .tab{transition:none}
+}
