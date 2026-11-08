@@ -37,7 +37,7 @@ function renderPhysicalCount(){
 function status(t){$("turnStatus").textContent=t;}
 async function saveDraft(){try{localStorage.setItem(key(),JSON.stringify(rows));}catch(e){status("No se pudo guardar el borrador en este teléfono.");}}
 async function persistRows(){
- physicalCountConfirmed=false;physicalCountValues={};physicalCountResult="El inventario cambió. Debes repetir y confirmar el conteo físico.";
+ physicalCountConfirmed=false;physicalCountValues={};physicalCountResult="El inventario cambió. Debes repetir y confirmar el conteo físico.";renderPhysicalCount();
  await saveDraft();
  if(!navigator.onLine||!db||!session)return;
  const payload=rows.filter(r=>r.product.trim()!=="").map(r=>({product:r.product.trim(),start:Number(r.start)||0,entry:Number(r.entry)||0,sold:Number(r.sold)||0,price:Number(r.price)||0}));
