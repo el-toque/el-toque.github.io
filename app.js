@@ -13,6 +13,7 @@ async function localGet(key){const db=await offlineDB();return new Promise((reso
 async function localPut(key,value){const db=await offlineDB();return new Promise((resolve,reject)=>{const tx=db.transaction("records","readwrite");tx.objectStore("records").put(value,key);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
 async function localDelete(key){const db=await offlineDB();return new Promise((resolve,reject)=>{const tx=db.transaction("records","readwrite");tx.objectStore("records").delete(key);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
 async function pendingSales(){return (await localGet("pending_sales"))||[];}
+window.getIPVPendingSalesCount=async()=>{try{return (await pendingSales()).length;}catch(_){return null;}};
 function updateHeaderIndicators(pendingCount=null){
  const page=$("headerPageStatus"),turn=$("headerTurnStatus");
  if(page){const pending=Number(pendingCount)||0;page.textContent=pending?pending+" VENTA(S) PENDIENTE(S)":(navigator.onLine?"EN LÍNEA":"SIN CONEXIÓN");page.classList.toggle("online",navigator.onLine&&pending===0);page.classList.toggle("offline",!navigator.onLine);page.classList.toggle("pending",pending>0);}
