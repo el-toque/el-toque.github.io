@@ -482,35 +482,36 @@ async function loadAdminDashboard(){
  if(!admin()||!navigator.onLine)return;
  const now=new Date(),todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()),tomorrow=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1),monthStart=new Date(now.getFullYear(),now.getMonth(),1);
  const sales=[];for(let from=0;;from+=1000){const page=await client.from("sales").select("id,total,payment_method,created_at").eq("status","completed").gte("created_at",monthStart.toISOString()).lt("created_at",tomorrow.toISOString()).order("created_at",{ascending:false}).range(from,from+999);if(page.error){toast("No se pudo actualizar el resumen: "+page.error.message);return}sales.push(...(page.data||[]));if(!page.data||page.data.length<1000)break;}
- const [productsResult,workersResult,allocationsResult]=await Promise.all([
-  client.from("products").select("id,stock"),
-  client.from("profiles").select("id,ipv_mode,active").eq("role","worker"),
-  client.from("worker_stock_allocations").select("worker_id,product_id,quantity_remaining")
+ const [inventoryResult,workersResult]=await Promise.all([
+  client.from("worker_turn_inventory_items").select("worker_id,session_no,product_name,final_qty,available_qty,updated_at"),
+  client.from("profiles").select("id,ipv_mode,active").eq("role","worker")
  ]);
- for(const x of [productsResult,workersResult,allocationsResult])if(x.error){toast("No se pudo actualizar el resumen: "+x.error.message);return}
+ for(const x of [inventoryResult,workersResult])if(x.error){toast("No se pudo actualizar el resumen: "+x.error.message);return}
  const today=sales.filter(x=>new Date(x.created_at)>=todayStart);
  const todayTotal=today.reduce((n,x)=>n+Number(x.total||0),0),monthTotal=sales.reduce((n,x)=>n+Number(x.total||0),0);
  const todayCash=today.filter(x=>x.payment_method==="cash").reduce((n,x)=>n+Number(x.total||0),0),todayTransfer=today.filter(x=>x.payment_method==="transfer").reduce((n,x)=>n+Number(x.total||0),0);
- // El stock de products ya representa el total por producto (almacén + trabajadores).
- // Las asignaciones solo desglosan su ubicación: no se suman por segunda vez.
- // Los perfiles IPV Independiente quedan excluidos del inventario regular.
- const regularWorkerIds=new Set((workersResult.data||[]).filter(w=>w.ipv_mode!=="independent").map(w=>w.id));
- const workerStockByProduct=new Map();
- for(const allocation of allocationsResult.data||[]){
-  if(!regularWorkerIds.has(allocation.worker_id))continue;
-  const id=allocation.product_id;
-  workerStockByProduct.set(id,(workerStockByProduct.get(id)||0)+Math.max(0,Number(allocation.quantity_remaining)||0));
+ // Las existencias regulares se leen del IPV vigente de cada trabajador.
+ // Se toma la última sesión de cada trabajador para no sumar cierres anteriores.
+ // El IPV Independiente permanece completamente separado.
+ const regularWorkers=(workersResult.data||[]).filter(w=>w.active&&w.ipv_mode!=="independent");
+ const latestSessionByWorker=new Map();
+ for(const row of inventoryResult.data||[]){
+  if(!regularWorkers.some(w=>w.id===row.worker_id))continue;
+  const n=Number(row.session_no)||0;
+  latestSessionByWorker.set(row.worker_id,Math.max(latestSessionByWorker.get(row.worker_id)||0,n));
  }
- const inventoryProducts=productsResult.data||[];
- let warehouseStock=0,workerStock=0,stockTotal=0,availableProducts=0;
- for(const product of inventoryProducts){
-  const total=Math.max(0,Number(product.stock)||0);
-  const assigned=Math.min(total,workerStockByProduct.get(product.id)||0);
-  stockTotal+=total;
-  workerStock+=assigned;
-  warehouseStock+=total-assigned;
-  if(total>0)availableProducts++;
+ const currentRows=(inventoryResult.data||[]).filter(row=>latestSessionByWorker.get(row.worker_id)===(Number(row.session_no)||0));
+ const stockByProduct=new Map();
+ for(const row of currentRows){
+  const name=String(row.product_name||"").trim();
+  if(!name)continue;
+  const qty=Math.max(0,Number(row.final_qty??row.available_qty)||0);
+  stockByProduct.set(name,(stockByProduct.get(name)||0)+qty);
  }
+ const inventoryProducts=[...stockByProduct.entries()];
+ const stockTotal=inventoryProducts.reduce((n,[,qty])=>n+qty,0);
+ const workerStock=stockTotal,warehouseStock=0;
+ const availableProducts=inventoryProducts.filter(([,qty])=>qty>0).length;
  const outOfStock=inventoryProducts.length-availableProducts;
  $("dashSalesToday").textContent=money(todayTotal);$("dashSalesTodayCount").textContent=today.length+" operaciones";
  $("dashSalesMonth").textContent=money(monthTotal);$("dashSalesMonthCount").textContent=sales.length+" operaciones";
