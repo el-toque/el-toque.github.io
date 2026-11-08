@@ -76,6 +76,12 @@
       </div>
       <p class="muted small">Edita únicamente Producto, Inicio, Entrada, Vendido y Precio. Disponible, Final e Importe se calculan automáticamente y no se pueden modificar.</p>
       <div class="table-wrap turn-table-wrap"><table class="turn-table"><thead><tr><th>Producto</th><th>Inicio</th><th>Entrada</th><th>Disponible</th><th>Final</th><th>Vendido</th><th>Precio</th><th>Importe</th></tr></thead><tbody id="turnRows"></tbody><tfoot><tr><th colspan="7">TOTAL GENERAL</th><th id="turnGrandTotal">0,00 CUP</th></tr></tfoot></table></div>
+      <section class="physical-count-section">
+        <div class="toolbar"><div><p class="eyebrow">VERIFICACIÓN OBLIGATORIA</p><h3>Conteo físico de existencias</h3><p class="muted small">Cuenta lo que tienes realmente y compáralo con la columna Final del IPV. Todos los productos deben coincidir para poder cerrar y entregar el inventario.</p></div><span id="physicalCountBadge" class="demo-pill offline">PENDIENTE DE CONTEO</span></div>
+        <div class="table-wrap"><table class="turn-table"><thead><tr><th>Producto</th><th>Final IPV</th><th>Conteo físico</th><th>Diferencia</th></tr></thead><tbody id="physicalCountRows"></tbody></table></div>
+        <div class="turn-actions"><button type="button" id="confirmPhysicalCountBtn" class="primary">Verificar y confirmar conteo físico</button></div>
+        <p id="physicalCountStatus" class="muted small" role="status">Realiza el conteo de todos los productos antes de cerrar.</p>
+      </section>
       <div class="turn-actions"><span class="muted small" id="turnRowsCount">20 filas</span><button type="button" id="addTurnRow" class="secondary">＋ Añadir fila</button><button type="button" id="exportTurnXlsx" class="secondary">Exportar Excel (.xlsx)</button><button type="button" id="exportTurnPdf" class="secondary">Exportar PDF</button><button type="button" id="closeTurnBtn" class="primary">Terminar Turno</button></div>
       <section class="turn-pending-requests"><h3>Entradas pendientes de aprobación</h3><p class="muted small">Las cantidades propuestas por administración no afectan tus existencias hasta que las aceptes.</p><div id="turnPendingRequests"><p class="muted small">Buscando entradas pendientes…</p></div></section>
       <p id="turnStatus" class="muted small" role="status">Preparando el turno…</p>
@@ -134,5 +140,5 @@
   },5000);
 })();
 </script>
-<script src="config.js?v=52"></script><script src="app.js?v=96"></script><script src="turn-inventory.js?v=55"></script>
+<script src="config.js?v=52"></script><script src="app.js?v=97"></script><script src="turn-inventory.js?v=56"></script>
 </body></html>
