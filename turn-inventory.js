@@ -24,6 +24,7 @@ function render(){
  $("turnGrandTotal").textContent=money(total());
  $("turnRowsCount").textContent=rows.length+" filas";
  renderPhysicalCount();
+ renderTransferProducts();
 }
 function renderPhysicalCount(){
  const body=$("physicalCountRows");if(!body)return;
@@ -155,8 +156,9 @@ async function exportData(savedRows,number,shiftNo,date,format="both",archive=fa
 
 function renderTransferProducts(){
  const host=$("ipvTransferProducts");if(!host)return;
+ const previous=new Map([...host.querySelectorAll("[data-transfer-row]")].map(el=>[el.dataset.transferRow,el.value]));
  const items=rows.map((r,i)=>({r,i})).filter(x=>x.r.product.trim());
- host.innerHTML=items.length?'<div class="table-wrap"><table><thead><tr><th>Producto</th><th>Disponible</th><th>Cantidad</th></tr></thead><tbody>'+items.map(({r,i})=>'<tr><td>'+esc(r.product)+'</td><td>'+calc(r).final+'</td><td><input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="done" maxlength="7" data-transfer-row="'+(i+1)+'" value="0" aria-label="Cantidad de '+esc(r.product)+'"></td></tr>').join("")+'</tbody></table></div>':'<p class="muted small">No hay productos disponibles en la tabla IPV.</p>';
+ host.innerHTML=items.length?'<p class="muted small">Escribe en “Cantidad a enviar” cuántas unidades deseas enviar de cada producto. Deja 0 en los que no quieras incluir.</p><div class="table-wrap"><table><thead><tr><th>Producto</th><th>Disponible</th><th>Cantidad a enviar</th></tr></thead><tbody>'+items.map(({r,i})=>'<tr><td>'+esc(r.product)+'</td><td>'+calc(r).final+'</td><td><input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="done" maxlength="7" data-transfer-row="'+(i+1)+'" value="'+(previous.get(String(i+1))??"0")+'" aria-label="Cantidad a enviar de '+esc(r.product)+'" placeholder="0"></td></tr>').join("")+'</tbody></table></div>':'<p class="muted small">Añade primero los productos en la tabla IPV. Aquí aparecerá una casilla “Cantidad a enviar” para cada producto.</p>';
 }
 function transferStatusLabel(s){return s==="pending"?"Pendiente de recepción":s==="received"?"Recibido":"Recibido con diferencias";}
 $("refreshWorkerTransfers")?.addEventListener("click",loadTransferList);
@@ -174,6 +176,7 @@ async function loadTransferList(){
   }).join(""):'<p class="muted small">Todavía no hay traspasos registrados.</p>';
  }catch(e){host.innerHTML='<p class="muted small">No se pudo cargar el historial de traspasos: '+esc(e.message||"Error")+'</p>';}
 }
+$("ipvTransferProducts")?.addEventListener("input",e=>{const input=e.target.closest("[data-transfer-row]");if(!input)return;input.value=input.value.replace(/[^0-9]/g,"").slice(0,7);});
 $("ipvTransferSendBtn")?.addEventListener("click",async()=>{
  if(working||!navigator.onLine){$("ipvTransferStatus").textContent="Necesitas conexión para enviar mercancía.";return;}
  const items=[...document.querySelectorAll("[data-transfer-row]")].map(el=>({row_no:Number(el.dataset.transferRow),quantity:Number(el.value)})).filter(x=>x.quantity>0);
@@ -244,7 +247,7 @@ $("turnRows")?.addEventListener("input",e=>{
  const input=e.target.closest("[data-field]");if(!input)return;const tr=input.closest("[data-row]"),i=Number(tr.dataset.row),field=input.dataset.field;
  rows[i][field]=field==="product"?input.value:(input.value===""?0:Number(input.value));
  physicalCountConfirmed=false;physicalCountValues={};physicalCountResult="El inventario cambió. Debes repetir el conteo físico.";renderPhysicalCount();
- const c=calc(rows[i]);tr.cells[3].textContent=c.available;tr.cells[4].textContent=c.final;tr.cells[7].textContent=money(c.amount);$("turnGrandTotal").textContent=money(total());saveDraft();
+ const c=calc(rows[i]);tr.cells[3].textContent=c.available;tr.cells[4].textContent=c.final;tr.cells[7].textContent=money(c.amount);$("turnGrandTotal").textContent=money(total());renderTransferProducts();saveDraft();
 });
 $("closeTurnBtn")?.addEventListener("click",async()=>{
  if(!physicalCountConfirmed){status("No puedes cerrar el IPV ni entregar el inventario: primero realiza y confirma el conteo físico de todos los productos sin diferencias.");return;}
