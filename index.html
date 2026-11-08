@@ -86,6 +86,8 @@
       <section class="turn-pending-requests"><h3>Entradas pendientes de aprobación</h3><p class="muted small">Las cantidades propuestas por administración no afectan tus existencias hasta que las aceptes.</p><div id="turnPendingRequests"><p class="muted small">Buscando entradas pendientes…</p></div></section>
       <p id="turnStatus" class="muted small" role="status">Preparando el turno…</p>
       <div class="turn-history"><h3>Últimos cierres</h3><div id="turnHistory"></div></div>
+    
+      <section class="turn-pending-requests ipv-transfer-panel"><h3>Traspasos entre IPV</h3><p class="muted small">Envía mercancía al otro IPV activo. El inventario receptor solo se actualiza cuando confirme la cantidad recibida.</p><div class="ipv-transfer-send"><label>Destino<select id="ipvTransferDestination"><option value="independent">IPV Independiente</option><option value="shift">IPV regular (turno activo)</option></select></label><div id="ipvTransferProducts"></div><button type="button" class="primary" id="ipvTransferSendBtn">Enviar traspaso</button></div><p id="ipvTransferStatus" class="muted small" role="status"></p><div id="ipvTransferList"><p class="muted small">Cargando traspasos…</p></div></section>
     </section>
     <section class="daily-bills-section">
       <div class="toolbar"><div><p class="eyebrow">IPV DIGITAL</p><h2>Conteo de billetes</h2><p class="muted small">Introduce cuántos billetes tienes de cada denominación. El importe y el total se calculan automáticamente.</p></div></div>
