@@ -1285,3 +1285,13 @@ body.login-screen .auth-panel:before{
 .ipv-transfer-quantity-label{display:grid;gap:5px;flex:0 0 132px;min-width:112px;color:#e8ca7c;font-size:.76rem;font-weight:800}
 .ipv-transfer-quantity-label input[data-transfer-row]{display:block!important;visibility:visible!important;opacity:1!important;width:100%!important;min-width:0!important;min-height:44px!important;padding:8px!important;border:2px solid #c39a4d!important;border-radius:8px!important;background:#fff!important;color:#171717!important;text-align:center!important;font-size:1.1rem!important;font-weight:800!important;pointer-events:auto!important;-webkit-appearance:textfield!important;appearance:textfield!important}
 @media(max-width:420px){.ipv-transfer-product-row{gap:8px;padding:10px}.ipv-transfer-quantity-label{flex-basis:116px;min-width:108px;font-size:.7rem}}
+
+/* Traspasos: compactar tarjetas y campos para pantallas móviles */
+.ipv-transfer-product-list{gap:6px!important;margin:7px 0 10px!important}
+.ipv-transfer-product-row{min-height:0!important;padding:8px 10px!important;gap:8px!important;border-radius:8px!important;background:#171816!important}
+.ipv-transfer-product-info{gap:2px!important}
+.ipv-transfer-product-info strong{font-size:.86rem!important;line-height:1.2!important}
+.ipv-transfer-product-info small{font-size:.7rem!important;line-height:1.2!important}
+.ipv-transfer-quantity-label{flex:0 0 112px!important;min-width:100px!important;gap:3px!important;font-size:.68rem!important;line-height:1.15!important}
+.ipv-transfer-quantity-label input[data-transfer-row]{height:36px!important;min-height:36px!important;max-height:36px!important;padding:4px 6px!important;border-width:1px!important;border-radius:6px!important;font-size:.95rem!important}
+@media(max-width:420px){.ipv-transfer-product-row{padding:7px 8px!important;gap:6px!important}.ipv-transfer-quantity-label{flex-basis:100px!important;min-width:94px!important}.ipv-transfer-quantity-label input[data-transfer-row]{height:34px!important;min-height:34px!important;max-height:34px!important}}
