@@ -156,7 +156,7 @@ async function exportData(savedRows,number,shiftNo,date,format="both",archive=fa
 function renderTransferProducts(){
  const host=$("ipvTransferProducts");if(!host)return;
  const items=rows.map((r,i)=>({r,i})).filter(x=>x.r.product.trim());
- host.innerHTML=items.length?'<div class="table-wrap"><table><thead><tr><th>Producto</th><th>Disponible</th><th>Cantidad</th></tr></thead><tbody>'+items.map(({r,i})=>'<tr><td>'+esc(r.product)+'</td><td>'+calc(r).final+'</td><td><input type="number" min="0" max="'+Math.max(0,calc(r).final)+'" step="1" inputmode="numeric" data-transfer-row="'+(i+1)+'" value="0" aria-label="Cantidad de '+esc(r.product)+'"></td></tr>').join("")+'</tbody></table></div>':'<p class="muted small">No hay productos disponibles en la tabla IPV.</p>';
+ host.innerHTML=items.length?'<div class="table-wrap"><table><thead><tr><th>Producto</th><th>Disponible</th><th>Cantidad</th></tr></thead><tbody>'+items.map(({r,i})=>'<tr><td>'+esc(r.product)+'</td><td>'+calc(r).final+'</td><td><input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="done" maxlength="7" data-transfer-row="'+(i+1)+'" value="0" aria-label="Cantidad de '+esc(r.product)+'"></td></tr>').join("")+'</tbody></table></div>':'<p class="muted small">No hay productos disponibles en la tabla IPV.</p>';
 }
 function transferStatusLabel(s){return s==="pending"?"Pendiente de recepción":s==="received"?"Recibido":"Recibido con diferencias";}
 $("refreshWorkerTransfers")?.addEventListener("click",loadTransferList);
