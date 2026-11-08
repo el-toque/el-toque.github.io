@@ -65,7 +65,7 @@ async function syncPendingSales(){
    queue=queue.filter(x=>x.id!==entry.id);await localPut("pending_sales",queue);if(entry.turn_inventory)window.dispatchEvent(new Event("ipv:turn-inventory-refresh"));toast("Venta pendiente sincronizada. Folio: "+data);
   }
   await updatePendingBadge();
-  if(!(await pendingSales()).length){await loadProducts();await loadWorkerAllocations();await loadDailySales();}
+  if(!(await pendingSales()).length){await loadProducts();await loadWorkerAllocations();await loadDailyBillCounts();}
  }catch(e){toast("No se pudo completar la sincronización. Las ventas siguen guardadas en este teléfono.");}
  finally{syncingPending=false;await updatePendingBadge();}
 }
@@ -116,7 +116,7 @@ async function enter(authUser){
  // La autenticación ya está confirmada. Los errores de módulos no deben expulsar al usuario.
  const tasks=admin()
   ?[loadProducts,loadSales,loadWorkers,loadAdminDashboard,loadAdminCloseouts,loadAdminIPV,loadAdminIndependentIPV]
-  :[loadProducts,loadWorkerAllocations,...(workerPermission("can_view_own_closeout")?[loadDailySales]:[]),cacheWorkerState,updatePendingBadge];
+  :[loadProducts,loadWorkerAllocations,...(workerPermission("can_view_own_closeout")?[loadDailyBillCounts]:[]),cacheWorkerState,updatePendingBadge];
  const results=await Promise.allSettled(tasks.map(fn=>Promise.resolve().then(fn)));
  const failed=results.filter(x=>x.status==="rejected");
  if(failed.length){console.error("[IPV module loading]",failed.map(x=>x.reason));toast("Sesión activa. Algunos datos no pudieron actualizarse; puedes reintentar desde la sección correspondiente.");}
@@ -144,7 +144,7 @@ $("loginForm").addEventListener("submit",async e=>{
 });
 const logout=async()=>{try{await client.auth.signOut();showLogin();}catch(error){toast("No se pudo cerrar la sesión: "+(error?.message||"Error inesperado"));}};$("logoutBtn").addEventListener("click",logout);$("workerLogoutBtn")?.addEventListener("click",logout);
 function showSection(tab){const sections=["dashboard","inventory","independent","sales","closeouts","ipvHistory","workers","shop","daily"];sections.forEach(t=>{const panel=$(t+"Tab");if(panel)panel.classList.toggle("hidden",t!==tab);});const active=$(tab+"Tab");if(active)active.classList.remove("hidden");return !!active;}
-document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(b.closest("#adminTabs")||b.closest("#workerTabs")){document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.setAttribute("aria-expanded","false");}if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","independent","sales","workers","ipvHistory"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailySales();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="inventory")loadAdminIPV();if(b.dataset.tab==="independent")loadAdminIndependentIPV();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="ipvHistory")loadAdminIPVHistory();}));
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(b.closest("#adminTabs")||b.closest("#workerTabs")){document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.setAttribute("aria-expanded","false");}if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","independent","sales","workers","ipvHistory"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailyBillCounts();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="inventory")loadAdminIPV();if(b.dataset.tab==="independent")loadAdminIndependentIPV();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="ipvHistory")loadAdminIPVHistory();}));
 /* Ocultar el botón del menú bajo el encabezado al desplazar la página hacia abajo. */
 /* Detectar el desplazamiento real tanto de la página como de contenedores internos. */
 let menuToggleLastY=0;
@@ -316,57 +316,19 @@ function showShopOrder(show){$("shopCatalogView").classList.toggle("hidden",show
 $("viewOrderBtn").addEventListener("click",()=>showShopOrder(true));
 $("backToCatalog").addEventListener("click",()=>showShopOrder(false));
 $("shopPayment").addEventListener("change",()=>{$("transferCodeWrap").classList.toggle("hidden",$("shopPayment").value!=="transfer");if($("shopPayment").value!=="transfer")$("transferCode").value="";});
-$("shopSellBtn").addEventListener("click",async()=>{if(!cart.length){fail("shopMessage","Agrega al menos un producto al carrito.");return}const method=$("shopPayment").value,code=$("transferCode").value.trim();if(method==="transfer"&&!code){fail("shopMessage","Introduce el código de la transferencia antes de confirmar.");$("transferCode").focus();return}const btn=$("shopSellBtn");btn.disabled=true;if(!navigator.onLine){try{const entry=await saveOfflineSale(cart,method,code);cart=[];$("transferCode").value="";renderShopCart();showShopOrder(false);fail("shopMessage","Pendiente de sincronizar. Se guardó en este teléfono.");toast("Venta guardada sin conexión");}catch(e){fail("shopMessage","No se pudo guardar localmente. No cierres esta página.");}finally{btn.disabled=false;}return;}fail("shopMessage","Procesando venta…");const id=crypto.randomUUID();let turnCtx;try{turnCtx=await ensureTurnContext();}catch(e){btn.disabled=false;fail("shopMessage",e.message);return;}const saleArgs={p_items:cart.map(x=>({turn_item_id:x.product_id,quantity:x.quantity})),p_payment_method:method,p_idempotency_key:id,p_transfer_code:method==="transfer"?code:null};const {data,error}=profile?.ipv_mode==="independent"?await client.rpc("worker_independent_create_sale",{p_session_id:turnCtx.sessionId,...saleArgs}):await client.rpc("worker_turn_create_sale",{...saleArgs,p_business_date:turnCtx.businessDate,p_session_no:turnCtx.sessionNo});btn.disabled=false;if(error){if(!navigator.onLine||/fetch|network|failed to fetch|load failed/i.test(error.message||"")){try{await saveOfflineSale(cart,method,code,id);cart=[];renderShopCart();showShopOrder(false);fail("shopMessage","Pendiente de sincronizar. Se guardó en este teléfono.");}catch(e){fail("shopMessage","No se pudo guardar la venta localmente.");}return;}fail("shopMessage",error.message);return;}cart=[];$("transferCode").value="";renderShopCart();showShopOrder(false);fail("shopMessage","Venta confirmada. Folio: "+data);toast("Venta registrada y existencias descontadas");await (window.refreshWorkerTurnInventory?.()||Promise.resolve());await loadProducts();await loadWorkerAllocations();await loadDailySales();});
+$("shopSellBtn").addEventListener("click",async()=>{if(!cart.length){fail("shopMessage","Agrega al menos un producto al carrito.");return}const method=$("shopPayment").value,code=$("transferCode").value.trim();if(method==="transfer"&&!code){fail("shopMessage","Introduce el código de la transferencia antes de confirmar.");$("transferCode").focus();return}const btn=$("shopSellBtn");btn.disabled=true;if(!navigator.onLine){try{const entry=await saveOfflineSale(cart,method,code);cart=[];$("transferCode").value="";renderShopCart();showShopOrder(false);fail("shopMessage","Pendiente de sincronizar. Se guardó en este teléfono.");toast("Venta guardada sin conexión");}catch(e){fail("shopMessage","No se pudo guardar localmente. No cierres esta página.");}finally{btn.disabled=false;}return;}fail("shopMessage","Procesando venta…");const id=crypto.randomUUID();let turnCtx;try{turnCtx=await ensureTurnContext();}catch(e){btn.disabled=false;fail("shopMessage",e.message);return;}const saleArgs={p_items:cart.map(x=>({turn_item_id:x.product_id,quantity:x.quantity})),p_payment_method:method,p_idempotency_key:id,p_transfer_code:method==="transfer"?code:null};const {data,error}=profile?.ipv_mode==="independent"?await client.rpc("worker_independent_create_sale",{p_session_id:turnCtx.sessionId,...saleArgs}):await client.rpc("worker_turn_create_sale",{...saleArgs,p_business_date:turnCtx.businessDate,p_session_no:turnCtx.sessionNo});btn.disabled=false;if(error){if(!navigator.onLine||/fetch|network|failed to fetch|load failed/i.test(error.message||"")){try{await saveOfflineSale(cart,method,code,id);cart=[];renderShopCart();showShopOrder(false);fail("shopMessage","Pendiente de sincronizar. Se guardó en este teléfono.");}catch(e){fail("shopMessage","No se pudo guardar la venta localmente.");}return;}fail("shopMessage",error.message);return;}cart=[];$("transferCode").value="";renderShopCart();showShopOrder(false);fail("shopMessage","Venta confirmada. Folio: "+data);toast("Venta registrada y existencias descontadas");await (window.refreshWorkerTurnInventory?.()||Promise.resolve());await loadProducts();await loadWorkerAllocations();await loadDailyBillCounts();});
 $("refreshShop").onclick=loadProducts;
 function localBusinessDate(d=new Date()){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");return `${y}-${m}-${day}`;}
-let dailyExportRows=[];
 let dailyBillCounts={};
 const dailyBillDenominations=[5000,2000,1000,500,200,100,50,20,10,5,3,1];
-async function requireCompleteDailyBillCount(actionLabel="continuar"){
- const inputs=[...($("dailyBillsBody")?.querySelectorAll("[data-bill-denomination]")||[])];
- if(!Object.keys(dailyBillCounts).some(key=>dailyBillDenominations.includes(Number(key)))){
-  toast("Acción bloqueada: modifica al menos una denominación según el dinero recaudado. Las demás pueden permanecer en 0.");
-  return false;
- }
- const invalid=dailyBillDenominations.filter(value=>{
-  const input=inputs.find(el=>Number(el.dataset.billDenomination)===value);
-  if(!input)return true;
-  const quantity=Number(input.value);
-  if(input.value.trim()===""||!Number.isInteger(quantity)||quantity<0)return true;
-  dailyBillCounts[value]=quantity;
-  return false;
- });
- if(invalid.length){
-  toast("Acción bloqueada: revisa las cantidades de la contadora de billetes.");
-  const first=$(`[data-bill-denomination="${invalid[0]}"]`);
-  first?.focus();first?.scrollIntoView({behavior:"smooth",block:"center"});
-  return false;
- }
- try{
-  await localPut("daily_bill_counts_"+user.id+"_"+localBusinessDate(),dailyBillCounts);
-  return true;
- }catch(error){
-  toast("No se pudo guardar la contadora de dinero. No se puede "+actionLabel+".");
-  return false;
- }
-}
-
-let activeCloseout=null;
-async function loadDailySales(){if(!user||admin())return;const dayKey=localBusinessDate();dailyBillCounts=(await localGet("daily_bill_counts_"+user.id+"_"+dayKey))||{};renderDailyBillCounts();if(!navigator.onLine){$("dailyCloseStatus").textContent="Sin conexión: el cuadre requiere datos actualizados del servidor. Las ventas guardadas siguen pendientes de sincronizar.";await updatePendingBadge();return;}const now=new Date(),start=new Date(now.getFullYear(),now.getMonth(),now.getDate()),end=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1);$("dailyDate").textContent=start.toLocaleDateString("es-ES",{weekday:"long",year:"numeric",month:"long",day:"numeric"});const {data,error}=await client.from("sales").select("id,total,payment_method,transfer_code,created_at,status,sale_items(product_id,worker_turn_item_id,product_name,quantity,unit_price,products(name))").eq("status","completed").gte("created_at",start.toISOString()).lt("created_at",end.toISOString()).order("created_at",{ascending:false});if(error){toast("No se pudo cargar el cuadre: "+error.message);return}
- const {data:closed,error:closeErr}=await client.from("daily_closeouts").select("id,business_date,sales_count,cash_total,transfer_total,grand_total,cash_counted,cash_difference,bill_counts,stock_snapshot,closed_at").eq("business_date",dayKey).maybeSingle();
- if(closeErr){toast("No se pudo consultar el cierre: "+closeErr.message);return}
- activeCloseout=closed||null;
- dailyBillCounts=closed&&closed.cash_counted!==null?(closed.bill_counts||{}):((await localGet("daily_bill_counts_"+user.id+"_"+dayKey))||{});renderDailyBillCounts();
- const closeBtn=$("closeDaily");closeBtn.disabled=!!activeCloseout||!navigator.onLine;closeBtn.textContent=activeCloseout?"Jornada cerrada":"Cerrar y bloquear día";
- $("dailyCloseStatus").textContent=activeCloseout?`Cierre confirmado el ${new Date(activeCloseout.closed_at).toLocaleString("es-ES")}. ${activeCloseout.cash_counted===null?"Este cierre anterior no guardó el conteo de efectivo.":"Efectivo contado: "+money(activeCloseout.cash_counted)+" · Diferencia: "+money(activeCloseout.cash_difference)}. Esta jornada está bloqueada.`:"Jornada abierta: completa el conteo de billetes. El cierre guardará una copia definitiva.";
- const rows=data||[];dailyExportRows=rows;const cash=rows.filter(x=>x.payment_method==="cash").reduce((a,x)=>a+Number(x.total),0),transfer=rows.filter(x=>x.payment_method==="transfer").reduce((a,x)=>a+Number(x.total),0),total=cash+transfer;$("dailyCount").textContent=rows.length;$("dailyCash").textContent=money(cash);$("dailyTransfer").textContent=money(transfer);$("dailyTotal").textContent=money(total);$("dailySalesBody").innerHTML=rows.map(x=>{const items=(x.sale_items||[]).map(i=>`${esc(i.product_name||i.products?.name||"Producto")} × ${Number(i.quantity)||0}`).join("<br>")||"—";return `<tr><td>${new Date(x.created_at).toLocaleTimeString("es-ES")}</td><td>${items}</td><td>${money(x.total)}</td><td>${x.payment_method==="cash"?"CUP":"Transferencia"}</td><td>${esc(x.transfer_code||"—")}</td></tr>`}).join("");$("dailyEmpty").classList.toggle("hidden",rows.length>0);await updatePendingBadge();}
+async function loadDailyBillCounts(){if(!user||admin())return;dailyBillCounts=(await localGet("daily_bill_counts_"+user.id+"_"+localBusinessDate()))||{};renderDailyBillCounts();}
 function renderDailyBillCounts(){
  const body=$("dailyBillsBody");if(!body)return;
  body.innerHTML=dailyBillDenominations.map(value=>{const declared=Object.prototype.hasOwnProperty.call(dailyBillCounts,value);const quantity=declared?Math.max(0,Number(dailyBillCounts[value])||0):0;return `<tr><td><strong>${value.toLocaleString("es-ES")} CUP</strong></td><td><input class="daily-bill-input" type="number" min="0" step="1" inputmode="numeric" data-bill-denomination="${value}" value="${quantity}" aria-label="Cantidad de billetes de ${value} CUP"></td><td>${money(value*quantity)}</td></tr>`}).join("");
  const total=dailyBillDenominations.reduce((sum,value)=>sum+value*(Number(dailyBillCounts[value])||0),0);
  $("dailyBillsTotal").textContent=money(total);
  const missing=dailyBillDenominations.filter(value=>!Object.prototype.hasOwnProperty.call(dailyBillCounts,value)).length;
- $("dailyBillsStatus").textContent=missing?`Hay ${missing} denominación(es) aún sin declarar. El 0 inicial es solo visual; confirma cada cantidad, incluso los ceros.`:"Conteo completo. Puedes exportar o cerrar la jornada."; 
+ $("dailyBillsStatus").textContent=missing?`Hay ${missing} denominación(es) aún sin declarar. El 0 inicial es solo visual; confirma cada cantidad, incluso los ceros.`:"Conteo completo. Puedes cerrar tu IPV y exportar los documentos.";
 }
 $("dailyBillsBody")?.addEventListener("input",e=>{
  const input=e.target.closest("[data-bill-denomination]");if(!input)return;
@@ -377,7 +339,7 @@ $("dailyBillsBody")?.addEventListener("input",e=>{
  const total=dailyBillDenominations.reduce((sum,value)=>sum+value*(Number(dailyBillCounts[value])||0),0);
  $("dailyBillsTotal").textContent=money(total);
  const missing=dailyBillDenominations.filter(value=>!Object.prototype.hasOwnProperty.call(dailyBillCounts,value)).length;
- $("dailyBillsStatus").textContent=missing?`Faltan ${missing} denominación(es). Indica la cantidad, incluso 0, en cada una.`:"Conteo completo. Puedes exportar el PDF.";
+ $("dailyBillsStatus").textContent=missing?`Faltan ${missing} denominación(es). Indica la cantidad, incluso 0, en cada una.`:"Conteo completo. Puedes cerrar tu IPV y exportar los documentos.";
 });
 $("dailyBillsBody")?.addEventListener("change",async e=>{
  const input=e.target.closest("[data-bill-denomination]");if(!input)return;
@@ -388,72 +350,6 @@ $("dailyBillsBody")?.addEventListener("change",async e=>{
  try{await localPut("daily_bill_counts_"+user.id+"_"+localBusinessDate(),dailyBillCounts);renderDailyBillCounts();}
  catch(error){toast("No se pudo guardar el conteo de billetes en este teléfono.");}
 });
-const closeDailyButton=$("closeDaily");if(closeDailyButton)closeDailyButton.onclick=async()=>{
- if(!navigator.onLine){toast("Necesitas conexión para cerrar la jornada.");return}
- if(await updatePendingBadge()){toast("Primero sincroniza todas las ventas pendientes.");return}
- if(activeCloseout){toast("Esta jornada ya está cerrada.");return}
- if(!await requireCompleteDailyBillCount("cerrar la jornada"))return;
- if(!confirm("¿Confirmas el cierre de tu jornada? Se guardará el detalle y no podrás registrar más ventas con la fecha de hoy."))return;
- const now=new Date(),start=new Date(now.getFullYear(),now.getMonth(),now.getDate()),end=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1);
- const btn=$("closeDaily");btn.disabled=true;btn.textContent="Cerrando…";
- const cashCounted=dailyBillDenominations.reduce((sum,value)=>sum+value*(Number(dailyBillCounts[value])||0),0);const {data,error}=await client.rpc("close_daily_register",{p_business_date:localBusinessDate(start),p_start:start.toISOString(),p_end:end.toISOString(),p_cash_counted:cashCounted,p_bill_counts:dailyBillCounts});
- if(error){btn.disabled=false;btn.textContent="Cerrar y bloquear día";toast("No se pudo cerrar la jornada: "+error.message);return}
- toast("Jornada cerrada y guardada. Folio: "+data);await loadDailySales();await loadCloseoutHistory();
-};
-async function loadCloseoutHistory(){
- const {data,error}=await client.from("daily_closeouts").select("id,business_date,sales_count,cash_total,transfer_total,grand_total,cash_counted,cash_difference,closed_at").order("business_date",{ascending:false}).limit(30);
- if(error){toast("No se pudo cargar el historial de cierres: "+error.message);return}
- $("closeoutHistoryBody").innerHTML=(data||[]).map(c=>`<tr><td>${esc(c.business_date)}</td><td>${new Date(c.closed_at).toLocaleString("es-ES")}</td><td>${c.sales_count}</td><td>${money(c.cash_total)}</td><td>${money(c.transfer_total)}</td><td>${money(c.grand_total)}</td><td>${c.cash_counted===null?"—":money(c.cash_counted)}</td><td>${c.cash_difference===null?"—":money(c.cash_difference)}</td><td>${esc(c.id)}</td></tr>`).join("");
- $("closeoutHistoryEmpty").classList.toggle("hidden",!!(data||[]).length);
-}
-$("refreshDaily")?.addEventListener("click",async()=>{await loadDailySales();});
-const exportDailyButton=$("exportDaily");if(exportDailyButton)exportDailyButton.onclick=async()=>{
- if(!dailyExportRows.length){toast("No hay ventas de hoy para exportar.");return}
- if(!await requireCompleteDailyBillCount("exportar a Excel"))return;
- if(!window.XLSX){toast("No se pudo cargar el módulo de Excel. Comprueba tu conexión e inténtalo de nuevo.");return}
- const detail=[];
- for(const sale of dailyExportRows){
-  const items=sale.sale_items||[];
-  if(items.length){for(const item of items){detail.push({Fecha:new Date(sale.created_at).toLocaleDateString("es-ES"),Hora:new Date(sale.created_at).toLocaleTimeString("es-ES"),Producto:item.product_name||item.products?.name||"Producto",Cantidad:Number(item.quantity)||0,"Precio unitario":Number(item.unit_price)||0,"Importe línea":(Number(item.unit_price)||0)*(Number(item.quantity)||0),"Total de venta":Number(sale.total)||0,"Forma de pago":sale.payment_method==="cash"?"CUP":"Transferencia","Código de transferencia":sale.transfer_code||"—",Folio:sale.id})}}
-  else detail.push({Fecha:new Date(sale.created_at).toLocaleDateString("es-ES"),Hora:new Date(sale.created_at).toLocaleTimeString("es-ES"),Producto:"—",Cantidad:0,"Precio unitario":0,"Importe línea":0,"Total de venta":Number(sale.total)||0,"Forma de pago":sale.payment_method==="cash"?"CUP":"Transferencia","Código de transferencia":sale.transfer_code||"—",Folio:sale.id});
- }
- const cash=dailyExportRows.filter(x=>x.payment_method==="cash").reduce((a,x)=>a+Number(x.total),0);
- const transfer=dailyExportRows.filter(x=>x.payment_method==="transfer").reduce((a,x)=>a+Number(x.total),0);
- const accountName=profile?.full_name||user?.email||"Cuenta sin nombre";
- const accountEmail=user?.email||"—";
- const accountRole=profile?.role||"trabajador";
- const cashCounted=dailyBillDenominations.reduce((sum,value)=>sum+value*(Number(dailyBillCounts[value])||0),0);const summary=[{"Concepto":"Cuenta","Valor":accountName},{"Concepto":"Correo de la cuenta","Valor":accountEmail},{"Concepto":"Tipo de cuenta","Valor":accountRole},{"Concepto":"Fecha de exportación","Valor":new Date().toLocaleString("es-ES")},{"Concepto":"Cantidad de ventas","Valor":dailyExportRows.length},{"Concepto":"Total CUP","Valor":cash},{"Concepto":"Total Transferencias","Valor":transfer},{"Concepto":"Total vendido","Valor":cash+transfer},{"Concepto":"Efectivo contado","Valor":cashCounted},{"Concepto":"Diferencia de caja","Valor":cashCounted-cash}];
- const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(detail),"Detalle de ventas");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(summary),"Resumen");
- const billDetail=dailyBillDenominations.filter(value=>(Number(dailyBillCounts[value])||0)>0).map(value=>({"Denominación":value+" CUP","Cantidad de billetes":Number(dailyBillCounts[value])||0,"Importe CUP":value*(Number(dailyBillCounts[value])||0)}));const billTotal=dailyBillDenominations.reduce((sum,value)=>sum+value*(Number(dailyBillCounts[value])||0),0);billDetail.push({"Denominación":"TOTAL EFECTIVO CONTADO","Cantidad de billetes":dailyBillDenominations.reduce((sum,value)=>sum+(Number(dailyBillCounts[value])||0),0),"Importe CUP":billTotal});XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(billDetail),"Conteo de billetes");
- const stamp=new Date().toISOString().slice(0,10);XLSX.writeFile(wb,`Cuadre_IPV_${stamp}.xlsx`);toast("Archivo Excel preparado para guardar en tu teléfono.");
-};
-
-
-const exportDailyPdfButton=$("exportDailyPdf");if(exportDailyPdfButton)exportDailyPdfButton.onclick=async()=>{
- if(!dailyExportRows.length){toast("No hay ventas de hoy para exportar.");return}
- if(!await requireCompleteDailyBillCount("exportar a PDF"))return;
- if(!window.jspdf?.jsPDF){toast("No se pudo cargar el módulo PDF. Comprueba tu conexión e inténtalo de nuevo.");return}
- const {jsPDF}=window.jspdf;const doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
- const cash=dailyExportRows.filter(x=>x.payment_method==="cash").reduce((a,x)=>a+Number(x.total),0);
- const transfer=dailyExportRows.filter(x=>x.payment_method==="transfer").reduce((a,x)=>a+Number(x.total),0);
- const stamp=new Date().toLocaleDateString("es-ES");
- const accountName=profile?.full_name||user?.email||"Cuenta sin nombre";
- const accountEmail=user?.email||"—";
- const accountRole=profile?.role||"trabajador";
- doc.setFontSize(18);doc.text("IPV Digital - Cuadre del día",14,16);
- doc.setFontSize(10);doc.text("Cuenta: "+accountName+"    Correo: "+accountEmail+"    Tipo: "+accountRole,14,23);
- doc.text("Fecha: "+stamp,14,30);
- const cashCounted=dailyBillDenominations.reduce((sum,value)=>sum+value*(Number(dailyBillCounts[value])||0),0);doc.text("Ventas: "+dailyExportRows.length+"    Total CUP: "+cash.toFixed(2)+" CUP    Total Transferencias: "+transfer.toFixed(2)+" CUP    Total vendido: "+(cash+transfer).toFixed(2)+" CUP",14,37);doc.text("Efectivo contado: "+cashCounted.toFixed(2)+" CUP    Diferencia de caja: "+(cashCounted-cash).toFixed(2)+" CUP",14,43);
- const body=[];
- for(const sale of dailyExportRows){
-  const when=new Date(sale.created_at);
-  const products=(sale.sale_items||[]).map(i=>(i.product_name||i.products?.name||"Producto")+" × "+(Number(i.quantity)||0)).join(", ")||"—";
-  body.push([when.toLocaleTimeString("es-ES"),products,Number(sale.total||0).toFixed(2)+" CUP",sale.payment_method==="cash"?"CUP":"Transferencia",sale.transfer_code||"—",String(sale.id||"")]);
- }
- if(typeof doc.autoTable!=="function"){toast("No se pudo preparar la tabla PDF. Comprueba tu conexión.");return}
- doc.autoTable({startY:49,head:[["Hora","Productos y cantidades","Importe","Pago","Código transferencia","Folio"]],body,styles:{fontSize:8,cellPadding:2,overflow:"linebreak"},headStyles:{fillColor:[7,85,164]},columnStyles:{1:{cellWidth:75},5:{cellWidth:45}}});
- let billsY=(doc.lastAutoTable?.finalY||43)+10;if(billsY>175){doc.addPage();billsY=18;}doc.setFontSize(13);doc.text("Conteo de billetes",14,billsY);const billTotal=dailyBillDenominations.reduce((sum,value)=>sum+value*(Number(dailyBillCounts[value])||0),0);doc.autoTable({startY:billsY+4,head:[["Denominación","Cantidad de billetes","Importe"]],body:dailyBillDenominations.filter(value=>(Number(dailyBillCounts[value])||0)>0).map(value=>[value.toLocaleString("es-ES")+" CUP",String(Number(dailyBillCounts[value])||0),money(value*(Number(dailyBillCounts[value])||0))]),foot:[["TOTAL EFECTIVO CONTADO",String(dailyBillDenominations.reduce((sum,value)=>sum+(Number(dailyBillCounts[value])||0),0)),money(billTotal)]],styles:{fontSize:9,cellPadding:2},headStyles:{fillColor:[7,85,164]},footStyles:{fillColor:[238,231,214],textColor:[25,22,16],fontStyle:"bold"}});doc.save("Cuadre_IPV_"+new Date().toISOString().slice(0,10)+".pdf");toast("PDF preparado para guardar en tu teléfono.");
-};
 
 async function loadAdminDashboard(){
  if(!admin()||!navigator.onLine)return;
