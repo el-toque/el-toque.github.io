@@ -524,17 +524,22 @@ async function loadAdminDashboard(){
   }
  }
  const inventoryProducts=[...stockByProduct.entries()];
- // La tarjeta cuenta nombres únicos con existencia, no unidades ni filas.
- const availableProductNames=new Set(inventoryProducts.filter(([,qty])=>qty>0).map(([name])=>name.toLocaleLowerCase("es")));
- // Pan es una existencia compartida entre los IPV de los turnos 1 y 2.
- // Se incorpora una sola vez mientras esa existencia compartida esté vigente.
+ // Contar nombres únicos: disponible si la suma entre los IPV es mayor que cero;
+ // agotado solo si figura en los inventarios y la suma de todos es cero.
+ const normalizeProductName=name=>String(name||"").trim().toLocaleLowerCase("es");
+ const availableProductNames=new Set(inventoryProducts.filter(([,qty])=>qty>0).map(([name])=>normalizeProductName(name)));
+ const outOfStockProductNames=new Set(inventoryProducts.filter(([,qty])=>qty<=0).map(([name])=>normalizeProductName(name)));
+ // Pan es una existencia compartida entre los turnos 1 y 2: se cuenta una vez.
  availableProductNames.add("pan");
+ outOfStockProductNames.delete("pan");
  const availableProducts=availableProductNames.size;
+ const outOfStockProducts=[...outOfStockProductNames].filter(name=>!availableProductNames.has(name)).length;
  $("dashSalesToday").textContent=money(todayTotal);$("dashSalesTodayCount").textContent=today.length+" operaciones";
  $("dashSalesMonth").textContent=money(monthTotal);$("dashSalesMonthCount").textContent=sales.length+" operaciones";
  $("dashCashToday").textContent=money(todayCash);$("dashTransferToday").textContent=money(todayTransfer);
  $("dashStockTotal").textContent=availableProducts.toLocaleString("es-ES");
  $("dashStockProducts").textContent="productos disponibles";
+ $("dashStockOut").textContent=outOfStockProducts.toLocaleString("es-ES")+" productos agotados";
  $("dashActiveWorkers").textContent=(workersResult.data||[]).filter(w=>w.active).length;
  $("dashboardUpdated").textContent="Actualizado: "+now.toLocaleString("es-ES");
 }
