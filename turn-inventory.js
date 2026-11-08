@@ -160,6 +160,7 @@ $("turnRows")?.addEventListener("input",e=>{
 });
 $("closeTurnBtn")?.addEventListener("click",async()=>{
  if(working||!navigator.onLine){status("Necesitas conexión para cerrar el turno.");return;}if(!canCloseTurn){status("Tu cuenta no tiene permiso para cerrar la jornada. Solicítalo al administrador.");return;}
+ if(typeof window.getIPVPendingSalesCount==="function"){const pending=await window.getIPVPendingSalesCount();if(pending===null){status("No se pudo comprobar la cola de ventas pendientes. Sincroniza y vuelve a intentarlo.");return;}if(pending>0){status("Tienes "+pending+" venta(s) pendiente(s) de sincronizar. Sincronízalas antes de cerrar el IPV.");return;}}
  if(!confirm("¿Confirmas el cierre del "+shiftLabel()+"? El cierre quedará guardado y sus existencias finales pasarán al siguiente turno."))return;
  working=true;$("closeTurnBtn").disabled=true;status("Guardando cierre en el servidor…");
  try{
