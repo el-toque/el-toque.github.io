@@ -3,7 +3,7 @@
 const $=id=>document.getElementById(id), money=n=>new Intl.NumberFormat("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0)+" CUP";
 const dateKey=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let db=null,session=null,shift=0,rows=[],closure=null,ready=false,working=false,businessDate=dateKey(),sessionNo=1,independentMode=false,independentSessionId=null;
+let db=null,session=null,shift=0,rows=[],closure=null,ready=false,working=false,businessDate=dateKey(),sessionNo=1,independentMode=false,independentSessionId=null,canCloseTurn=true;
 const denominations=[5000,2000,1000,500,200,100,50,20,10,5,3,1];
 const key=()=> "ipv_turn_draft_"+session.user.id+"_"+businessDate+"_"+shift+"_"+sessionNo;
 function row(product="",start=0,entry=0,sold=0,price=0){return {product,start,entry,sold,price};}
@@ -66,7 +66,7 @@ async function load(){
  if(!rows.some(r=>r.product.trim())&&saved){try{const draft=JSON.parse(saved);if(Array.isArray(draft)&&draft.length)rows=draft;}catch(_){}}
  if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));
  closure=null;setMeta();$("addTurnRow").disabled=false;$("exportTurnXlsx").disabled=false;$("exportTurnPdf").disabled=false;$("turnDocumentNo").textContent="N°"+String((last.last_closure_no||0)+1).padStart(2,"0");render();
- $("closeTurnBtn").disabled=false;
+ $("closeTurnBtn").disabled=!canCloseTurn;
  status("Sesión "+sessionNo+" activa. Puedes editar las celdas habilitadas.");
  await persistRows();
  await loadPendingRequests();
@@ -81,7 +81,7 @@ async function loadIndependent(){
  rows=(data.rows||[]).map(r=>row(r.product,r.start,r.entry,r.sold,r.price));
  if(rows.length<20)rows.push(...Array.from({length:20-rows.length},()=>row()));
  closure=null;setMeta();$("addTurnRow").disabled=false;$("exportTurnXlsx").disabled=false;$("exportTurnPdf").disabled=false;
- $("turnDocumentNo").textContent="N°"+String(Number(data.last_closure_no||0)+1).padStart(2,"0");render();$("closeTurnBtn").disabled=false;
+ $("turnDocumentNo").textContent="N°"+String(Number(data.last_closure_no||0)+1).padStart(2,"0");render();$("closeTurnBtn").disabled=!canCloseTurn;
  status("Jornada independiente "+sessionNo+" activa. Puedes cerrarla cuando decidas, sin límite de horas.");
  await persistRows();await loadPendingRequests();await history();
 }
@@ -143,8 +143,8 @@ async function init(){
  if(ready||!window.IPV_CONFIG?.url||!window.supabase)return;
  const {url,publishableKey}=window.IPV_CONFIG;db=window.supabase.createClient(url,publishableKey);
  const {data,error}=await db.auth.getSession();if(error||!data.session)return;
- session=data.session;const {data:workerProfile}=await db.from("profiles").select("ipv_mode").eq("id",session.user.id).maybeSingle();
- independentMode=workerProfile?.ipv_mode==="independent";ready=true;const email=(session.user.email||"").toLowerCase();
+ session=data.session;const {data:workerProfile}=await db.from("profiles").select("ipv_mode,worker_permissions").eq("id",session.user.id).maybeSingle();
+ independentMode=workerProfile?.ipv_mode==="independent";canCloseTurn=workerProfile?.worker_permissions?.can_close_day!==false;ready=true;const email=(session.user.email||"").toLowerCase();
  shift=email==="dependiente1@eltoque.com"?1:email==="dependiente2@eltoque.com"?2:0;
  if(!shift&&!independentMode)return;
  try{await load();if(db.channel){db.channel("worker-entry-requests-"+session.user.id).on("postgres_changes",{event:"INSERT",schema:"public",table:independentMode?"worker_independent_entry_requests":"worker_turn_entry_requests",filter:"worker_id=eq."+session.user.id},()=>loadPendingRequests()).subscribe();}}catch(e){$("closeTurnBtn").disabled=true;$("addTurnRow").disabled=true;$("exportTurnXlsx").disabled=true;$("exportTurnPdf").disabled=true;rows=[];render();status(e.message||"No se pudo cargar el turno.");}
@@ -159,7 +159,7 @@ $("turnRows")?.addEventListener("input",e=>{
  const c=calc(rows[i]);tr.cells[3].textContent=c.available;tr.cells[4].textContent=c.final;tr.cells[7].textContent=money(c.amount);$("turnGrandTotal").textContent=money(total());saveDraft();
 });
 $("closeTurnBtn")?.addEventListener("click",async()=>{
- if(working||!navigator.onLine){status("Necesitas conexión para cerrar el turno.");return;}
+ if(working||!navigator.onLine){status("Necesitas conexión para cerrar el turno.");return;}if(!canCloseTurn){status("Tu cuenta no tiene permiso para cerrar la jornada. Solicítalo al administrador.");return;}
  if(!confirm("¿Confirmas el cierre del "+shiftLabel()+"? El cierre quedará guardado y sus existencias finales pasarán al siguiente turno."))return;
  working=true;$("closeTurnBtn").disabled=true;status("Guardando cierre en el servidor…");
  try{
@@ -174,7 +174,7 @@ $("closeTurnBtn")?.addEventListener("click",async()=>{
   status("Turno cerrado correctamente. Documento N°"+String(number).padStart(2,"0")+". Total: "+money(data.total)+".");
   await history();
   if(independentMode){localStorage.removeItem(key());await loadIndependent();}else{rows=(data.rows||[]).map(r=>row(r.product,r.final,0,0,r.price));render();$("closeTurnBtn").disabled=true;}
- }catch(e){status("No se pudo cerrar: "+(e.message||"Error inesperado"));$("closeTurnBtn").disabled=false;}
+ }catch(e){status("No se pudo cerrar: "+(e.message||"Error inesperado"));$("closeTurnBtn").disabled=!canCloseTurn;}
  finally{working=false;}
 });
 const observer=new MutationObserver(()=>{if($("appPanel")?.classList.contains("hidden")){ready=false;session=null;shift=0;rows=[];}else init();});
