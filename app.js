@@ -120,7 +120,7 @@ async function enter(authUser){
  const results=await Promise.allSettled(tasks.map(fn=>Promise.resolve().then(fn)));
  const failed=results.filter(x=>x.status==="rejected");
  if(failed.length){console.error("[IPV module loading]",failed.map(x=>x.reason));toast("Sesión activa. Algunos datos no pudieron actualizarse; puedes reintentar desde la sección correspondiente.");}
- if(admin()&&!window.ipvAdminIPVChannel){window.ipvAdminIPVChannel=client.channel("admin-ipv-live").on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_inventory_items"},()=>{if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();}).on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_closures"},()=>{if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();}).on("postgres_changes",{event:"*",schema:"public",table:"worker_independent_inventory_items"},()=>{if(!$("independentTab").classList.contains("hidden"))loadAdminIndependentIPV();}).on("postgres_changes",{event:"*",schema:"public",table:"worker_independent_closures"},()=>{if(!$("independentTab").classList.contains("hidden"))loadAdminIndependentIPV();}).subscribe((status,error)=>{if(status==="SUBSCRIBED"){console.info("[IPV realtime] Sincronización automática activa.");if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();}else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"){console.warn("[IPV realtime] Canal no disponible; se mantiene la actualización manual.",error);}});}
+ if(admin()&&!window.ipvAdminIPVChannel){const refreshDashboardIfVisible=()=>{if(!$("dashboardTab").classList.contains("hidden"))loadAdminDashboard();};window.ipvAdminIPVChannel=client.channel("admin-ipv-live").on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_inventory_items"},()=>{if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();}).on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_closures"},()=>{if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();}).on("postgres_changes",{event:"*",schema:"public",table:"worker_independent_inventory_items"},()=>{if(!$("independentTab").classList.contains("hidden"))loadAdminIndependentIPV();}).on("postgres_changes",{event:"*",schema:"public",table:"worker_independent_closures"},()=>{if(!$("independentTab").classList.contains("hidden"))loadAdminIndependentIPV();}).on("postgres_changes",{event:"*",schema:"public",table:"products"},refreshDashboardIfVisible).on("postgres_changes",{event:"*",schema:"public",table:"profiles"},refreshDashboardIfVisible).on("postgres_changes",{event:"*",schema:"public",table:"worker_stock_allocations"},refreshDashboardIfVisible).on("postgres_changes",{event:"*",schema:"public",table:"sales"},refreshDashboardIfVisible).subscribe((status,error)=>{if(status==="SUBSCRIBED"){console.info("[IPV realtime] Sincronización automática activa.");if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();refreshDashboardIfVisible();}else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"){console.warn("[IPV realtime] Canal no disponible; se mantiene la actualización manual.",error);}});}
  if(!admin()&&!window.ipvWorkerProductImagesChannel){window.ipvWorkerProductImagesChannel=client.channel("worker-product-images").on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_product_images"},()=>{if(!$("shopTab").classList.contains("hidden"))loadProducts();}).subscribe((status,error)=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("[IPV product images realtime] Canal no disponible; se actualizará al recargar la tienda.",error);});}
 }
 $("loginForm").addEventListener("submit",async e=>{
@@ -494,13 +494,14 @@ async function loadAdminDashboard(){
  // Solo se suman asignaciones pendientes de trabajadores regulares activos.
  // Los perfiles IPV Independiente nunca entran en el cálculo del inventario regular.
  const regularWorkerIds=new Set((workersResult.data||[]).filter(w=>w.ipv_mode!=="independent").map(w=>w.id));
+ const activeProducts=productsResult.data||[];
+ const activeProductIds=new Set(activeProducts.map(p=>p.id));
  const workerStockByProduct=new Map();
  for(const allocation of allocationsResult.data||[]){
-  if(!regularWorkerIds.has(allocation.worker_id))continue;
+  if(!regularWorkerIds.has(allocation.worker_id)||!activeProductIds.has(allocation.product_id))continue;
   const id=allocation.product_id;
   workerStockByProduct.set(id,(workerStockByProduct.get(id)||0)+Math.max(0,Number(allocation.quantity_remaining)||0));
  }
- const activeProducts=productsResult.data||[];
  const warehouseStock=activeProducts.reduce((n,p)=>n+Math.max(0,Number(p.stock)||0),0);
  const workerStock=[...workerStockByProduct.values()].reduce((n,q)=>n+q,0);
  const stockTotal=warehouseStock+workerStock;
