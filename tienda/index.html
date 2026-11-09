@@ -7,7 +7,7 @@
 <meta name="description" content="Compra en línea en El Toque. Consulta productos y envía tu pedido por WhatsApp.">
 <title>Tienda en línea | El Toque</title>
 <link rel="icon" href="../icons/favicon-32.png">
-<link rel="stylesheet" href="./store.css?v=9">
+<link rel="stylesheet" href="./store.css?v=10">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../config.js?v=52"></script>
 <script defer src="./store.js?v=5"></script>
@@ -15,14 +15,16 @@
 <body>
 <header class="top">
   <a class="brand" href="./" aria-label="El Toque, inicio"><img src="../icons/logo-transparent.svg" alt="El Toque"><span>EL TOQUE<small>TIENDA EN LÍNEA</small></span></a>
+  <nav class="store-nav" aria-label="Navegación principal"><a href="#catalogo">Catálogo</a><a href="#contacto">Contacto</a></nav>
   <a class="cart-shortcut" id="headerCart" href="#carrito" aria-label="Abrir carrito"><svg class="cart-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 1.9-1.4L21 8H6"/><circle cx="10" cy="20" r="1.25"/><circle cx="18" cy="20" r="1.25"/></svg><b id="headerCount">0</b></a>
 </header>
 <main>
   <section class="hero">
-    <div><p class="eyebrow">COMPRA FÁCIL · EL TOQUE</p><h1>Lo que buscas,<br><em>más cerca de ti.</em></h1><p>Explora nuestro catálogo, prepara tu pedido y coordina la entrega directamente con nosotros.</p></div>
-    <div class="hero-art"><img src="../icons/logo-transparent.svg" alt="El Toque"></div>
+    <div class="hero-copy"><p class="eyebrow">EL TOQUE · TIENDA EN LÍNEA</p><h1>Todo lo que necesitas,<br><em>en un solo lugar.</em></h1><p>Descubre nuestro catálogo, elige tus productos y prepara tu pedido fácilmente. Nosotros coordinamos contigo los detalles de entrega.</p><a class="hero-link" href="#catalogo">Explorar catálogo <span>↓</span></a></div>
+    <div class="hero-art"><div class="hero-glow"></div><img src="../icons/logo-transparent.svg" alt="Logo original de El Toque"></div>
+    <div class="hero-bottomline"><span>CALIDAD</span><i></i><span>CONFIANZA</span><i></i><span>CERCANÍA</span></div>
   </section>
-  <section class="catalog-section">
+  <section class="catalog-section" id="catalogo">
     <div class="section-head"><div><p class="eyebrow">NUESTRO CATÁLOGO</p><h2>Productos</h2></div><span id="catalogStatus" class="status">Conectando…</span></div>
     <label class="search"><span>⌕</span><input id="search" type="search" placeholder="Buscar productos…" autocomplete="off"></label>
     <div id="catalog" class="catalog"><div class="loading">Estamos preparando el catálogo…</div></div>
@@ -41,9 +43,10 @@
     <p id="formMessage" class="form-message" role="status"></p>
     <p class="fineprint">Tu pedido se registra en El Toque antes de abrir WhatsApp. Para completar el envío, revisa el mensaje y pulsa Enviar en WhatsApp. La creación del pedido no reserva ni descuenta existencias.</p>
   </section>
+  <section id="contacto" class="contact-section"><div><p class="eyebrow">ESTAMOS PARA AYUDARTE</p><h2>Tu pedido, más fácil con El Toque.</h2><p>¿Tienes alguna duda? Prepara tu selección y coordina los detalles directamente con nuestro equipo.</p></div><a href="#carrito" class="contact-link">Preparar mi pedido <span>→</span></a></section>
 </main>
 <button type="button" id="openCart" class="view-cart" hidden>Ver mi pedido <span id="bottomCount">0</span></button>
-<footer><img src="../icons/logo-transparent.svg" alt=""><span>EL TOQUE · Una experiencia de compra más sencilla</span></footer>
+<footer><img src="../icons/logo-transparent.svg" alt=""><div><strong>EL TOQUE</strong><span>Una experiencia de compra más sencilla</span></div><small>TIENDA EN LÍNEA · CUBA</small></footer>
 <div id="toast" class="toast" role="status"></div>
 </body>
 </html>
