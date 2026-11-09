@@ -1576,3 +1576,7 @@ body.customer-screen-visible{overflow:hidden}
     width:26px!important;height:26px!important;flex:0 0 26px!important;
   }
 }
+
+
+/* Ajuste solicitado: tamaño del texto del botón Regresar */
+#carrito .order-back{font-size:9px!important}
