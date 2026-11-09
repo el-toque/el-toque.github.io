@@ -7,7 +7,7 @@
 <meta name="description" content="Compra en línea en El Toque. Consulta productos y envía tu pedido por WhatsApp.">
 <title>Tienda en línea | El Toque</title>
 <link rel="icon" href="../icons/favicon-32.png">
-<link rel="stylesheet" href="./store.css?v=10">
+<link rel="stylesheet" href="./store.css?v=11">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../config.js?v=52"></script>
 <script defer src="./store.js?v=5"></script>
@@ -25,8 +25,9 @@
     <div class="hero-bottomline"><span>CALIDAD</span><i></i><span>CONFIANZA</span><i></i><span>CERCANÍA</span></div>
   </section>
   <section class="catalog-section" id="catalogo">
-    <div class="section-head"><div><p class="eyebrow">NUESTRO CATÁLOGO</p><h2>Productos</h2></div><span id="catalogStatus" class="status">Conectando…</span></div>
-    <label class="search"><span>⌕</span><input id="search" type="search" placeholder="Buscar productos…" autocomplete="off"></label>
+    <div class="shop-toolbar"><button type="button" class="toolbar-icon" id="searchToggle" aria-label="Mostrar búsqueda">⌕</button><button type="button" class="toolbar-icon" id="categoryToggle" aria-label="Ir a categorías">☰</button><div class="category-tabs" id="categoryTabs"><button type="button" class="filter active" data-filter="all">Ofertas</button><button type="button" class="filter" data-filter="available">Disponibles</button><button type="button" class="filter" data-filter="all">Todos</button></div></div>
+    <div class="catalog-heading"><h2>Ofertas</h2><span id="catalogStatus" class="status">Conectando…</span></div>
+    <label class="search" id="searchWrap"><span>⌕</span><input id="search" type="search" placeholder="Buscar productos…" autocomplete="off"></label>
     <div id="catalog" class="catalog"><div class="loading">Estamos preparando el catálogo…</div></div>
   </section>
   <section id="carrito" class="checkout" aria-label="Tu pedido">
