@@ -856,3 +856,20 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
 .view-cart .view-cart-count{
   gap:2px!important;
 }
+
+/* Icono de añadir: círculo fino y signo + dorados */
+.catalog .product.product-row .product-image .add-icon,
+.catalog .product.product-row .product-image .add-icon.has-count{
+ background:transparent!important;
+ border:1px solid #d8b66e!important;
+ border-radius:50%!important;
+ color:#d8b66e!important;
+ box-shadow:none!important;
+}
+.catalog .product.product-row .product-image .add-icon svg{
+ stroke:#d8b66e!important;
+ stroke-width:1.7!important;
+}
+.catalog .product.product-row .product-image .add-icon.has-count .add-count{
+ color:#d8b66e!important;
+}
