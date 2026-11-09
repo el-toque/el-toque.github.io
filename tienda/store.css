@@ -450,3 +450,20 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
   font-size:13px!important;
  }
 }
+
+
+/* Marco dorado El Toque: más definido y visible alrededor de cada fotografía */
+.catalog .product.product-row .product-image{
+ border:2px solid #d2ad62!important;
+ box-shadow:0 0 0 1px #6f5427, inset 0 0 0 1px #f2d99b, 0 3px 12px #0008!important;
+ border-radius:12px!important;
+}
+.catalog .product.product-row .product-image>img{
+ border-radius:10px!important;
+}
+@media(max-width:700px){
+ .catalog .product.product-row .product-image{
+  border-width:2px!important;
+  box-shadow:0 0 0 1px #6f5427, inset 0 0 0 1px #f2d99b, 0 2px 9px #0008!important;
+ }
+}
