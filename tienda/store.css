@@ -961,3 +961,15 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
 
 /* Ocultación forzada de la barra cuando no hay productos */
 button.view-cart[hidden]{display:none!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important;}
+
+/* Reducir separación vertical entre productos del catálogo */
+.catalog .product.product-row{
+ min-height:0!important;
+ padding:12px 0!important;
+}
+@media(max-width:620px){
+ .catalog .product.product-row{
+  min-height:0!important;
+  padding:9px 0!important;
+ }
+}
