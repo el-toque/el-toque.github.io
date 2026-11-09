@@ -2011,3 +2011,78 @@ body.customer-screen-visible{overflow:hidden}
     display:block!important;
   }
 }
+
+
+/* v82 — Total debajo del contador, separado por una línea fina */
+@media(max-width:700px){
+  #carrito > .order-summary{
+    width:100%!important;
+    min-height:0!important;
+    height:auto!important;
+    margin:10px 0 11px!important;
+    padding:11px 14px!important;
+    box-sizing:border-box!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    justify-content:flex-start!important;
+    gap:0!important;
+    border-radius:14px!important;
+    overflow:visible!important;
+  }
+  #carrito > .order-summary .order-summary-count{
+    display:flex!important;
+    width:100%!important;
+    flex:0 0 auto!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    justify-content:flex-start!important;
+    gap:9px!important;
+    min-width:0!important;
+    padding:0 0 9px!important;
+    border:0!important;
+    border-bottom:1px solid rgba(216,182,110,.42)!important;
+  }
+  #carrito > .order-summary .order-summary-count svg{
+    width:22px!important;
+    height:22px!important;
+    flex:0 0 22px!important;
+  }
+  #carrito > .order-summary .order-summary-count span{
+    display:flex!important;
+    flex-direction:column!important;
+    gap:3px!important;
+    min-width:0!important;
+    font-size:10px!important;
+    line-height:1.15!important;
+  }
+  #carrito > .order-summary .order-summary-count strong{
+    display:block!important;
+    margin:0!important;
+    font-size:10px!important;
+    line-height:1.1!important;
+    white-space:normal!important;
+  }
+  #carrito > .order-summary .order-summary-total{
+    display:flex!important;
+    width:100%!important;
+    flex:0 0 auto!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:10px!important;
+    margin:0!important;
+    padding:9px 0 0!important;
+    border:0!important;
+  }
+  #carrito > .order-summary .order-summary-total span{
+    font-size:10px!important;
+    line-height:1.1!important;
+  }
+  #carrito > .order-summary .order-summary-total strong{
+    margin:0!important;
+    font-size:14px!important;
+    line-height:1.1!important;
+    white-space:nowrap!important;
+  }
+}
