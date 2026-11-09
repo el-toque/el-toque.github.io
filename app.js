@@ -752,7 +752,12 @@ async function loadOnlineStoreAdmin(){
  onlineStoreProducts=(prodRes.data||[]).map(p=>({...p,storeSettings:(settingsRes.data||[]).find(x=>x.product_id===p.id)||null}));
  renderOnlineStoreProducts();
  if(ordersRes.error){$("onlineStoreOrders").innerHTML='<p class="form-error">'+esc(ordersRes.error.message)+'</p>';return;}
- onlineStoreOrders=ordersRes.data||[];renderOnlineStoreOrders();
+ onlineStoreOrders=ordersRes.data||[];
+ await Promise.all(onlineStoreOrders.filter(o=>o.status==="pending").map(async o=>{
+  const {data,error}=await client.rpc("store_admin_order_sources",{p_order_id:o.id});
+  o.supplyItems=error?[]:(data||[]);
+ }));
+ renderOnlineStoreOrders();
 }
 function renderOnlineStoreProducts(){
  const body=$("onlineStoreProductsBody");
@@ -763,7 +768,12 @@ function renderOnlineStoreOrders(){
  const root=$("onlineStoreOrders");
  if(!onlineStoreOrders.length){root.innerHTML='<p class="muted small">Todavía no hay pedidos registrados.</p>';return;}
  root.innerHTML=onlineStoreOrders.map(o=>{
-  const itemHtml=(Array.isArray(o.items)?o.items:[]).map(i=>'<div class="online-order-item"><span>'+esc(i.quantity)+' × '+esc(i.product_name)+'</span><b>'+onlineMoney(i.line_total)+'</b></div>').join("");
+  const itemHtml=(Array.isArray(o.items)?o.items:[]).map(i=>{
+   const supply=(o.supplyItems||[]).find(x=>x.order_item_id===i.id);
+   const options=(supply?.sources||[]).map(src=>'<option value="'+esc(src.source_type+'|'+src.source_item_id)+'" '+(supply.source_type===src.source_type&&supply.source_item_id===src.source_item_id?'selected':'')+'>'+esc(src.worker_name)+' · '+esc(src.available_qty)+' disponibles</option>').join("");
+   const assignment=o.status==="pending"?'<label class="online-supply-picker">Suministrar desde<select data-supply-select="'+esc(i.id)+'"><option value="">Seleccionar trabajador…</option>'+options+'</select></label><button class="secondary" data-supply-save="'+esc(i.id)+'">Guardar asignación</button><small class="muted">'+(supply?.source_worker_name?'Asignado: '+esc(supply.source_worker_name):'Pendiente de asignación')+'</small>':'<small class="muted">Suministrado por: '+esc(i.source_worker_name||'—')+'</small>';
+   return '<div class="online-order-item online-order-item-assignment"><div><span>'+esc(i.quantity)+' × '+esc(i.product_name)+'</span><b>'+onlineMoney(i.line_total)+'</b>'+assignment+'</div></div>';
+  }).join("");
   const eventHtml=(Array.isArray(o.events)?o.events:[]).map(ev=>'<li><b>'+esc(onlineStatusLabels[ev.to_status]||ev.to_status)+'</b><small>'+new Date(ev.created_at).toLocaleString("es-ES")+'</small>'+(ev.note?'<p>'+esc(ev.note)+'</p>':"")+'</li>').join("");
   let actions="";
   if(o.status==="pending")actions='<button class="primary" data-order-confirm="'+esc(o.id)+'">Confirmar y descontar stock</button><button class="danger" data-order-cancel="'+esc(o.id)+'">Cancelar</button>';
@@ -787,6 +797,17 @@ $("onlineStoreProductsBody").addEventListener("click",async e=>{
  $("onlineStoreProductsMessage").textContent=error?error.message:"Producto actualizado.";if(!error)await loadOnlineStoreAdmin();
 });
 $("onlineStoreOrders").addEventListener("click",async e=>{
+ const assign=e.target.closest("[data-supply-save]");
+ if(assign){
+  const select=document.querySelector('[data-supply-select="'+CSS.escape(assign.dataset.supplySave)+'"]');
+  const [sourceType,sourceItemId]=(select?.value||"").split("|");
+  if(!sourceType||!sourceItemId){toast("Selecciona el trabajador que suministrará este producto.");return;}
+  assign.disabled=true;
+  const saved=await client.rpc("store_admin_set_order_item_source",{p_order_item_id:assign.dataset.supplySave,p_source_type:sourceType,p_source_item_id:sourceItemId});
+  assign.disabled=false;
+  if(saved.error)toast("Asignación: "+saved.error.message);else toast("Trabajador asignado al producto.");
+  await loadOnlineStoreAdmin();return;
+ }
  const c=e.target.closest("[data-order-confirm]"),s=e.target.closest("[data-order-status]"),x=e.target.closest("[data-order-cancel]");let result;
  if(c){c.disabled=true;result=await client.rpc("store_admin_confirm_order",{p_order_id:c.dataset.orderConfirm});}
  else if(s){s.disabled=true;result=await client.rpc("store_admin_set_order_status",{p_order_id:s.dataset.orderId,p_new_status:s.dataset.orderStatus,p_note:null});}
