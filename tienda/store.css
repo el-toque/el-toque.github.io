@@ -1776,3 +1776,74 @@ body.customer-screen-visible{overflow:hidden}
     overflow-wrap:normal!important;
   }
 }
+
+
+/* v78 — Restaurar el resumen en formato horizontal compacto y legible */
+@media(max-width:700px){
+  #carrito .order-heading-top{
+    grid-template-columns:minmax(0,1fr) minmax(166px,44%)!important;
+    column-gap:8px!important;
+  }
+  #carrito .order-heading-top .order-summary{
+    width:100%!important;
+    height:78px!important;
+    min-height:78px!important;
+    max-height:78px!important;
+    padding:10px 9px!important;
+    box-sizing:border-box!important;
+    display:flex!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:8px!important;
+    overflow:hidden!important;
+  }
+  #carrito .order-heading-top .order-summary-count{
+    flex:1 1 55%!important;
+    min-width:0!important;
+    display:flex!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    gap:6px!important;
+  }
+  #carrito .order-heading-top .order-summary-count svg{
+    width:19px!important;
+    height:19px!important;
+    flex:0 0 19px!important;
+  }
+  #carrito .order-heading-top .order-summary-count span{
+    min-width:0!important;
+    font-size:9px!important;
+    line-height:1.15!important;
+    white-space:normal!important;
+  }
+  #carrito .order-heading-top .order-summary-count strong{
+    display:block!important;
+    margin-top:3px!important;
+    font-size:9px!important;
+    line-height:1.1!important;
+    white-space:normal!important;
+  }
+  #carrito .order-heading-top .order-summary-total{
+    flex:0 0 auto!important;
+    width:auto!important;
+    min-width:0!important;
+    margin:0!important;
+    padding:0!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:flex-end!important;
+    justify-content:center!important;
+    gap:4px!important;
+  }
+  #carrito .order-heading-top .order-summary-total span{
+    font-size:10px!important;
+    line-height:1.1!important;
+  }
+  #carrito .order-heading-top .order-summary-total strong{
+    margin:0!important;
+    font-size:11px!important;
+    line-height:1.1!important;
+    white-space:nowrap!important;
+  }
+}
