@@ -311,3 +311,30 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
  .catalog .product.product-row .product-image{border-radius:15px!important}
  .catalog .product.product-row .product-qty{right:7px!important;bottom:7px!important;min-width:34px!important;height:34px!important;font-size:14px!important}
 }
+
+
+/* Tipografía del catálogo al mismo tamaño que ElectroIsla */
+.catalog .product.product-row .product-body h3{
+ font-size:16px!important;
+ font-weight:600!important;
+ line-height:1.3!important;
+}
+.catalog .product.product-row .product-body p{
+ font-size:13px!important;
+ font-weight:400!important;
+ line-height:1.45!important;
+}
+.catalog .product.product-row .price{
+ font-size:17px!important;
+ font-weight:600!important;
+}
+.catalog .product.product-row .add{
+ font-size:14px!important;
+ font-weight:600!important;
+}
+@media(max-width:620px){
+ .catalog .product.product-row .product-body h3{font-size:16px!important;font-weight:600!important}
+ .catalog .product.product-row .product-body p{font-size:13px!important;font-weight:400!important}
+ .catalog .product.product-row .price{font-size:17px!important;font-weight:600!important}
+ .catalog .product.product-row .add{font-size:14px!important;font-weight:600!important}
+}
