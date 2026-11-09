@@ -803,3 +803,33 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
   padding:0 13px!important;font-size:14px!important;
  }
 }
+
+
+/* Botón "Ver mi pedido": óvalo delineado y texto dorado */
+.view-cart .view-cart-label{
+  color:#d8b66e!important;
+  border:1px solid #d8b66e!important;
+  border-radius:999px!important;
+  background:transparent!important;
+  padding:0 20px!important;
+  min-height:46px!important;
+  height:46px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  font-weight:750!important;
+}
+.view-cart:hover .view-cart-label,
+.view-cart:active .view-cart-label{
+  color:#e7c982!important;
+  border-color:#e7c982!important;
+  background:#d8b66e12!important;
+}
+@media(max-width:420px){
+  .view-cart .view-cart-label{
+    min-height:44px!important;
+    height:44px!important;
+    padding:0 13px!important;
+    font-size:14px!important;
+  }
+}
