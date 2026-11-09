@@ -1593,3 +1593,7 @@ body.customer-screen-visible{overflow:hidden}
 
 /* v58 — Título «Tu pedido»: 25 px y peso normal */
 #carrito .order-heading-title h2{font-size:25px!important;font-weight:400!important;line-height:1.05!important;letter-spacing:0!important}
+
+
+/* v59 — Acercar «Regresar» al título y subir el conjunto */
+#carrito .order-back{margin-bottom:2px!important}
