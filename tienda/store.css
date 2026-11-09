@@ -850,3 +850,9 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
 .view-cart .view-cart-count span{
   font-weight:400!important;
 }
+
+
+/* Acercar ligeramente el número a la palabra del contador */
+.view-cart .view-cart-count{
+  gap:2px!important;
+}
