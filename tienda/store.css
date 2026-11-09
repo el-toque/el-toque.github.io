@@ -842,3 +842,11 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
   font-size:13px!important;
   line-height:1.2!important;
 }
+
+
+/* "0 productos": peso regular, sin negrita */
+.view-cart .view-cart-count,
+.view-cart .view-cart-count b,
+.view-cart .view-cart-count span{
+  font-weight:400!important;
+}
