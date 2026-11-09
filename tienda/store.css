@@ -578,3 +578,18 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
  .view-cart-summary>strong{font-size:21px!important}
  .view-cart-count{font-size:15px!important}
 }
+
+/* Neutraliza los estilos circulares antiguos de los spans del botón */
+.view-cart .view-cart-summary,
+.view-cart .view-cart-count{
+ background:transparent!important;
+ border-radius:0!important;
+ padding:0!important;
+ min-width:0!important;
+ height:auto!important;
+}
+.view-cart .view-cart-label{
+ min-width:0!important;
+ height:auto!important;
+ display:flex!important;
+}
