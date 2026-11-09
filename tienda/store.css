@@ -1040,3 +1040,24 @@ button.view-cart[hidden]{display:none!important;opacity:0!important;visibility:h
  .cart-step-total strong{font-size:21px}
  .continue-order{min-height:46px;padding:0 14px;font-size:13px}
 }
+
+
+/* Barra del total fija al borde inferior del viewport durante la selección */
+.cart-stepbar{
+ position:fixed!important;
+ left:50%!important;
+ right:auto!important;
+ bottom:0!important;
+ transform:translateX(-50%)!important;
+ width:min(100%,760px)!important;
+ margin:0!important;
+ z-index:120!important;
+ padding:14px 18px calc(14px + env(safe-area-inset-bottom))!important;
+}
+.checkout.is-open{padding-bottom:calc(125px + env(safe-area-inset-bottom))!important}
+.order-step[hidden]{display:none!important}
+.order-step .form-card{margin-bottom:16px}
+.continue-step{width:100%;margin-top:8px}
+@media(max-width:420px){
+ .cart-stepbar{padding-left:16px!important;padding-right:16px!important}
+}
