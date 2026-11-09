@@ -7,7 +7,7 @@
 <meta name="description" content="Compra en línea en El Toque. Consulta productos y envía tu pedido por WhatsApp.">
 <title>Tienda en línea | El Toque</title>
 <link rel="icon" href="../icons/favicon-32.png">
-<link rel="stylesheet" href="./store.css?v=40">
+<link rel="stylesheet" href="./store.css?v=41">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../config.js?v=52"></script>
 <script defer src="./store.js?v=15"></script>
@@ -23,8 +23,8 @@
     <div class="hero-art"><img src="../icons/logo-transparent.svg" alt="El Toque"></div>
   </section>
   <section class="catalog-section">
-    <div class="section-head"><div><p class="eyebrow">NUESTRO CATÁLOGO</p></div><span id="catalogStatus" class="status">Conectando…</span></div>
-    <label class="search"><span>⌕</span><input id="search" type="search" placeholder="Buscar productos…" autocomplete="off"></label>
+    <div class="section-head"><div><p class="eyebrow">NUESTRO CATÁLOGO</p></div><div class="catalog-tools"><span id="catalogStatus" class="status">Conectando…</span><button type="button" id="searchToggle" class="search-toggle" aria-label="Buscar productos" aria-expanded="false" aria-controls="searchPanel" title="Buscar productos"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg></button></div></div>
+    <div id="searchPanel" class="search-panel" hidden><input id="search" type="search" placeholder="Buscar productos…" autocomplete="off" aria-label="Buscar productos"><button type="button" id="closeSearch" class="search-close" aria-label="Cerrar búsqueda">×</button></div>
     <div id="catalog" class="catalog"><div class="loading">Estamos preparando el catálogo…</div></div>
   </section>
   <section id="carrito" class="checkout" aria-label="Tu pedido">
