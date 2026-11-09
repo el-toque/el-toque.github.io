@@ -1686,3 +1686,32 @@ body.customer-screen-visible{overflow:hidden}
 @media(max-width:700px){
   #carrito .order-heading-main{transform:translateY(3px)!important}
 }
+
+/* v76 — Resumen más estrecho y alto, con forma rectangular */
+@media(max-width:700px){
+  #carrito .order-summary{
+    width:82%!important;
+    min-height:116px!important;
+    height:116px!important;
+    padding:10px 8px!important;
+    border-radius:12px!important;
+    box-sizing:border-box!important;
+    display:flex!important;
+    flex-direction:column!important;
+    justify-content:space-between!important;
+    align-self:start!important;
+  }
+  #carrito .order-summary-total{
+    width:100%!important;
+    margin-top:7px!important;
+    padding-top:7px!important;
+    gap:4px!important;
+    flex-direction:column!important;
+    align-items:flex-start!important;
+  }
+  #carrito .order-summary-total strong{
+    margin-left:0!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+  }
+}
