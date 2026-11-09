@@ -287,3 +287,82 @@ footer small{margin-left:auto;color:#82765e;font-size:9px;letter-spacing:.16em;f
 
 /* Layout tienda inspirado en ElectroIsla, conservando identidad El Toque */
 .shop-toolbar{display:flex;align-items:center;gap:10px;min-height:52px;border-bottom:1px solid #3a3428;margin:0 0 16px;padding:0 0 8px}.toolbar-icon{flex:0 0 36px;width:36px;height:36px;border:1px solid #4c412e;border-radius:9px;background:#1a1b1d;color:#d8b66f;font-size:22px;font-weight:700;display:grid;place-items:center}.category-tabs{display:flex;align-items:center;gap:19px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}.category-tabs::-webkit-scrollbar{display:none}.category-tabs .filter{position:relative;white-space:nowrap;background:transparent;border:0;border-radius:0;padding:11px 1px;color:#aaa397;font-size:13px;font-weight:800}.category-tabs .filter.active{color:#e2c17a}.category-tabs .filter.active:after{content:"";position:absolute;left:0;right:0;bottom:2px;height:2px;background:#c8a45f;border-radius:2px}.catalog-heading{display:flex;align-items:center;justify-content:space-between;margin:0 0 13px}.catalog-heading h2{font-size:22px;margin:0;color:#f3eee4}#searchWrap{display:none;margin-bottom:16px}#searchWrap.search-open{display:flex}.catalog{display:flex;flex-direction:column;border-top:1px solid #37332b;gap:0}.product.shop-product{display:grid;grid-template-columns:minmax(0,1fr) 116px;gap:15px;align-items:center;background:transparent;border:0;border-bottom:1px solid #39342b;border-radius:0;padding:16px 0;min-height:140px;overflow:visible}.shop-product .product-info{grid-column:1;grid-row:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:6px}.shop-product .product-info h3{font-size:16px;line-height:1.25;margin:0;color:#f3eee4}.shop-product .product-info p{font-size:11px;line-height:1.35;color:#999387;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.shop-product .product-bottom{width:100%;display:flex;flex-direction:column;align-items:stretch;gap:8px;margin:3px 0 0}.shop-product .price{font-size:16px;color:#e1bf78;font-weight:900}.shop-product .add{width:100%;min-height:36px;padding:8px 10px;border-radius:7px;background:#c8a45f;color:#17130c;border:1px solid #dfc17e;font-size:12px;font-weight:900}.shop-product .product-media{grid-column:2;grid-row:1;position:relative;width:116px}.shop-product .product-image{width:116px;height:116px;min-height:116px;max-height:116px;display:grid;place-items:center;background:#1d1e21;border:1px solid #40382b;border-radius:10px;overflow:hidden}.shop-product .product-image img{width:100%;height:100%;padding:9px;object-fit:contain}.shop-product .product-qty{top:-7px;right:-7px}.shop-product .stock-tag{position:absolute;left:4px;bottom:4px;background:#35291f;color:#edb69a;border-radius:5px;padding:3px 5px;font-size:9px}.hero{max-width:none;margin:0;padding:35px max(21px,calc((100% - 1160px)/2)) 54px;min-height:310px;grid-template-columns:minmax(0,1.2fr) minmax(135px,.8fr);gap:12px;background:radial-gradient(ellipse at 80% 48%,rgba(195,153,77,.19),transparent 34%),linear-gradient(120deg,#1c1d20,#111214 70%);border:0;border-bottom:1px solid #4a3d28;border-radius:0}.hero-art{width:100%;height:210px;background:transparent;border:0}.hero-art img{width:90%;height:90%;object-fit:contain}.hero h1{font-size:clamp(34px,7vw,58px);line-height:1.02}.hero p:not(.eyebrow){font-size:13px;line-height:1.6}.hero-link{margin-top:10px;padding:10px 14px;font-size:12px}.catalog-section{padding-top:24px}@media(max-width:700px){.shop-toolbar{gap:8px;min-height:46px}.toolbar-icon{width:34px;height:34px;flex-basis:34px}.category-tabs{gap:15px}.category-tabs .filter{font-size:12px}.catalog-heading h2{font-size:21px}.product.shop-product{grid-template-columns:minmax(0,1fr) 104px;gap:12px;min-height:132px;padding:14px 0}.shop-product .product-media,.shop-product .product-image{width:104px}.shop-product .product-image{height:104px;min-height:104px;max-height:104px}.shop-product .product-info h3{font-size:15px}.shop-product .price{font-size:15px}.shop-product .add{min-height:34px;font-size:11px}.hero{min-height:300px;padding:34px 20px 57px;grid-template-columns:minmax(0,1fr) 105px;gap:6px}.hero-art{height:145px;width:105px}.hero-art img{width:100%;height:100%}.hero h1{font-size:clamp(31px,8vw,41px)}.hero-copy .eyebrow{font-size:9px}}
+/* Reconstrucción de tienda: composición y jerarquía de ElectroIsla, identidad El Toque */
+:root{--ink:#f0ece3;--muted:#a7a197;--line:#37332b;--paper:#101113;--white:#191a1d;--gold:#c9a45d}
+html,body{background:#101113;color:#f0ece3}
+.top{height:66px;padding:0 max(16px,calc((100% - 1160px)/2));background:#090a0b;border-bottom:2px solid #c9a45d;position:sticky;top:0;z-index:80}
+.brand img{width:42px;height:42px;object-fit:contain}
+.brand{font-size:14px;letter-spacing:.15em}
+.brand small{color:#d4bd8d}
+.store-nav{display:flex;gap:22px;margin-left:auto;margin-right:22px}
+.store-nav a{color:#c9c1b3;text-decoration:none;font-size:13px}
+.hero{max-width:none;width:100%;min-height:0;margin:0;padding:36px max(20px,calc((100% - 1160px)/2)) 30px;display:grid;grid-template-columns:minmax(0,1.45fr) minmax(140px,.65fr);align-items:center;gap:24px;background:radial-gradient(ellipse at 82% 50%,rgba(201,164,93,.2),transparent 36%),linear-gradient(120deg,#1b1c1f,#111214 72%);border:0;border-bottom:1px solid #55452b;border-radius:0;box-shadow:none;position:relative}
+.hero-copy{max-width:690px}
+.hero .eyebrow{color:#d2b675;font-size:11px;letter-spacing:2px}
+.hero h1{font-size:clamp(36px,6vw,64px);line-height:.98;letter-spacing:-.055em;color:#f5f1e9;margin:0 0 18px}
+.hero h1 em{color:#d4b16d;font-family:Georgia,serif;font-weight:500}
+.hero p:not(.eyebrow){max-width:570px;color:#b9b3a9;font-size:15px;line-height:1.6}
+.hero-link{display:inline-flex;gap:22px;align-items:center;margin-top:16px;padding:14px 18px;border:1px solid #80683b;border-radius:10px;background:#211d15;color:#e5ca8c;text-decoration:none;font-weight:800}
+.hero-art{width:min(100%,240px);height:220px;margin:0 auto;background:transparent;border:0;border-radius:0;display:grid;place-items:center;position:relative}
+.hero-art img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 4px 12px rgba(201,164,93,.18))}
+.hero-glow{display:none}
+.hero-bottomline{position:static;grid-column:1/-1;display:flex;gap:11px;align-items:center;color:#bca779;font-size:9px;letter-spacing:2px;font-weight:850;margin-top:4px}
+.hero-bottomline i{width:4px;height:4px;border-radius:50%;background:#c9a45d}
+.catalog-section{max-width:1160px;margin:0 auto;padding:24px max(16px,calc((100% - 1160px)/2)) 100px}
+.shop-toolbar{display:flex;align-items:center;gap:9px;overflow:hidden;position:sticky;top:66px;z-index:18;background:#101113;padding:8px 0 10px;margin:0 0 12px;border-bottom:1px solid #3d3528}
+.icon-btn{flex:0 0 42px;width:42px;height:42px;border:1px solid #51452f;background:#191a1d;color:#d7b56e;border-radius:10px;font-size:25px;display:grid;place-items:center}
+.category-tabs{display:flex;gap:21px;overflow-x:auto;scrollbar-width:none;align-items:center;min-width:0}
+.category-tabs::-webkit-scrollbar{display:none}
+.category-tabs .filter{border:0;background:transparent;border-radius:0;padding:12px 2px;font-size:14px;font-weight:850;white-space:nowrap;color:#c1b9ac;position:relative}
+.category-tabs .filter.active{color:#e2c17a;background:transparent}
+.category-tabs .filter.active:after{content:"";position:absolute;left:0;right:0;bottom:3px;height:2px;border-radius:2px;background:#c9a45d}
+.catalog-heading{display:flex;justify-content:space-between;align-items:center;margin:8px 0 16px}
+.catalog-heading h2{font-size:27px;margin:0;color:#f1ece3}
+.catalog-heading .status{font-size:11px;color:#b4a17a;background:#211e18;border:1px solid #4a3e2b;border-radius:20px;padding:7px 11px}
+.search{display:none;max-width:none;margin:0 0 16px;background:#1a1b1e;border:1px solid #383735;color:#e9e2d6;border-radius:12px;height:48px}
+.search.search-open{display:flex}
+.search input{background:transparent;color:#f1ece3}
+.search input::placeholder{color:#8e8980}
+.catalog{display:flex;flex-direction:column;border-top:1px solid #39342b;gap:0}
+.shop-product{display:grid;grid-template-columns:minmax(0,1fr) 126px;gap:15px;align-items:center;background:transparent;border:0;border-bottom:1px solid #39342b;border-radius:0;padding:18px 0;min-height:144px;overflow:visible}
+.product-info{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:7px}
+.shop-product h3{font-size:17px;line-height:1.2;margin:0;color:#f4efe6}
+.shop-product p{margin:0 0 3px;color:#9d988e;font-size:12px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.shop-product .product-bottom{width:100%;display:flex;flex-direction:column;align-items:stretch;gap:8px;margin:3px 0 0}
+.shop-product .price{font-size:17px;color:#e1bf78;font-weight:900}
+.shop-product .add{width:100%;min-height:38px;padding:9px 10px;border-radius:8px;background:#c9a45d;color:#17130c;border:1px solid #dfc17e;font-size:12px;font-weight:900}
+.shop-product .add:disabled{background:#49443a;color:#aaa398;border-color:#5b5345}
+.product-media{position:relative;width:126px}
+.shop-product .product-img{height:126px;width:126px;border-radius:12px;background:#1d1e21;border:1px solid #40382b;display:grid;place-items:center;overflow:hidden}
+.shop-product .product-img img{width:100%;height:100%;padding:8px;object-fit:contain}
+.product-qty{top:5px;right:5px}
+.stock-tag{position:absolute;left:5px;bottom:5px;background:#35291f;color:#edb69a;border-radius:5px;padding:3px 5px;font-size:9px}
+.empty-products{padding:30px 0;color:#aaa397}
+.contact-section{max-width:1160px;margin:20px auto 30px;padding:26px;border:1px solid #49402f;border-radius:16px;background:linear-gradient(120deg,#1b1c1f,#131416);color:#eee7da}
+.contact-section h2{color:#f1ece3}.contact-section p:not(.eyebrow){color:#aaa397}
+.contact-link{display:inline-flex;margin-top:14px;color:#e1bf78;text-decoration:none;font-weight:800}
+.view-cart{background:#c9a45d;color:#17130c;border:1px solid #e0c17e;border-radius:12px;box-shadow:0 -5px 24px #0008;padding:16px;font-weight:900}
+.view-cart span{background:#171615;color:#e4c47d}
+footer{background:#090a0b;color:#bca779;border-top:1px solid #4a3d28}
+@media(max-width:700px){
+ .store-nav{display:none}
+ .hero{grid-template-columns:minmax(0,1fr) 112px;gap:6px;padding:34px 20px 25px;min-height:0}
+ .hero h1{font-size:clamp(31px,8vw,42px)}
+ .hero p:not(.eyebrow){font-size:13px;line-height:1.55}
+ .hero-art{width:112px;height:145px}
+ .hero-bottomline{font-size:8px;letter-spacing:1.3px;gap:8px}
+ .catalog-section{padding:18px 20px 100px}
+ .shop-toolbar{top:66px;gap:7px}
+ .icon-btn{flex-basis:39px;width:39px;height:39px}
+ .category-tabs{gap:16px}
+ .category-tabs .filter{font-size:12px}
+ .catalog-heading h2{font-size:25px}
+ .shop-product{grid-template-columns:minmax(0,1fr) 116px;gap:13px;padding:16px 0;min-height:136px}
+ .product-media,.shop-product .product-img{width:116px}
+ .shop-product .product-img{height:116px}
+ .shop-product h3{font-size:15px}
+ .shop-product .price{font-size:16px}
+ .shop-product .add{min-height:36px;font-size:11px}
+ .contact-section{margin:16px 16px 26px;padding:22px}
+}
+@media(max-width:360px){.hero{grid-template-columns:minmax(0,1fr) 90px}.hero-art{width:90px;height:120px}.shop-product{grid-template-columns:minmax(0,1fr) 102px}.product-media,.shop-product .product-img{width:102px}.shop-product .product-img{height:102px}}
