@@ -2104,3 +2104,16 @@ body.customer-screen-visible{overflow:hidden}
     margin-right:auto!important;
   }
 }
+
+/* v85 — Desplazar el resumen a la izquierda y subir el encabezado del pedido */
+@media(max-width:700px){
+  #carrito > .order-summary{
+    width:40%!important;
+    max-width:40%!important;
+    margin-left:20%!important;
+    margin-right:auto!important;
+  }
+  #carrito .order-heading-main{
+    transform:translateY(-8px)!important;
+  }
+}
