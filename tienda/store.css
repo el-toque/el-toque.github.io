@@ -1642,3 +1642,13 @@ body.customer-screen-visible{overflow:hidden}
   #carrito .order-summary-total strong{font-size:23px!important}
   #carrito .order-summary-count svg{width:24px!important;height:24px!important;flex:0 0 24px!important}
 }
+
+
+/* v67 — Icono minimalista y jerarquía tipográfica del resumen */
+#carrito .order-summary-count svg{
+  fill:none!important;stroke:currentColor!important;stroke-width:1.15!important;
+  stroke-linecap:round!important;stroke-linejoin:round!important;
+}
+#carrito .order-summary-count span{font-size:10px!important}
+#carrito .order-summary-count strong{font-size:7px!important;font-weight:600!important}
+#carrito .order-summary-total span{font-size:11px!important;font-weight:700!important}
