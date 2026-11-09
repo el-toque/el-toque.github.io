@@ -7,10 +7,10 @@
 <meta name="description" content="Compra en línea en El Toque. Consulta productos y envía tu pedido por WhatsApp.">
 <title>Tienda en línea | El Toque</title>
 <link rel="icon" href="../icons/favicon-32.png">
-<link rel="stylesheet" href="./store.css?v=44">
+<link rel="stylesheet" href="./store.css?v=45">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../config.js?v=52"></script>
-<script defer src="./store.js?v=18"></script>
+<script defer src="./store.js?v=19"></script>
 </head>
 <body>
 <header class="top">
@@ -35,21 +35,28 @@
       <div class="cart-step-total"><span>Total del pedido</span><strong id="total">0,00 CUP</strong></div>
       <button type="button" id="continueOrder" class="continue-order">Continuar con el pedido</button>
     </div>
-    <div id="orderDetails" class="order-details" hidden>
-      <div id="buyerDetails" class="order-step">
-        <button type="button" id="backToItems" class="back-cart">← Volver a los productos</button>
-        <div class="total-row"><span>Total del pedido</span><strong id="detailsTotal">0,00 CUP</strong></div>
-        <div class="form-card"><h3>Datos del cliente</h3><label>Nombre completo<input id="buyerName" maxlength="120" autocomplete="name" required></label><label>Teléfono<input id="buyerPhone" maxlength="40" type="tel" autocomplete="tel" required></label></div>
-        <button type="button" id="continueRecipient" class="submit continue-step">Continuar con los datos del destinatario</button>
+  </section>
+  <section id="customerScreen" class="customer-screen" aria-label="Datos para completar el pedido">
+    <div class="customer-screen-inner">
+      <button type="button" id="backToItems" class="back-cart">← Volver al pedido</button>
+      <p class="eyebrow">DATOS PARA TU PEDIDO</p>
+      <h2>Completa tus datos</h2>
+      <div class="total-row"><span>Total del pedido</span><strong id="detailsTotal">0,00 CUP</strong></div>
+      <div class="form-card">
+        <h3>Datos del cliente</h3>
+        <label>Nombre completo<input id="buyerName" maxlength="120" autocomplete="name" required></label>
+        <label>Teléfono<input id="buyerPhone" maxlength="40" type="tel" autocomplete="tel" required></label>
       </div>
-      <div id="recipientDetails" class="order-step" hidden>
-        <button type="button" id="backToBuyer" class="back-cart">← Volver a los datos del cliente</button>
-        <div class="form-card"><h3>Datos del destinatario</h3><label>Nombre completo<input id="recipientName" maxlength="120" required></label><label>Teléfono<input id="recipientPhone" maxlength="40" type="tel" required></label><label>Dirección completa<textarea id="recipientAddress" maxlength="500" rows="3" required></textarea></label></div>
-        <div class="delivery-note"><b>Servicio de entrega</b><p id="deliveryInfo">Consulta los detalles de entrega al coordinar tu pedido.</p></div>
-        <button id="submitOrder" class="submit" disabled>Enviar pedido por WhatsApp</button>
-        <p id="formMessage" class="form-message" role="status"></p>
-        <p class="fineprint">Tu pedido se registra en El Toque antes de abrir WhatsApp. Para completar el envío, revisa el mensaje y pulsa Enviar en WhatsApp. La creación del pedido no reserva ni descuenta existencias.</p>
+      <div class="form-card recipient-card">
+        <h3>Datos del destinatario</h3>
+        <label>Nombre completo<input id="recipientName" maxlength="120" required></label>
+        <label>Teléfono<input id="recipientPhone" maxlength="40" type="tel" required></label>
+        <label>Dirección completa<textarea id="recipientAddress" maxlength="500" rows="3" required></textarea></label>
       </div>
+      <div class="delivery-note"><b>Servicio de entrega</b><p id="deliveryInfo">Consulta los detalles de entrega al coordinar tu pedido.</p></div>
+      <button id="submitOrder" class="submit" disabled>Enviar pedido por WhatsApp</button>
+      <p id="formMessage" class="form-message" role="status"></p>
+      <p class="fineprint">Tu pedido se registra en El Toque antes de abrir WhatsApp. Para completar el envío, revisa el mensaje y pulsa Enviar en WhatsApp. La creación del pedido no reserva ni descuenta existencias.</p>
     </div>
   </section>
 </main>
