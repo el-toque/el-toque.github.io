@@ -2117,3 +2117,17 @@ body.customer-screen-visible{overflow:hidden}
     transform:translateY(-8px)!important;
   }
 }
+
+
+/* v86 — Mover el resumen a la derecha y elevar el bloque del pedido */
+@media(max-width:700px){
+  #carrito > .order-summary{
+    width:40%!important;
+    max-width:40%!important;
+    margin-left:60%!important;
+    margin-right:0!important;
+  }
+  #carrito .order-heading-main{
+    transform:translateY(-18px)!important;
+  }
+}
