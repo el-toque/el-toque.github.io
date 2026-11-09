@@ -989,18 +989,18 @@ button.view-cart[hidden]{display:none!important;opacity:0!important;visibility:h
 @media(max-width:620px){.search-toggle{width:39px;height:39px}.search-panel{max-width:none}}
 
 
-/* Marco dorado fino y esquinas suaves para cada producto */
+/* Separadores dorados finos entre productos, sin encuadrarlos */
 .catalog .product.product-row{
  box-sizing:border-box!important;
- border:1px solid rgba(185,149,82,.78)!important;
- border-radius:9px!important;
- padding:12px 13px!important;
- margin:0 0 11px!important;
- background:rgba(20,20,21,.42)!important;
+ border:0!important;
+ border-bottom:1px solid rgba(185,149,82,.72)!important;
+ border-radius:0!important;
+ padding:12px 0!important;
+ margin:0!important;
+ background:transparent!important;
 }
 @media(max-width:620px){
  .catalog .product.product-row{
-  padding:10px 11px!important;
-  margin-bottom:9px!important;
+  padding:10px 0!important;
  }
 }
