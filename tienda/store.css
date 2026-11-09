@@ -178,3 +178,109 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
  .add{min-height:40px!important;font-size:13px!important}
  .view-cart{min-height:54px!important;font-size:15px!important}
 }
+
+
+/* EL TOQUE — nueva composición integral inspirada en la experiencia visual de ElectroIsla */
+:root{--ink:#f4f0e7;--muted:#a9a397;--green:#c9a45f;--lime:#e4c986;--paper:#101113;--line:#3a352b;--white:#191a1d;--gold:#d8b66f}
+html{scroll-behavior:smooth;scroll-padding-top:88px}
+body{background:#101113;color:#f4f0e7}
+.top{height:78px;padding:0 max(20px,calc((100% - 1160px)/2));background:#090a0b;border-bottom:1px solid #403724;position:sticky;top:0;z-index:40;gap:20px}
+.brand{color:#f4f0e7;font-size:15px;letter-spacing:.16em}
+.brand img{width:43px;height:43px;object-fit:contain}
+.brand small{color:#d0b879;letter-spacing:.2em}
+.store-nav{display:flex;align-items:center;gap:28px;margin-left:auto}
+.store-nav a{color:#c9c2b3;text-decoration:none;font-size:13px;font-weight:700;letter-spacing:.04em}
+.store-nav a:hover{color:#e5c77f}
+.cart-shortcut{border-color:#6a5836;background:#171513;color:#f3e7ca;padding:9px 13px}
+.cart-shortcut b{background:#d4b16b;color:#17130c}
+.hero{position:relative;max-width:1160px;min-height:390px;margin:0 auto;padding:64px 30px 74px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(220px,.8fr);align-items:center;gap:30px;background:radial-gradient(ellipse at 82% 45%,rgba(195,153,77,.13),transparent 38%),linear-gradient(135deg,#17181a,#101113 72%);border-bottom:1px solid #4a3d28}
+.hero-copy{position:relative;z-index:2}
+.eyebrow{color:#d2b36f;letter-spacing:.18em;font-size:11px;font-weight:850}
+.hero h1{font-size:clamp(37px,6vw,66px);line-height:1.02;letter-spacing:-.055em;margin:0 0 18px;color:#f4f0e7}
+.hero h1 em{font-family:Georgia,serif;color:#d4b16b;font-weight:500}
+.hero p:not(.eyebrow){max-width:520px;color:#aaa59a;line-height:1.75;font-size:15px}
+.hero-link,.contact-link{display:inline-flex;align-items:center;gap:18px;margin-top:16px;padding:12px 17px;border:1px solid #8b7041;border-radius:9px;color:#e4c986;text-decoration:none;font-size:13px;font-weight:800;letter-spacing:.03em;background:#201c15}
+.hero-link span,.contact-link span{font-size:19px}
+.hero-art{position:relative;width:min(300px,100%);height:260px;margin:0 auto;display:grid;place-items:center;background:transparent;border:0;border-radius:0}
+.hero-art img{position:relative;z-index:1;width:78%;height:78%;object-fit:contain;filter:drop-shadow(0 12px 30px #0009)}
+.hero-glow{position:absolute;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(204,166,94,.17),rgba(204,166,94,.035) 55%,transparent 72%);filter:blur(4px)}
+.hero-bottomline{position:absolute;bottom:22px;left:30px;right:30px;display:flex;align-items:center;gap:13px;color:#95866a;font-size:9px;font-weight:850;letter-spacing:.2em}
+.hero-bottomline i{width:4px;height:4px;border-radius:50%;background:#c9a45f}
+.catalog-section,.checkout{max-width:1160px;margin:0 auto;padding:38px 30px 70px}
+.section-head{margin-bottom:20px}
+.section-head h2{font-size:31px;letter-spacing:-.04em;color:#f4f0e7}
+.status,.count-pill{background:#24211b;color:#d0b879;border:1px solid #51432d}
+.search{max-width:520px;background:#191a1d;border:1px solid #484033;border-radius:10px}
+.search span{color:#c7a361}
+.search input{background:transparent;color:#f4f0e7}
+.search input::placeholder{color:#89857c}
+.catalog{display:flex;flex-direction:column;gap:0;border-top:1px solid #37332b}
+.product{display:grid;grid-template-columns:minmax(0,1fr) 170px;grid-template-rows:1fr;background:transparent;border:0;border-bottom:1px solid #37332b;border-radius:0;padding:19px 4px;gap:24px;align-items:center;min-height:164px}
+.product-image{grid-column:2;grid-row:1;width:170px;height:132px;min-height:132px;max-height:132px;border:1px solid #3b352a;border-radius:11px;background:#1b1c1f;overflow:hidden}
+.product-image img{width:100%;height:100%;object-fit:contain;padding:10px}
+.product-body{grid-column:1;grid-row:1;padding:0;gap:8px;min-width:0}
+.product-body h3{font-size:19px;line-height:1.2;color:#f1eee6}
+.product-body p{color:#9e9a90;font-size:13px;line-height:1.45}
+.product-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px}
+.price{font-size:20px;color:#e0bd76;font-weight:900;white-space:normal}
+.add{width:auto;min-width:108px;border:1px solid #b28d4e;border-radius:8px;background:#c8a45f;color:#17130c;padding:10px 17px;font-size:13px;font-weight:900}
+.add:hover{background:#dfc17f}
+.add:disabled{background:#34312a;color:#8c877c;border-color:#454034}
+.product-qty{background:#d7b66f;color:#18140d;border:2px solid #191a1d}
+.product.in-cart .product-image{background:#24211a}
+.stock-tag{background:#392c24;color:#e5a68d}
+.loading,.empty{background:#191a1d;color:#aaa397;border-color:#4a4030}
+.view-cart{background:#c8a45f;color:#17130c;border:1px solid #e0c17d;border-radius:10px;box-shadow:0 8px 28px #0009;padding:16px;font-weight:900}
+.view-cart span{background:#171513;color:#e4c986}
+.checkout.is-open{background:#101113}
+.checkout-top{margin-bottom:20px}
+.back-cart{background:#24211b;color:#e2c27d;border:1px solid #51432d}
+.cart-items{background:#191a1d;border-color:#3e382e}
+.cart-row{border-color:#38332b}
+.cart-row img{background:#242528}
+.qty button{background:#222326;color:#e8d9b8;border-color:#4a4132}
+.total-row{color:#eee6d6}
+.form-card,.delivery-note{background:#191a1d;border:1px solid #40382b;color:#eee6d6}
+.form-card h3{color:#e0c17d}
+.form-card label{color:#b6ad9c}
+.form-card input,.form-card textarea{background:#111214;border-color:#494132;color:#f5f0e5}
+.delivery-note p,.fineprint,.muted{color:#a8a194}
+.submit{background:#c8a45f;color:#17130c;border:1px solid #e3c37e;border-radius:9px}
+.form-message{color:#e2c27d}
+.contact-section{max-width:1100px;margin:8px auto 70px;padding:30px;display:flex;align-items:center;justify-content:space-between;gap:28px;border:1px solid #51432d;border-radius:13px;background:linear-gradient(120deg,#1d1c19,#141517)}
+.contact-section h2{margin:0 0 9px;font-size:clamp(22px,3vw,30px);color:#f1eadb}
+.contact-section p:not(.eyebrow){max-width:620px;color:#aaa397;line-height:1.6;margin:0}
+.contact-link{margin:0;white-space:nowrap}
+footer{display:flex;align-items:center;gap:13px;padding:25px max(20px,calc((100% - 1100px)/2));background:#090a0b;border-top:1px solid #403724;color:#a9a397}
+footer img{width:38px;height:38px;object-fit:contain}
+footer div{display:flex;flex-direction:column;gap:3px}
+footer strong{color:#e4c986;letter-spacing:.16em;font-size:12px}
+footer span{font-size:11px;color:#999184}
+footer small{margin-left:auto;color:#82765e;font-size:9px;letter-spacing:.16em;font-weight:800}
+@media(max-width:700px){
+ .top{height:66px;padding:0 15px;gap:10px}
+ .brand{font-size:13px;gap:9px}.brand img{width:37px;height:37px}
+ .store-nav{display:none}
+ .hero{min-height:310px;padding:40px 21px 64px;grid-template-columns:minmax(0,1fr) 112px;gap:5px}
+ .hero h1{font-size:clamp(32px,8vw,43px)}
+ .hero p:not(.eyebrow){font-size:13px;line-height:1.6}
+ .hero-art{width:112px;height:145px}
+ .hero-art img{width:100%;height:100%}
+ .hero-glow{width:115px;height:115px}
+ .hero-bottomline{left:21px;right:21px;bottom:20px;font-size:8px;gap:9px}
+ .catalog-section,.checkout{padding:28px 18px 64px}
+ .section-head h2{font-size:27px}
+ .product{grid-template-columns:minmax(0,1fr) 112px;gap:12px;padding:15px 0;min-height:137px}
+ .product-image{width:112px;height:108px;min-height:108px;max-height:108px}
+ .product-body h3{font-size:16px}
+ .product-body p{font-size:11px;line-height:1.35}
+ .product-bottom{align-items:flex-start;flex-direction:column;gap:8px;margin-top:5px}
+ .price{font-size:17px}
+ .add{min-width:92px;padding:8px 12px;font-size:12px}
+ .contact-section{margin:8px 15px 48px;padding:22px;display:block}
+ .contact-link{margin-top:18px}
+ footer{padding:20px 18px}
+ footer small{display:none}
+ .view-cart{left:12px;right:12px;width:calc(100% - 24px);bottom:max(10px,env(safe-area-inset-bottom));min-height:55px}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
