@@ -1321,3 +1321,10 @@ body.login-screen .auth-panel:before{
 @media(max-width:620px){.online-store-settings .form-grid,.online-order-people{grid-template-columns:1fr}.online-store-settings,.online-store-products,.online-store-orders{padding:12px}.online-order-actions button{flex:1 1 140px}}
 
 .online-order-history{margin:12px 0;font-size:.8rem}.online-order-history summary{cursor:pointer;color:var(--muted,#a7aea6);padding:8px 0}.online-order-history ol{margin:8px 0;padding-left:20px}.online-order-history li{padding:7px 0 7px 4px;border-bottom:1px solid var(--border,#30352f)}.online-order-history li small{display:block;color:var(--muted,#9aa39a);margin-top:3px}.online-order-history li p{margin:5px 0;color:var(--muted,#a7aea6)}
+
+.online-order-item-assignment{display:block}
+.online-order-item-assignment>div{display:grid;grid-template-columns:1fr auto;gap:7px;align-items:center}
+.online-supply-picker{display:flex;flex-direction:column;gap:5px;grid-column:1/-1;font-size:.76rem;color:var(--muted,#a7aea6)}
+.online-supply-picker select{width:100%;min-height:40px;padding:8px;border:1px solid var(--border,#3a4039);border-radius:8px;background:var(--input-bg,#10120f);color:inherit}
+.online-order-item-assignment button{justify-self:start;font-size:.75rem;padding:7px 10px}
+.online-order-item-assignment small{grid-column:1/-1}
