@@ -496,3 +496,20 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
  }
  .catalog .product.product-row .product-image .add-icon.has-count .add-count{font-size:19px!important}
 }
+
+
+/* Acabado fino estilo ElectroIsla: marco y contador ligeros */
+.catalog .product.product-row .product-image{
+ border:1px solid #b99551!important;
+ box-shadow:none!important;
+}
+.catalog .product.product-row .product-image>img{border-radius:11px!important}
+.catalog .product.product-row .product-image .add-icon.has-count .add-count{
+ font-size:17px!important;
+ font-weight:600!important;
+ text-shadow:none!important;
+}
+@media(max-width:700px){
+ .catalog .product.product-row .product-image{border-width:1px!important;box-shadow:none!important}
+ .catalog .product.product-row .product-image .add-icon.has-count .add-count{font-size:16px!important;font-weight:600!important}
+}
