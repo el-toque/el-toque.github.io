@@ -930,3 +930,24 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
 .view-cart .view-cart-count,
 .view-cart .view-cart-count b{color:#b99552!important}
 .view-cart .view-cart-summary>strong{color:#b99552!important}
+
+
+/* Aparición discreta y fluida de la barra inferior al añadir el primer producto */
+.view-cart{
+ opacity:0!important;
+ visibility:hidden!important;
+ pointer-events:none!important;
+ transform:translate3d(0,18px,0)!important;
+ transition:opacity .32s ease,transform .38s cubic-bezier(.22,.61,.36,1),visibility 0s linear .38s!important;
+ will-change:opacity,transform;
+}
+.view-cart.is-visible{
+ opacity:1!important;
+ visibility:visible!important;
+ pointer-events:auto!important;
+ transform:translate3d(0,0,0)!important;
+ transition:opacity .32s ease,transform .38s cubic-bezier(.22,.61,.36,1),visibility 0s!important;
+}
+@media(prefers-reduced-motion:reduce){
+ .view-cart,.view-cart.is-visible{transition:none!important;transform:none!important}
+}
