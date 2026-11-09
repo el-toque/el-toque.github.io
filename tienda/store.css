@@ -2131,3 +2131,25 @@ body.customer-screen-visible{overflow:hidden}
     transform:translateY(-18px)!important;
   }
 }
+
+
+/* v87 — Alinear el bloque del pedido junto al resumen, a 7px del banner */
+@media(max-width:700px){
+  #carrito > .order-summary{
+    float:right!important;
+    width:40%!important;
+    max-width:40%!important;
+    margin:7px 0 10px 12px!important;
+  }
+  #carrito .order-heading{
+    width:calc(60% - 12px)!important;
+    max-width:calc(60% - 12px)!important;
+    margin:7px 0 24px!important;
+    clear:none!important;
+  }
+  #carrito .order-heading-main{
+    width:100%!important;
+    margin-left:0!important;
+    transform:none!important;
+  }
+}
