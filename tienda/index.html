@@ -31,15 +31,22 @@
     <div class="checkout-top"><button type="button" id="closeCart" class="back-cart">← Volver a la tienda</button></div>
     <div class="section-head"><div><p class="eyebrow">TU SELECCIÓN</p><h2>Tu pedido</h2></div><span id="cartCount" class="count-pill">0 productos</span></div>
     <div id="cartItems" class="cart-items"><p class="muted">Todavía no has añadido productos.</p></div>
-    <div class="total-row"><span>Total del pedido</span><strong id="total">0,00 CUP</strong></div>
-    <div class="form-grid">
-      <div class="form-card"><h3>Datos de quien realiza el pedido</h3><label>Nombre completo<input id="buyerName" maxlength="120" autocomplete="name" required></label><label>Teléfono<input id="buyerPhone" maxlength="40" type="tel" autocomplete="tel" required></label></div>
-      <div class="form-card"><h3>Datos de quien recibe</h3><label>Nombre del destinatario<input id="recipientName" maxlength="120" required></label><label>Teléfono del destinatario<input id="recipientPhone" maxlength="40" type="tel" required></label><label>Dirección completa<textarea id="recipientAddress" maxlength="500" rows="3" required></textarea></label></div>
+    <div id="cartStepbar" class="cart-stepbar">
+      <div class="cart-step-total"><span>Total del pedido</span><strong id="total">0,00 CUP</strong></div>
+      <button type="button" id="continueOrder" class="continue-order">Continuar con el pedido</button>
     </div>
-    <div class="delivery-note"><b>Servicio de entrega</b><p id="deliveryInfo">Consulta los detalles de entrega al coordinar tu pedido.</p></div>
-    <button id="submitOrder" class="submit" disabled>Enviar pedido por WhatsApp</button>
-    <p id="formMessage" class="form-message" role="status"></p>
-    <p class="fineprint">Tu pedido se registra en El Toque antes de abrir WhatsApp. Para completar el envío, revisa el mensaje y pulsa Enviar en WhatsApp. La creación del pedido no reserva ni descuenta existencias.</p>
+    <div id="orderDetails" class="order-details" hidden>
+      <button type="button" id="backToItems" class="back-cart">← Volver a los productos</button>
+      <div class="total-row"><span>Total del pedido</span><strong id="detailsTotal">0,00 CUP</strong></div>
+      <div class="form-grid">
+        <div class="form-card"><h3>Datos de quien realiza el pedido</h3><label>Nombre completo<input id="buyerName" maxlength="120" autocomplete="name" required></label><label>Teléfono<input id="buyerPhone" maxlength="40" type="tel" autocomplete="tel" required></label></div>
+        <div class="form-card"><h3>Datos de quien recibe</h3><label>Nombre del destinatario<input id="recipientName" maxlength="120" required></label><label>Teléfono del destinatario<input id="recipientPhone" maxlength="40" type="tel" required></label><label>Dirección completa<textarea id="recipientAddress" maxlength="500" rows="3" required></textarea></label></div>
+      </div>
+      <div class="delivery-note"><b>Servicio de entrega</b><p id="deliveryInfo">Consulta los detalles de entrega al coordinar tu pedido.</p></div>
+      <button id="submitOrder" class="submit" disabled>Enviar pedido por WhatsApp</button>
+      <p id="formMessage" class="form-message" role="status"></p>
+      <p class="fineprint">Tu pedido se registra en El Toque antes de abrir WhatsApp. Para completar el envío, revisa el mensaje y pulsa Enviar en WhatsApp. La creación del pedido no reserva ni descuenta existencias.</p>
+    </div>
   </section>
 </main>
 <button type="button" id="openCart" class="view-cart" hidden style="display:none!important" aria-hidden="true" tabindex="-1"><span class="view-cart-summary"><span class="view-cart-count"><b id="bottomCount">0</b><span id="bottomCountWord">pedidos</span></span><strong id="bottomTotal">0,00 CUP</strong></span><span class="view-cart-label">Ver mi pedido</span></button>
