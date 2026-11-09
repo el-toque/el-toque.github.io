@@ -1603,3 +1603,7 @@ body.customer-screen-visible{overflow:hidden}
 #carrito .order-brand-header{margin-bottom:0!important}
 #carrito .order-heading{margin-top:0!important}
 #carrito .order-heading-top{padding-top:3.5px!important}
+
+
+/* v61 — Separación del encabezado respecto al banner: 2.5 px */
+#carrito .order-heading-top{padding-top:2.5px!important}
