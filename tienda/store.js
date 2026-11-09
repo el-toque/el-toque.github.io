@@ -27,7 +27,7 @@ function renderCart(){
 }
 async function submitOrder(){
  const rows=[...cart.entries()].map(([product_id,quantity])=>({product_id,quantity}));if(!rows.length)return;
- const fields=["buyerName","buyerPhone","recipientName","recipientPhone","recipientAddress"];for(const id of fields){if(!$ (id).value.trim()){$(id).focus();$("formMessage").textContent="Completa todos los datos para continuar.";return}}
+ const fields=["buyerName","buyerPhone","recipientName","recipientPhone","recipientAddress"];for(const id of fields){if(!$(id).value.trim()){$(id).focus();$("formMessage").textContent="Completa todos los datos para continuar.";return}}
  const button=$("submitOrder");button.disabled=true;$("formMessage").textContent="Guardando tu pedido…";
  let whatsappWindow=null;try{if(whatsapp)whatsappWindow=window.open("about:blank","_blank");}catch(_){}
  const {data,error}=await db.rpc("store_create_order",{p_placed_by_name:$("buyerName").value.trim(),p_placed_by_phone:$("buyerPhone").value.trim(),p_recipient_name:$("recipientName").value.trim(),p_recipient_address:$("recipientAddress").value.trim(),p_recipient_phone:$("recipientPhone").value.trim(),p_items:rows});
