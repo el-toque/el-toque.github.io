@@ -10,6 +10,11 @@ async function start(){
  db=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:false,autoRefreshToken:false}});
  await Promise.allSettled([loadCatalog(),loadConfig()]);
  $("search").addEventListener("input",renderCatalog);
+ const searchPanel=$("searchPanel"),searchToggle=$("searchToggle"),searchInput=$("search");
+ function closeSearch(){searchPanel.hidden=true;searchToggle.setAttribute("aria-expanded","false");searchToggle.focus();searchInput.value="";renderCatalog();}
+ searchToggle.addEventListener("click",()=>{const opening=searchPanel.hidden;searchPanel.hidden=!opening;searchToggle.setAttribute("aria-expanded",String(opening));if(opening)searchInput.focus();else closeSearch();});
+ $("closeSearch").addEventListener("click",closeSearch);
+ searchInput.addEventListener("keydown",e=>{if(e.key==="Escape")closeSearch();});
  $("catalog").addEventListener("click",e=>{const b=e.target.closest("[data-add]");if(!b)return;const p=items.find(x=>x.id===b.dataset.add);if(!p||!p.is_available)return;const qty=cart.get(p.id)||0;if(qty>=999){toast("Has alcanzado el límite de unidades por pedido.");return;}cart.set(p.id,qty+1);bouncedProductId=p.id;renderCart();});
  $("cartItems").addEventListener("click",e=>{const b=e.target.closest("[data-cart-action]");if(!b)return;const id=b.dataset.id,n=cart.get(id)||0;if(b.dataset.cartAction==="plus"){const p=items.find(x=>x.id===id);if(!p||!p.is_available||n>=999){toast("Has alcanzado el límite de unidades por pedido.");return;}cart.set(id,n+1);}else if(b.dataset.cartAction==="minus"){if(n<=1)cart.delete(id);else cart.set(id,n-1)}else cart.delete(id);renderCart();});
  $("submitOrder").addEventListener("click",submitOrder);$("openCart").addEventListener("click",openCart);$("headerCart").addEventListener("click",e=>{e.preventDefault();openCart()});$("closeCart").addEventListener("click",closeCart);
