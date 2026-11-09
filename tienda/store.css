@@ -951,3 +951,9 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
 @media(prefers-reduced-motion:reduce){
  .view-cart,.view-cart.is-visible{transition:none!important;transform:none!important}
 }
+
+
+/* El atributo hidden debe prevalecer sobre los display:flex históricos */
+.view-cart[hidden]{display:none!important}
+.view-cart:not(.is-visible){opacity:0!important;visibility:hidden!important;pointer-events:none!important}
+.view-cart.is-visible{display:flex!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important}
