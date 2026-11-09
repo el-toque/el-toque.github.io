@@ -338,3 +338,44 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
  .catalog .product.product-row .price{font-size:17px!important;font-weight:600!important}
  .catalog .product.product-row .add{font-size:14px!important;font-weight:600!important}
 }
+
+
+/* Fotografía compacta como ElectroIsla, con marco dorado fino */
+.catalog .product.product-row{
+ grid-template-columns:minmax(0,1fr) 150px!important;
+}
+.catalog .product.product-row .product-image{
+ width:150px!important;
+ height:138px!important;
+ min-height:138px!important;
+ max-height:138px!important;
+ aspect-ratio:auto!important;
+ border:1px solid #b99551!important;
+ border-radius:12px!important;
+ background:#fff!important;
+ box-shadow:none!important;
+}
+.catalog .product.product-row .product-image>img{
+ padding:0!important;
+ object-fit:contain!important;
+ object-position:center!important;
+ border-radius:11px!important;
+}
+@media(max-width:700px){
+ .catalog .product.product-row{
+  grid-template-columns:minmax(0,1fr) 126px!important;
+  gap:14px!important;
+ }
+ .catalog .product.product-row .product-image{
+  width:126px!important;
+  height:116px!important;
+  min-height:116px!important;
+  max-height:116px!important;
+  border:1px solid #b99551!important;
+  border-radius:12px!important;
+ }
+ .catalog .product.product-row .product-image>img{
+  padding:0!important;
+  border-radius:11px!important;
+ }
+}
