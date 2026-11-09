@@ -379,3 +379,74 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
   border-radius:11px!important;
  }
 }
+
+
+/* Botón de agregar como icono superpuesto en la esquina inferior derecha */
+.catalog .product.product-row .product-image{
+ position:relative!important;
+}
+.catalog .product.product-row .product-image .add-icon{
+ position:absolute!important;
+ right:8px!important;
+ bottom:8px!important;
+ z-index:3!important;
+ display:grid!important;
+ place-items:center!important;
+ width:36px!important;
+ min-width:36px!important;
+ height:36px!important;
+ min-height:36px!important;
+ padding:0!important;
+ margin:0!important;
+ border:1px solid #e0c27e!important;
+ border-radius:50%!important;
+ background:#c6a15c!important;
+ color:#171615!important;
+ box-shadow:0 2px 8px #0004!important;
+ cursor:pointer!important;
+}
+.catalog .product.product-row .product-image .add-icon svg{
+ display:block!important;
+ width:20px!important;
+ height:20px!important;
+ fill:none!important;
+ stroke:currentColor!important;
+ stroke-width:2.2!important;
+ stroke-linecap:round!important;
+}
+.catalog .product.product-row .product-image .add-icon:active{
+ transform:scale(.92)!important;
+}
+.catalog .product.product-row .product-image .product-qty{
+ top:8px!important;
+ right:8px!important;
+ bottom:auto!important;
+ z-index:4!important;
+ min-width:30px!important;
+ width:30px!important;
+ height:30px!important;
+ font-size:14px!important;
+}
+@media(max-width:700px){
+ .catalog .product.product-row .product-image .add-icon{
+  right:6px!important;
+  bottom:6px!important;
+  width:32px!important;
+  min-width:32px!important;
+  height:32px!important;
+  min-height:32px!important;
+ }
+ .catalog .product.product-row .product-image .add-icon svg{
+  width:18px!important;
+  height:18px!important;
+ }
+ .catalog .product.product-row .product-image .product-qty{
+  top:6px!important;
+  right:6px!important;
+  bottom:auto!important;
+  min-width:27px!important;
+  width:27px!important;
+  height:27px!important;
+  font-size:13px!important;
+ }
+}
