@@ -8,8 +8,8 @@ async function start(){
  db=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:false,autoRefreshToken:false}});
  await Promise.all([loadCatalog(),loadConfig()]);
  $("search").addEventListener("input",renderCatalog);
- $("catalog").addEventListener("click",e=>{const b=e.target.closest("[data-add]");if(!b)return;const p=items.find(x=>x.id===b.dataset.add);if(!p||Number(p.stock)<=0)return;cart.set(p.id,(cart.get(p.id)||0)+1);renderCart();});
- $("cartItems").addEventListener("click",e=>{const b=e.target.closest("[data-cart-action]");if(!b)return;const id=b.dataset.id,n=cart.get(id)||0;if(b.dataset.cartAction==="plus")cart.set(id,n+1);else if(b.dataset.cartAction==="minus"){if(n<=1)cart.delete(id);else cart.set(id,n-1)}else cart.delete(id);renderCart();});
+ $("catalog").addEventListener("click",e=>{const b=e.target.closest("[data-add]");if(!b)return;const p=items.find(x=>x.id===b.dataset.add);if(!p)return;const qty=cart.get(p.id)||0;if(qty>=Number(p.stock)){toast("No puedes añadir más unidades que las disponibles.");return;}cart.set(p.id,qty+1);renderCart();});
+ $("cartItems").addEventListener("click",e=>{const b=e.target.closest("[data-cart-action]");if(!b)return;const id=b.dataset.id,n=cart.get(id)||0;if(b.dataset.cartAction==="plus"){const p=items.find(x=>x.id===id);if(!p||n>=Number(p.stock)){toast("Has alcanzado las existencias disponibles.");return;}cart.set(id,n+1);}else if(b.dataset.cartAction==="minus"){if(n<=1)cart.delete(id);else cart.set(id,n-1)}else cart.delete(id);renderCart();});
  $("submitOrder").addEventListener("click",submitOrder);
 }
 async function loadCatalog(){
@@ -23,7 +23,7 @@ function renderCart(){
  const rows=[...cart.entries()].map(([id,qty])=>({p:items.find(x=>x.id===id),qty})).filter(x=>x.p),count=rows.reduce((n,x)=>n+x.qty,0),total=rows.reduce((n,x)=>n+x.qty*Number(x.p.store_price),0);
  $("headerCount").textContent=count;$("cartCount").textContent=count+" producto"+(count===1?"":"s");$("total").textContent=money(total);
  $("cartItems").innerHTML=rows.length?rows.map(({p,qty})=>`<div class="cart-row"><img src="${esc(p.image_url||fallback)}" alt=""><div><strong>${esc(p.name)}</strong><small>${money(p.store_price)} · ${money(p.store_price*qty)}</small></div><div class="qty"><button data-cart-action="minus" data-id="${p.id}" aria-label="Restar">−</button><b>${qty}</b><button data-cart-action="plus" data-id="${p.id}" aria-label="Sumar" ${qty>=999?"disabled":""}>+</button></div><button class="remove" data-cart-action="remove" data-id="${p.id}">Quitar</button></div>`).join(""):'<p class="muted">Todavía no has añadido productos.</p>';
- $("submitOrder").disabled=!rows.length;
+ $("submitOrder").disabled=!rows.length;renderCatalog();
 }
 async function submitOrder(){
  const rows=[...cart.entries()].map(([product_id,quantity])=>({product_id,quantity}));if(!rows.length)return;
