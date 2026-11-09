@@ -1459,3 +1459,95 @@ body.customer-screen-visible{overflow:hidden}
   #carrito .order-heading .order-heading-top .order-summary-count strong{font-size:12px!important}
   #carrito .order-heading .order-heading-top .order-summary-total strong{font-size:16px!important}
 }
+
+
+/* v53 — Traslado integral de medidas del encabezado "Tu pedido" de ElectroIsla.
+   Se aplican las dimensiones reales de cart-head y cart-head-summary,
+   adaptando únicamente colores y marca a El Toque. */
+#carrito .order-heading{
+  width:100%!important;max-width:none!important;min-height:0!important;
+  height:auto!important;margin:0 auto 24px!important;
+}
+#carrito .order-heading-top{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(360px,35%)!important;
+  align-items:start!important;column-gap:46px!important;row-gap:0!important;
+  margin:0!important;
+}
+#carrito .order-heading-main{display:block!important;min-width:0!important}
+#carrito .order-back{
+  display:inline-flex!important;align-items:center!important;gap:20px!important;
+  margin:0 0 18px!important;padding:0!important;border:0!important;
+  background:transparent!important;font-size:16px!important;font-weight:800!important;
+  line-height:1!important;
+}
+#carrito .order-back-icon{
+  width:42px!important;height:42px!important;flex:0 0 42px!important;
+  display:grid!important;place-items:center!important;padding:0!important;
+  border-radius:50%!important;
+}
+#carrito .order-heading-title h2{
+  margin:0 0 7px!important;font-size:34px!important;line-height:1.02!important;
+  letter-spacing:-1px!important;font-weight:900!important;
+}
+#carrito .order-heading-title p{font-size:15px!important;line-height:1.25!important;margin:0!important}
+#carrito .order-summary{
+  align-self:start!important;width:100%!important;min-width:0!important;
+  min-height:0!important;height:auto!important;margin:0!important;
+  padding:18px 20px!important;border-radius:20px!important;
+  display:flex!important;flex-direction:column!important;justify-content:flex-start!important;
+  box-sizing:border-box!important;
+}
+#carrito .order-summary-count{display:flex!important;align-items:center!important;gap:10px!important;padding:0!important;border:0!important}
+#carrito .order-summary-count svg{width:30px!important;height:30px!important;flex:0 0 30px!important}
+#carrito .order-summary-count span{font-size:15px!important;line-height:1.15!important;gap:3px!important}
+#carrito .order-summary-count strong{font-size:16px!important;line-height:1.1!important}
+#carrito .order-summary-total{
+  width:100%!important;margin-top:13px!important;padding-top:12px!important;
+  border-top:1px solid #514832!important;display:flex!important;align-items:center!important;
+  flex-direction:row!important;gap:12px!important;
+}
+#carrito .order-summary-total span{font-size:15px!important;line-height:1.15!important}
+#carrito .order-summary-total strong{
+  margin-left:auto!important;font-size:25px!important;line-height:1!important;
+  white-space:nowrap!important;text-align:right!important;overflow-wrap:normal!important;
+}
+@media(max-width:700px){
+  #carrito .order-heading{margin:0 0 22px!important}
+  #carrito .order-heading-top{
+    grid-template-columns:minmax(0,1fr) minmax(142px,39%)!important;
+    column-gap:12px!important;row-gap:0!important;align-items:start!important;
+    padding:18px 14px 22px!important;
+  }
+  #carrito .order-heading-main{min-width:0!important}
+  #carrito .order-back{
+    margin:0 0 18px!important;gap:9px!important;font-size:17px!important;
+  }
+  #carrito .order-back-icon{
+    width:44px!important;height:44px!important;flex:0 0 44px!important;
+  }
+  #carrito .order-back-icon svg{width:31px!important;height:31px!important}
+  #carrito .order-heading-title h2{
+    font-size:38px!important;line-height:1!important;letter-spacing:-1.5px!important;
+    margin:0 0 10px!important;
+  }
+  #carrito .order-heading-title p{font-size:16px!important;line-height:1.28!important;margin:0!important}
+  #carrito .order-summary{
+    min-width:0!important;min-height:0!important;height:auto!important;
+    padding:18px 14px 17px!important;border-radius:20px!important;
+  }
+  #carrito .order-summary-count{gap:10px!important;align-items:flex-start!important}
+  #carrito .order-summary-count svg{width:36px!important;height:36px!important;flex:0 0 36px!important}
+  #carrito .order-summary-count span{font-size:14px!important;line-height:1.15!important;gap:3px!important}
+  #carrito .order-summary-count strong{font-size:17px!important;line-height:1.15!important}
+  #carrito .order-summary-total{
+    margin-top:15px!important;padding-top:14px!important;gap:8px!important;
+    align-items:flex-start!important;flex-direction:column!important;
+  }
+  #carrito .order-summary-total span{font-size:16px!important}
+  #carrito .order-summary-total strong{
+    margin-left:0!important;font-size:25px!important;line-height:1.05!important;
+    white-space:normal!important;text-align:left!important;overflow-wrap:anywhere!important;
+  }
+  #carrito .cart-items{padding-top:0!important}
+}
