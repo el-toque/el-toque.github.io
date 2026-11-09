@@ -1584,3 +1584,8 @@ body.customer-screen-visible{overflow:hidden}
 
 /* v56 — Texto descriptivo del encabezado del carrito a 7 px */
 #carrito .order-heading-title p{font-size:7px!important;line-height:1.2!important}
+
+
+/* v57 — Ajustar textos del encabezado del carrito */
+#carrito .order-back{font-size:11px!important}
+#carrito .order-heading-title p{font-size:9px!important;line-height:1.2!important}
