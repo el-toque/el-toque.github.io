@@ -833,3 +833,12 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
     font-size:14px!important;
   }
 }
+
+
+/* Tamaño compacto del contador "0 productos" en la barra inferior */
+.view-cart .view-cart-count,
+.view-cart .view-cart-count b,
+.view-cart .view-cart-count span{
+  font-size:13px!important;
+  line-height:1.2!important;
+}
