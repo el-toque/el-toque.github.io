@@ -907,3 +907,20 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
   font-size:15px!important;
  }
 }
+
+
+/* Rebote breve del número de productos en la barra inferior */
+@keyframes bottom-count-bounce{
+  0%{transform:scale(1)}
+  35%{transform:scale(1.32)}
+  65%{transform:scale(.94)}
+  100%{transform:scale(1)}
+}
+.view-cart .view-cart-count #bottomCount.bump{
+  display:inline-block;
+  transform-origin:center;
+  animation:bottom-count-bounce .42s cubic-bezier(.2,.8,.3,1);
+}
+@media(prefers-reduced-motion:reduce){
+  .view-cart .view-cart-count #bottomCount.bump{animation:none!important}
+}
