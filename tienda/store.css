@@ -513,3 +513,68 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
  .catalog .product.product-row .product-image{border-width:1px!important;box-shadow:none!important}
  .catalog .product.product-row .product-image .add-icon.has-count .add-count{font-size:16px!important;font-weight:600!important}
 }
+
+
+/* Barra inferior del pedido: resumen a la izquierda y acción a la derecha */
+.view-cart{
+ display:flex!important;
+ flex-direction:row!important;
+ justify-content:space-between!important;
+ align-items:center!important;
+ gap:14px!important;
+ text-align:left!important;
+}
+.view-cart-summary{
+ display:flex!important;
+ flex-direction:column!important;
+ align-items:flex-start!important;
+ justify-content:center!important;
+ gap:2px!important;
+ min-width:0!important;
+}
+.view-cart-count{
+ display:flex!important;
+ align-items:baseline!important;
+ gap:6px!important;
+ color:#d5d2ca!important;
+ font-size:clamp(16px,4.4vw,20px)!important;
+ line-height:1.2!important;
+ font-weight:500!important;
+}
+.view-cart-count b{
+ background:transparent!important;
+ color:inherit!important;
+ padding:0!important;
+ border-radius:0!important;
+ font-size:inherit!important;
+ font-weight:inherit!important;
+}
+.view-cart-summary>strong{
+ color:#f4f1e9!important;
+ font-size:clamp(21px,5.8vw,28px)!important;
+ line-height:1.12!important;
+ font-weight:850!important;
+ white-space:nowrap!important;
+ font-variant-numeric:tabular-nums!important;
+}
+.view-cart-label{
+ flex:0 0 auto!important;
+ display:flex!important;
+ align-items:center!important;
+ justify-content:center!important;
+ min-height:54px!important;
+ padding:0 22px!important;
+ border-radius:40px!important;
+ background:#d8b66e!important;
+ color:#171615!important;
+ font-size:clamp(16px,4.4vw,21px)!important;
+ font-weight:850!important;
+ white-space:nowrap!important;
+}
+.view-cart:hover .view-cart-label{background:#e3c47f!important}
+@media(max-width:420px){
+ .view-cart{gap:8px!important;padding:9px 12px!important}
+ .view-cart-label{min-height:48px!important;padding:0 14px!important;font-size:15px!important}
+ .view-cart-summary>strong{font-size:21px!important}
+ .view-cart-count{font-size:15px!important}
+}
