@@ -28,11 +28,18 @@
     <div id="catalog" class="catalog"><div class="loading">Estamos preparando el catálogo…</div></div>
   </section>
   <section id="carrito" class="checkout" aria-label="Tu pedido">
-    <div class="checkout-top"><button type="button" id="closeCart" class="back-cart">← Volver a la tienda</button></div>
-    <div class="section-head"><div><p class="eyebrow">TU SELECCIÓN</p><h2>Tu pedido</h2></div><span id="cartCount" class="count-pill">0 productos</span></div>
+    <div class="order-heading">
+      <div class="order-heading-top">
+        <button type="button" id="closeCart" class="order-back"><span class="order-back-icon" aria-hidden="true">←</span><span>Regresar</span></button>
+        <div class="order-summary" aria-live="polite">
+          <div class="order-summary-count"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 1.9-1.4L21 8H6"/><circle cx="10" cy="20" r="1.25"/><circle cx="18" cy="20" r="1.25"/></svg><span>Total de productos<strong id="cartCount">0 artículos</strong></span></div>
+          <div class="order-summary-total"><span>Total</span><strong id="total">0,00 CUP</strong></div>
+        </div>
+      </div>
+      <div class="order-heading-title"><h2>Tu pedido</h2><p>Revisa los productos de tu carrito antes de continuar.</p></div>
+    </div>
     <div id="cartItems" class="cart-items"><p class="muted">Todavía no has añadido productos.</p></div>
     <div id="cartStepbar" class="cart-stepbar">
-      <div class="cart-step-total"><span>Total del pedido</span><strong id="total">0,00 CUP</strong></div>
       <button type="button" id="continueOrder" class="continue-order">Continuar con el pedido</button>
     </div>
   </section>
