@@ -1673,3 +1673,9 @@ body.customer-screen-visible{overflow:hidden}
 
 /* v72 — Contador dinámico de artículos a 8 px */
 #carrito #cartCount{font-size:8px!important;font-weight:400!important;line-height:1!important}
+
+
+/* v73 — Separar el botón Regresar 2,5 px adicionales del banner */
+@media(max-width:700px){
+  #carrito .order-heading-top{padding-top:5px!important}
+}
