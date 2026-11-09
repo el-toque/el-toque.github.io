@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#102b25">
+<meta name="description" content="Compra en línea en El Toque. Consulta productos y envía tu pedido por WhatsApp.">
+<title>Tienda en línea | El Toque</title>
+<link rel="icon" href="../icons/favicon-32.png">
+<link rel="stylesheet" href="./store.css?v=1">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../config.js?v=52"></script>
+<script defer src="./store.js?v=1"></script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="./" aria-label="El Toque, inicio"><img src="../icons/logo-transparent.svg" alt="El Toque"><span>EL TOQUE<small>TIENDA EN LÍNEA</small></span></a>
+  <a class="cart-shortcut" href="#carrito">Carrito <b id="headerCount">0</b></a>
+</header>
+<main>
+  <section class="hero">
+    <div><p class="eyebrow">COMPRA FÁCIL · EL TOQUE</p><h1>Lo que buscas,<br><em>más cerca de ti.</em></h1><p>Explora nuestro catálogo, prepara tu pedido y coordina la entrega directamente con nosotros.</p></div>
+    <div class="hero-art"><img src="../icons/icon-512.png" alt=""></div>
+  </section>
+  <section class="catalog-section">
+    <div class="section-head"><div><p class="eyebrow">NUESTRO CATÁLOGO</p><h2>Productos</h2></div><span id="catalogStatus" class="status">Conectando…</span></div>
+    <label class="search"><span>⌕</span><input id="search" type="search" placeholder="Buscar productos…" autocomplete="off"></label>
+    <div id="catalog" class="catalog"><div class="loading">Estamos preparando el catálogo…</div></div>
+  </section>
+  <section id="carrito" class="checkout">
+    <div class="section-head"><div><p class="eyebrow">TU SELECCIÓN</p><h2>Tu pedido</h2></div><span id="cartCount" class="count-pill">0 productos</span></div>
+    <div id="cartItems" class="cart-items"><p class="muted">Todavía no has añadido productos.</p></div>
+    <div class="total-row"><span>Total del pedido</span><strong id="total">0,00 CUP</strong></div>
+    <div class="form-grid">
+      <div class="form-card"><h3>Datos de quien realiza el pedido</h3><label>Nombre completo<input id="buyerName" maxlength="120" autocomplete="name" required></label><label>Teléfono<input id="buyerPhone" maxlength="40" type="tel" autocomplete="tel" required></label></div>
+      <div class="form-card"><h3>Datos de quien recibe</h3><label>Nombre del destinatario<input id="recipientName" maxlength="120" required></label><label>Teléfono del destinatario<input id="recipientPhone" maxlength="40" type="tel" required></label><label>Dirección completa<textarea id="recipientAddress" maxlength="500" rows="3" required></textarea></label></div>
+    </div>
+    <div class="delivery-note"><b>Servicio de entrega</b><p id="deliveryInfo">Consulta los detalles de entrega al coordinar tu pedido.</p></div>
+    <button id="submitOrder" class="submit" disabled>Enviar pedido por WhatsApp</button>
+    <p id="formMessage" class="form-message" role="status"></p>
+    <p class="fineprint">Tu pedido se registra en El Toque antes de abrir WhatsApp. Para completar el envío, revisa el mensaje y pulsa Enviar en WhatsApp. La creación del pedido no reserva ni descuenta existencias.</p>
+  </section>
+</main>
+<footer><img src="../icons/logo-transparent.svg" alt=""><span>EL TOQUE · Una experiencia de compra más sencilla</span></footer>
+<div id="toast" class="toast" role="status"></div>
+</body>
+</html>
