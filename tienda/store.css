@@ -1551,3 +1551,28 @@ body.customer-screen-visible{overflow:hidden}
   }
   #carrito .cart-items{padding-top:0!important}
 }
+
+
+/* v54 — Dimensiones solicitadas para el encabezado móvil */
+@media(max-width:700px){
+  #carrito .order-heading-top{
+    grid-template-columns:minmax(0,1fr) minmax(0,29%)!important;
+    column-gap:10px!important;
+  }
+  #carrito .order-back-icon{
+    width:34px!important;height:34px!important;flex:0 0 34px!important;
+  }
+  #carrito .order-back-icon svg{
+    width:25px!important;height:25px!important;
+  }
+  #carrito .order-heading-title h2{
+    font-size:28px!important;line-height:1.05!important;
+    letter-spacing:-.7px!important;
+  }
+  #carrito .order-summary{
+    width:100%!important;min-width:0!important;box-sizing:border-box!important;
+  }
+  #carrito .order-summary-count svg{
+    width:26px!important;height:26px!important;flex:0 0 26px!important;
+  }
+}
