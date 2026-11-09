@@ -8,18 +8,33 @@ function closeCart(){$("carrito").classList.remove("is-open");document.body.clas
 async function start(){
  if(!cfg.url||!cfg.publishableKey||!window.supabase){$("catalogStatus").textContent="No disponible";$("catalog").innerHTML='<p class="empty">No se pudo conectar con el catálogo. Inténtalo más tarde.</p>';return}
  db=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:false,autoRefreshToken:false}});
- await Promise.all([loadCatalog(),loadConfig()]);
+ await Promise.allSettled([loadCatalog(),loadConfig()]);
  $("search").addEventListener("input",renderCatalog);
  $("catalog").addEventListener("click",e=>{const b=e.target.closest("[data-add]");if(!b)return;const p=items.find(x=>x.id===b.dataset.add);if(!p||!p.is_available)return;const qty=cart.get(p.id)||0;if(qty>=999){toast("Has alcanzado el límite de unidades por pedido.");return;}cart.set(p.id,qty+1);bouncedProductId=p.id;renderCart();});
  $("cartItems").addEventListener("click",e=>{const b=e.target.closest("[data-cart-action]");if(!b)return;const id=b.dataset.id,n=cart.get(id)||0;if(b.dataset.cartAction==="plus"){const p=items.find(x=>x.id===id);if(!p||!p.is_available||n>=999){toast("Has alcanzado el límite de unidades por pedido.");return;}cart.set(id,n+1);}else if(b.dataset.cartAction==="minus"){if(n<=1)cart.delete(id);else cart.set(id,n-1)}else cart.delete(id);renderCart();});
  $("submitOrder").addEventListener("click",submitOrder);$("openCart").addEventListener("click",openCart);$("headerCart").addEventListener("click",e=>{e.preventDefault();openCart()});$("closeCart").addEventListener("click",closeCart);
 }
 async function loadCatalog(){
- const {data,error}=await db.rpc("store_public_catalog");
- if(error){$("catalogStatus").textContent="Error de catálogo";$("catalog").innerHTML='<p class="empty">No pudimos cargar los productos. Vuelve a intentarlo.</p>';return}
- items=data||[];$("catalogStatus").textContent=items.length+" productos";renderCatalog();
+ try{
+  const {data,error}=await db.rpc("store_public_catalog");
+  if(error)throw error;
+  items=Array.isArray(data)?data:[];
+  $("catalogStatus").textContent=items.length+" productos";
+  renderCatalog();
+ }catch(error){
+  console.error("Error cargando catálogo:",error);
+  $("catalogStatus").textContent="Error de catálogo";
+  $("catalog").innerHTML='<p class="empty">No pudimos cargar los productos. Vuelve a intentarlo.</p>';
+ }
 }
-async function loadConfig(){const {data,error}=await db.rpc("store_public_config");if(!error&&data?.length){whatsapp=data[0].whatsapp_number||"";delivery=data[0].delivery_information||""} $("deliveryInfo").textContent=delivery||"Coordina los detalles de entrega al confirmar tu pedido."}
+async function loadConfig(){
+ try{
+  const {data,error}=await db.rpc("store_public_config");
+  if(error)throw error;
+  if(data?.length){whatsapp=data[0].whatsapp_number||"";delivery=data[0].delivery_information||""}
+ }catch(error){console.warn("No se pudo cargar la configuración de entrega:",error)}
+ $("deliveryInfo").textContent=delivery||"Coordina los detalles de entrega al confirmar tu pedido.";
+}
 function renderCatalog(){const q=$("search").value.trim().toLowerCase(),list=items.filter(p=>(p.name+" "+(p.description||"")).toLowerCase().includes(q));$("catalog").innerHTML=list.length?list.map(p=>`<article class="product"><div class="product-image">${!p.is_available?'<span class="stock-tag">Agotado</span>':""}<img src="${esc(p.image_url||fallback)}" alt="${esc(p.name)}" loading="lazy" onerror="this.src='${fallback}'"></div><div class="product-body"><h3>${esc(p.name)}</h3><p>${esc(p.description||"")}</p><div class="product-bottom"><span class="price">${money(p.store_price)}</span><button class="add" data-add="${p.id}" ${!p.is_available?"disabled":""}>${!p.is_available?"Agotado":"Añadir"}</button></div></div></article>`).join(""):'<p class="empty">No hay productos publicados que coincidan con tu búsqueda.</p>';decorateCatalog()}
 function decorateCatalog(){for(const p of items){const qty=cart.get(p.id)||0;if(!qty)continue;const button=$("catalog").querySelector('[data-add="'+p.id+'"]');if(!button)continue;const card=button.closest(".product"),image=card?.querySelector(".product-image");if(image){const badge=document.createElement("span");badge.className="product-qty"+(bouncedProductId===p.id?" bounce":"");badge.textContent=String(qty);badge.setAttribute("aria-label",qty+" unidades seleccionadas");image.appendChild(badge);}if(bouncedProductId===p.id){button.classList.remove("bounce");void button.offsetWidth;button.classList.add("bounce");}}bouncedProductId=null}
 
