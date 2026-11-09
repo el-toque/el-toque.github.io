@@ -1675,7 +1675,9 @@ body.customer-screen-visible{overflow:hidden}
 #carrito #cartCount{font-size:8px!important;font-weight:400!important;line-height:1!important}
 
 
-/* v73 — Separar el botón Regresar 2,5 px adicionales del banner */
+
+/* v74 — Separación exacta de 5 px solo para el botón Regresar */
 @media(max-width:700px){
-  #carrito .order-heading-top{padding-top:5px!important}
+  #carrito .order-heading-top{padding-top:0!important}
+  #carrito .order-back{margin-top:5px!important}
 }
