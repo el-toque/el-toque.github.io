@@ -1589,3 +1589,7 @@ body.customer-screen-visible{overflow:hidden}
 /* v57 — Ajustar textos del encabezado del carrito */
 #carrito .order-back{font-size:11px!important}
 #carrito .order-heading-title p{font-size:9px!important;line-height:1.2!important}
+
+
+/* v58 — Título «Tu pedido»: 25 px y peso normal */
+#carrito .order-heading-title h2{font-size:25px!important;font-weight:400!important;line-height:1.05!important;letter-spacing:0!important}
