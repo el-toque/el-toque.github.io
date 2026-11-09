@@ -1607,3 +1607,9 @@ body.customer-screen-visible{overflow:hidden}
 
 /* v61 — Separación del encabezado respecto al banner: 2.5 px */
 #carrito .order-heading-top{padding-top:2.5px!important}
+
+
+/* v62 — Alinear Regresar, Tu pedido y su descripción a 1.5 px del borde izquierdo */
+@media(max-width:700px){
+  #carrito .order-heading-main{margin-left:-12.5px!important}
+}
