@@ -957,3 +957,7 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
 .view-cart[hidden]{display:none!important}
 .view-cart:not(.is-visible){opacity:0!important;visibility:hidden!important;pointer-events:none!important}
 .view-cart.is-visible{display:flex!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important}
+
+
+/* Ocultación forzada de la barra cuando no hay productos */
+button.view-cart[hidden]{display:none!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important;}
