@@ -355,7 +355,7 @@ $("dailyBillsBody")?.addEventListener("change",async e=>{
 async function loadAdminDashboard(){
  if(!admin()||!navigator.onLine)return;
  const now=new Date(),todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()),tomorrow=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1),monthStart=new Date(now.getFullYear(),now.getMonth(),1);
- const sales=[];for(let from=0;;from+=1000){const page=await client.from("sales").select("id,total,payment_method,created_at").eq("status","completed").gte("created_at",monthStart.toISOString()).lt("created_at",tomorrow.toISOString()).order("created_at",{ascending:false}).range(from,from+999);if(page.error){toast("No se pudo actualizar el resumen: "+page.error.message);return}sales.push(...(page.data||[]));if(!page.data||page.data.length<1000)break;}
+ const sales=[];for(let from=0;;from+=1000){const page=await client.from("sales").select("id,total,payment_method,origin,created_at").eq("status","completed").gte("created_at",monthStart.toISOString()).lt("created_at",tomorrow.toISOString()).order("created_at",{ascending:false}).range(from,from+999);if(page.error){toast("No se pudo actualizar el resumen: "+page.error.message);return}sales.push(...(page.data||[]));if(!page.data||page.data.length<1000)break;}
  const {data:workerProfiles,error:workersError}=await client.from("profiles").select("id,ipv_mode,active").eq("role","worker");
  if(workersError){toast("No se pudo actualizar el resumen: "+workersError.message);return}
  const today=sales.filter(x=>new Date(x.created_at)>=todayStart);
@@ -649,11 +649,11 @@ async function loadSales(){
  if(!user)return;
  const rows=[];
  for(let from=0;;from+=1000){
-  const {data,error}=await client.from("sales").select("id,worker_id,total,payment_method,transfer_code,status,cancel_reason,created_at,profiles!sales_worker_id_fkey(full_name,ipv_mode),sale_items(worker_turn_item_id,product_name,quantity,unit_price,products(name))").order("created_at",{ascending:false}).range(from,from+999);
+  const {data,error}=await client.from("sales").select("id,worker_id,total,payment_method,origin,transfer_code,status,cancel_reason,created_at,profiles!sales_worker_id_fkey(full_name,ipv_mode),sale_items(worker_turn_item_id,product_name,quantity,unit_price,products(name))").order("created_at",{ascending:false}).range(from,from+999);
   if(error){toast("Ventas: "+error.message);return}
   rows.push(...(data||[]));if(!data||data.length<1000)break;
  }
- allAdminSales=rows.filter(s=>s.profiles?.ipv_mode!=="independent");
+ allAdminSales=rows.filter(s=>s.profiles?.ipv_mode!=="independent"&&s.origin!=="online_store");
  const workerSelect=$("salesWorker"),selected=workerSelect.value;
  const names=new Map();
  allAdminSales.forEach(s=>{if(s.worker_id)names.set(s.worker_id,s.profiles?.full_name||"Trabajador");});
