@@ -736,3 +736,39 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
  background:transparent!important;
  color:#20232b!important;
 }
+
+
+/* Barra inferior del pedido en gris oscuro, integrada con la identidad de la tienda */
+.view-cart{
+ background:#292a2d!important;
+ border-top:1px solid #3a3b3f!important;
+ box-shadow:0 -5px 20px #0003!important;
+ color:#f2f2f2!important;
+}
+.view-cart .view-cart-count,
+.view-cart .view-cart-count b,
+.view-cart .view-cart-count span,
+.view-cart .view-cart-summary>strong,
+.view-cart .view-cart-label{
+ color:#f0f0f0!important;
+ background:transparent!important;
+ border:0!important;
+ border-radius:0!important;
+ box-shadow:none!important;
+}
+.view-cart .view-cart-count{color:#c5c5c5!important}
+.view-cart .view-cart-label{
+ font-weight:750!important;
+ padding:0!important;
+ min-height:0!important;
+ height:auto!important;
+}
+.view-cart:hover,.view-cart:active{
+ background:#292a2d!important;
+ box-shadow:0 -5px 20px #0003!important;
+}
+.view-cart:hover .view-cart-label,
+.view-cart:active .view-cart-label{
+ background:transparent!important;
+ color:#fff!important;
+}
