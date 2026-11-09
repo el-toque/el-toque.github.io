@@ -861,17 +861,17 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
 .catalog .product.product-row .product-image .add-icon,
 .catalog .product.product-row .product-image .add-icon.has-count{
  background:transparent!important;
- border:1px solid #d8b66e!important;
+ border:1.5px solid #b99552!important;
  border-radius:50%!important;
- color:#d8b66e!important;
+ color:#b99552!important;
  box-shadow:none!important;
 }
 .catalog .product.product-row .product-image .add-icon svg{
- stroke:#d8b66e!important;
- stroke-width:1.7!important;
+ stroke:#b99552!important;
+ stroke-width:2!important;
 }
 .catalog .product.product-row .product-image .add-icon.has-count .add-count{
- color:#d8b66e!important;
+ color:#b99552!important;
 }
 
 /* Cantidad añadida: número centrado dentro del mismo círculo dorado fino */
@@ -883,20 +883,20 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
  height:36px!important;
  min-height:36px!important;
  padding:0!important;
- border:1px solid #d8b66e!important;
+ border:1px solid #b99552!important;
  border-radius:50%!important;
  background:transparent!important;
- color:#d8b66e!important;
+ color:#b99552!important;
  box-shadow:none!important;
 }
 .catalog .product.product-row .product-image .add-icon.has-count .add-count{
  display:block!important;
  padding:0!important;
  margin:0!important;
- color:#d8b66e!important;
+ color:#b99552!important;
  font-size:16px!important;
  line-height:1!important;
- font-weight:500!important;
+ font-weight:600!important;
  text-shadow:none!important;
 }
 @media(max-width:700px){
