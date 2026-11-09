@@ -1061,3 +1061,32 @@ button.view-cart[hidden]{display:none!important;opacity:0!important;visibility:h
 @media(max-width:420px){
  .cart-stepbar{padding-left:16px!important;padding-right:16px!important}
 }
+
+
+/* Pantalla independiente para los datos: cliente y destinatario juntos */
+.customer-screen{display:none}
+.customer-screen.is-open{
+ display:block!important;
+ position:fixed!important;
+ z-index:130!important;
+ inset:0!important;
+ overflow-y:auto!important;
+ overscroll-behavior:contain;
+ background:#101113!important;
+ color:#f1eee7!important;
+ padding:26px 16px calc(34px + env(safe-area-inset-bottom))!important;
+}
+.customer-screen-inner{width:100%;max-width:720px;margin:0 auto}
+.customer-screen .eyebrow{margin:24px 0 8px;color:#b99552}
+.customer-screen h2{margin:0 0 12px;font-size:28px;color:#f4f0e7}
+.customer-screen .back-cart{background:#292a2d;color:#d8b66e;border:1px solid #6e5932}
+.customer-screen .total-row{color:#c8c2b5;border-top:1px solid #39362f;border-bottom:1px solid #39362f;margin:12px 0 18px;padding:14px 3px}
+.customer-screen .total-row strong{color:#d8b66e}
+.customer-screen .form-card{background:#1b1c1f;border:1px solid #494039;color:#f1eee7;margin:0 0 14px}
+.customer-screen .form-card h3{color:#d8b66e}
+.customer-screen .form-card label{color:#c8c2b5}
+.customer-screen .form-card input,.customer-screen .form-card textarea{background:#111214;border-color:#514936;color:#fff}
+.customer-screen .delivery-note{background:#292a2d;color:#e6dfd1}
+.customer-screen .delivery-note p{color:#c8c2b5}
+.customer-screen .fineprint{color:#a6a095}
+body.customer-screen-visible{overflow:hidden}
