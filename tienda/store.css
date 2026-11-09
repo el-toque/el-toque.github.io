@@ -2088,18 +2088,18 @@ body.customer-screen-visible{overflow:hidden}
 }
 
 
-/* v83 — Reducir a la mitad el ancho del resumen del carrito */
+/* v84 — Reducir otro 10% el ancho del resumen del carrito */
 #carrito > .order-summary{
-  width:50%!important;
-  max-width:50%!important;
+  width:40%!important;
+  max-width:40%!important;
   margin-left:auto!important;
   margin-right:auto!important;
   box-sizing:border-box!important;
 }
 @media(max-width:700px){
   #carrito > .order-summary{
-    width:50%!important;
-    max-width:50%!important;
+    width:40%!important;
+    max-width:40%!important;
     margin-left:auto!important;
     margin-right:auto!important;
   }
