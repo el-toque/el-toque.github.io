@@ -924,3 +924,9 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
 @media(prefers-reduced-motion:reduce){
   .view-cart .view-cart-count #bottomCount.bump{animation:none!important}
 }
+
+
+/* Dorado para el contador de productos y el importe de la barra inferior */
+.view-cart .view-cart-count,
+.view-cart .view-cart-count b{color:#b99552!important}
+.view-cart .view-cart-summary>strong{color:#b99552!important}
