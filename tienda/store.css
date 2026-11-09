@@ -873,3 +873,37 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
 .catalog .product.product-row .product-image .add-icon.has-count .add-count{
  color:#d8b66e!important;
 }
+
+/* Cantidad añadida: número centrado dentro del mismo círculo dorado fino */
+.catalog .product.product-row .product-image .add-icon.has-count{
+ display:grid!important;
+ place-items:center!important;
+ width:36px!important;
+ min-width:36px!important;
+ height:36px!important;
+ min-height:36px!important;
+ padding:0!important;
+ border:1px solid #d8b66e!important;
+ border-radius:50%!important;
+ background:transparent!important;
+ color:#d8b66e!important;
+ box-shadow:none!important;
+}
+.catalog .product.product-row .product-image .add-icon.has-count .add-count{
+ display:block!important;
+ padding:0!important;
+ margin:0!important;
+ color:#d8b66e!important;
+ font-size:16px!important;
+ line-height:1!important;
+ font-weight:500!important;
+ text-shadow:none!important;
+}
+@media(max-width:700px){
+ .catalog .product.product-row .product-image .add-icon.has-count{
+  width:32px!important;min-width:32px!important;height:32px!important;min-height:32px!important;
+ }
+ .catalog .product.product-row .product-image .add-icon.has-count .add-count{
+  font-size:15px!important;
+ }
+}
