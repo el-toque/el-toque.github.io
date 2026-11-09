@@ -1669,3 +1669,7 @@ body.customer-screen-visible{overflow:hidden}
 
 /* v71 — Contador dinámico de artículos a 7 px */
 #carrito #cartCount{font-size:7px!important;font-weight:400!important;line-height:1!important}
+
+
+/* v72 — Contador dinámico de artículos a 8 px */
+#carrito #cartCount{font-size:8px!important;font-weight:400!important;line-height:1!important}
