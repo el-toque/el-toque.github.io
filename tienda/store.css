@@ -772,3 +772,34 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
  background:transparent!important;
  color:#fff!important;
 }
+
+
+/* Ajuste final: acción dorada delineada y contador compacto */
+.view-cart .view-cart-count{
+ font-size:13px!important;
+ line-height:1.2!important;
+}
+.view-cart .view-cart-label{
+ color:#d8b66e!important;
+ border:1px solid #d8b66e!important;
+ border-radius:999px!important;
+ padding:0 20px!important;
+ min-height:46px!important;
+ height:46px!important;
+ background:transparent!important;
+ font-size:16px!important;
+ font-weight:750!important;
+}
+.view-cart:hover .view-cart-label,
+.view-cart:active .view-cart-label{
+ color:#e7c982!important;
+ border-color:#e7c982!important;
+ background:#d8b66e12!important;
+}
+@media(max-width:420px){
+ .view-cart .view-cart-count{font-size:13px!important}
+ .view-cart .view-cart-label{
+  min-height:44px!important;height:44px!important;
+  padding:0 13px!important;font-size:14px!important;
+ }
+}
