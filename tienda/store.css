@@ -1681,3 +1681,8 @@ body.customer-screen-visible{overflow:hidden}
   #carrito .order-heading-top{padding-top:0!important}
   #carrito .order-back{margin-top:5px!important}
 }
+
+/* v75 — Bajar ligeramente el conjunto Regresar, título y descripción */
+@media(max-width:700px){
+  #carrito .order-heading-main{transform:translateY(3px)!important}
+}
