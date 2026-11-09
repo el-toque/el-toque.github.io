@@ -1273,3 +1273,86 @@ body.customer-screen-visible{overflow:hidden}
   .order-brand-copy strong{font-size:12px!important}
   .order-brand-copy span{font-size:11px!important}
 }
+
+
+/* Encabezado de pedido: medidas trasladadas del bloque cart-head de ElectroIsla */
+.order-brand-banner{
+ width:calc(100% + 2 * max(16px,calc((100vw - 760px)/2)));
+ margin: -22px calc(-1 * max(16px,calc((100vw - 760px)/2))) 28px;
+ min-height:188px;
+ padding:26px max(27px,calc((100% - 1380px)/2));
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:28px;
+ overflow:hidden;
+ position:relative;
+ isolation:isolate;
+ background:linear-gradient(112deg,#111214 0%,#24201a 58%,#111214 100%);
+ border-bottom:3px solid #b99552;
+ box-shadow:0 8px 24px #0003;
+}
+.order-brand-banner:before{
+ content:"";
+ position:absolute;
+ z-index:-1;
+ width:58%;
+ height:210%;
+ right:-8%;
+ top:-90%;
+ border:2px solid rgba(216,182,110,.42);
+ border-radius:50%;
+ transform:rotate(-12deg);
+}
+.order-brand-mark{display:flex;align-items:center;gap:18px;min-width:0}
+.order-brand-mark img{display:block;width:112px;height:112px;object-fit:contain;filter:drop-shadow(0 3px 12px #0008)}
+.order-brand-name{display:flex;flex-direction:column;gap:5px;color:#e1c27e;font-size:clamp(21px,2.3vw,32px);font-weight:900;letter-spacing:.16em;line-height:1}
+.order-brand-name small{font-size:10px;letter-spacing:.25em;color:#c8b98f;font-weight:700}
+.order-brand-tagline{max-width:520px;color:#f1e6ce;text-align:right;font-family:Georgia,serif;font-size:clamp(21px,2.6vw,36px);font-style:italic;line-height:1.2}
+.order-brand-tagline:after{content:"";display:block;width:68%;height:3px;margin:12px 0 0 auto;background:#b99552;transform:skewX(-28deg)}
+.order-heading{flex:0 0 auto!important;min-height:360px!important;height:auto!important;width:100%!important;max-width:none!important;margin:0 auto 24px!important;display:block!important}
+.order-heading-top{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(360px,35%)!important;align-items:start!important;gap:46px!important;margin:0!important}
+.order-heading-main{min-width:0!important}
+.order-back{display:inline-flex!important;align-items:center!important;gap:20px!important;margin:0 0 42px!important;padding:0!important;border:0!important;background:transparent!important;color:#d8b66e!important;font-size:22px!important;font-weight:800!important;line-height:1!important}
+.order-back-icon{width:58px!important;height:58px!important;flex:0 0 58px!important;display:grid!important;place-items:center!important;border-radius:50%!important;background:#202126!important;border:1px solid #655333!important;color:#d8b66e!important;font-size:48px!important;font-weight:400!important;line-height:.75!important;padding-bottom:7px!important}
+.order-heading-title h2{margin:0 0 18px!important;color:#f3efe7!important;font-size:clamp(48px,5vw,76px)!important;line-height:.98!important;letter-spacing:-2.5px!important;font-weight:900!important}
+.order-heading-title p{margin:0!important;max-width:850px!important;color:#aaa59a!important;font-size:clamp(19px,2vw,28px)!important;line-height:1.35!important;font-weight:500!important}
+.order-summary{width:100%!important;min-width:0!important;min-height:292px!important;margin:0!important;padding:38px 36px 30px!important;border-radius:28px!important;background:#1b1d22!important;color:#eee8dc!important;box-shadow:none!important;display:flex!important;flex-direction:column!important;justify-content:flex-start!important}
+.order-summary-count{display:flex!important;align-items:flex-start!important;gap:24px!important;padding-bottom:0!important;border:0!important}
+.order-summary-count svg{width:58px!important;height:58px!important;flex:0 0 58px!important;fill:none!important;stroke:#d8b66e!important;stroke-width:1.5!important;stroke-linecap:round!important;stroke-linejoin:round!important}
+.order-summary-count span{display:flex!important;flex-direction:column!important;gap:5px!important;color:#e8dfcb!important;font-size:24px!important;line-height:1.15!important;font-weight:500!important}
+.order-summary-count strong{color:#d8b66e!important;font-size:25px!important;line-height:1.1!important;font-weight:800!important}
+.order-summary-total{width:100%!important;margin-top:34px!important;padding-top:27px!important;border-top:2px solid #514832!important;display:flex!important;align-items:center!important;gap:44px!important}
+.order-summary-total span{color:#eee8dc!important;font-size:24px!important;font-weight:900!important}
+.order-summary-total strong{color:#d8b66e!important;font-size:51px!important;line-height:1!important;font-weight:900!important;white-space:nowrap!important;text-align:left!important}
+.cart-items{padding-top:12px!important}
+@media(max-width:700px){
+ .order-brand-banner{
+  width:calc(100% + 32px);
+  min-height:132px;
+  margin:-22px -16px 22px;
+  padding:18px 22px;
+  gap:12px;
+ }
+ .order-brand-mark{gap:9px}
+ .order-brand-mark img{width:66px;height:66px}
+ .order-brand-name{font-size:17px;letter-spacing:.12em}
+ .order-brand-name small{font-size:8px;letter-spacing:.16em}
+ .order-brand-tagline{font-size:17px;max-width:48%}
+ .order-brand-tagline:after{margin-top:8px;height:2px}
+ .order-heading{min-height:0!important;margin-bottom:0!important}
+ .order-heading-top{grid-template-columns:1fr!important;gap:28px!important;align-items:start!important}
+ .order-back{margin:0 0 28px!important;font-size:21px!important;gap:14px!important}
+ .order-back-icon{width:52px!important;height:52px!important;flex:0 0 52px!important;font-size:43px!important;padding-bottom:7px!important}
+ .order-heading-title h2{font-size:48px!important;letter-spacing:-1.8px!important;margin:0 0 12px!important}
+ .order-heading-title p{font-size:20px!important;line-height:1.35!important}
+ .order-summary{min-height:0!important;padding:26px 25px 25px!important;border-radius:24px!important}
+ .order-summary-count{gap:24px!important}
+ .order-summary-count svg{width:48px!important;height:48px!important;flex-basis:48px!important}
+ .order-summary-count span{font-size:19px!important;line-height:1.15!important;gap:5px!important}
+ .order-summary-count strong{font-size:22px!important;line-height:1.1!important}
+ .order-summary-total{margin-top:24px!important;padding-top:20px!important;gap:24px!important;justify-content:flex-start!important}
+ .order-summary-total span{font-size:21px!important}
+ .order-summary-total strong{font-size:34px!important}
+ .cart-items{padding-top:16px!important}
+}
