@@ -973,3 +973,17 @@ button.view-cart[hidden]{display:none!important;opacity:0!important;visibility:h
   padding:9px 0!important;
  }
 }
+
+
+/* Búsqueda compacta: icono visible y campo desplegable al activarlo */
+.catalog-tools{display:flex;align-items:center;gap:9px}
+.search-toggle{width:42px;height:42px;display:grid;place-items:center;padding:0;border:1px solid #66532f;border-radius:50%;background:#191a1d;color:#d8b66e;cursor:pointer;transition:background .18s ease,border-color .18s ease,transform .18s ease}
+.search-toggle:hover{background:#29251e;border-color:#d8b66e;transform:translateY(-1px)}
+.search-toggle svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.search-panel{display:flex;align-items:center;gap:8px;max-width:440px;height:46px;margin:0 0 20px;padding:0 12px;border:1px solid #8c713f;border-radius:11px;background:#191a1d;box-shadow:0 5px 18px #0005;animation:searchReveal .18s ease both}
+.search-panel[hidden]{display:none}
+.search-panel input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:#f1eee7;font:inherit;font-size:14px}
+.search-panel input::placeholder{color:#918d84}
+.search-close{width:30px;height:30px;flex:0 0 30px;border:0;border-radius:50%;background:#302b22;color:#d8b66e;font-size:21px;line-height:1;cursor:pointer}
+@keyframes searchReveal{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:620px){.search-toggle{width:39px;height:39px}.search-panel{max-width:none}}
