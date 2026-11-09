@@ -467,3 +467,32 @@ footer{background:#090a0b!important;border-top:2px solid #a98543!important;color
   box-shadow:0 0 0 1px #6f5427, inset 0 0 0 1px #f2d99b, 0 2px 9px #0008!important;
  }
 }
+
+
+/* El contador sustituye al signo +: solo cifra dorada, sin círculo */
+.catalog .product.product-row .product-image .add-icon.has-count{
+ background:transparent!important;
+ border:0!important;
+ box-shadow:none!important;
+ color:#d8b66e!important;
+ width:36px!important;
+ min-width:36px!important;
+ height:36px!important;
+ min-height:36px!important;
+ border-radius:0!important;
+}
+.catalog .product.product-row .product-image .add-icon.has-count .add-count{
+ display:block!important;
+ color:#d8b66e!important;
+ font-size:21px!important;
+ line-height:1!important;
+ font-weight:800!important;
+ font-variant-numeric:tabular-nums!important;
+ text-shadow:0 1px 3px #000b!important;
+}
+@media(max-width:700px){
+ .catalog .product.product-row .product-image .add-icon.has-count{
+  width:32px!important;min-width:32px!important;height:32px!important;min-height:32px!important;
+ }
+ .catalog .product.product-row .product-image .add-icon.has-count .add-count{font-size:19px!important}
+}
