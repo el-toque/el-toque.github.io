@@ -987,3 +987,20 @@ button.view-cart[hidden]{display:none!important;opacity:0!important;visibility:h
 .search-close{width:30px;height:30px;flex:0 0 30px;border:0;border-radius:50%;background:#302b22;color:#d8b66e;font-size:21px;line-height:1;cursor:pointer}
 @keyframes searchReveal{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:620px){.search-toggle{width:39px;height:39px}.search-panel{max-width:none}}
+
+
+/* Marco dorado fino y esquinas suaves para cada producto */
+.catalog .product.product-row{
+ box-sizing:border-box!important;
+ border:1px solid rgba(185,149,82,.78)!important;
+ border-radius:9px!important;
+ padding:12px 13px!important;
+ margin:0 0 11px!important;
+ background:rgba(20,20,21,.42)!important;
+}
+@media(max-width:620px){
+ .catalog .product.product-row{
+  padding:10px 11px!important;
+  margin-bottom:9px!important;
+ }
+}
