@@ -1665,3 +1665,7 @@ body.customer-screen-visible{overflow:hidden}
 
 /* v70 — Tamaño exacto del contador dinámico de artículos */
 #carrito #cartCount{font-size:5px!important;font-weight:400!important;line-height:1!important}
+
+
+/* v71 — Contador dinámico de artículos a 7 px */
+#carrito #cartCount{font-size:7px!important;font-weight:400!important;line-height:1!important}
