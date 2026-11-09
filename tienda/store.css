@@ -1657,3 +1657,7 @@ body.customer-screen-visible{overflow:hidden}
 /* v68 — Quitar negrita a la etiqueta y cantidad de productos */
 #carrito .order-summary-count span{font-weight:400!important}
 #carrito .order-summary-count strong{font-weight:400!important}
+
+
+/* v69 — Cantidad de artículos a 5 px */
+#carrito .order-summary-count strong{font-size:5px!important;font-weight:400!important}
