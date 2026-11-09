@@ -3,8 +3,8 @@ const cfg=window.IPV_CONFIG||{},$=id=>document.getElementById(id),money=n=>new I
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fallback="../icons/icon-192.png";let db=null,items=[],cart=new Map(),whatsapp="",delivery="",bouncedProductId=null;
 function toast(s){const e=$("toast");e.textContent=s;e.classList.add("show");setTimeout(()=>e.classList.remove("show"),2400)}
-function openCart(){if(!cart.size)return;$("checkout").classList.add("is-open");document.body.classList.add("checkout-visible");$("closeCart").focus();}
-function closeCart(){$("checkout").classList.remove("is-open");document.body.classList.remove("checkout-visible");}
+function openCart(){if(!cart.size)return;$("carrito").classList.add("is-open");document.body.classList.add("checkout-visible");$("closeCart").focus();}
+function closeCart(){$("carrito").classList.remove("is-open");document.body.classList.remove("checkout-visible");}
 async function start(){
  if(!cfg.url||!cfg.publishableKey||!window.supabase){$("catalogStatus").textContent="No disponible";$("catalog").innerHTML='<p class="empty">No se pudo conectar con el catálogo. Inténtalo más tarde.</p>';return}
  db=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:false,autoRefreshToken:false}});
