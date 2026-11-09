@@ -7,7 +7,7 @@
 <meta name="description" content="Compra en línea en El Toque. Consulta productos y envía tu pedido por WhatsApp.">
 <title>Tienda en línea | El Toque</title>
 <link rel="icon" href="../icons/favicon-32.png">
-<link rel="stylesheet" href="./store.css?v=46">
+<link rel="stylesheet" href="./store.css?v=47">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../config.js?v=52"></script>
 <script defer src="./store.js?v=21"></script>
@@ -30,13 +30,15 @@
   <section id="carrito" class="checkout" aria-label="Tu pedido">
     <div class="order-heading">
       <div class="order-heading-top">
-        <button type="button" id="closeCart" class="order-back"><span class="order-back-icon" aria-hidden="true">←</span><span>Regresar</span></button>
+        <div class="order-heading-main">
+          <button type="button" id="closeCart" class="order-back"><span class="order-back-icon" aria-hidden="true">←</span><span>Regresar</span></button>
+          <div class="order-heading-title"><h2>Tu pedido</h2><p>Revisa los productos de tu carrito antes de continuar.</p></div>
+        </div>
         <div class="order-summary" aria-live="polite">
           <div class="order-summary-count"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 1.9-1.4L21 8H6"/><circle cx="10" cy="20" r="1.25"/><circle cx="18" cy="20" r="1.25"/></svg><span>Total de productos<strong id="cartCount">0 artículos</strong></span></div>
           <div class="order-summary-total"><span>Total</span><strong id="total">0,00 CUP</strong></div>
         </div>
       </div>
-      <div class="order-heading-title"><h2>Tu pedido</h2><p>Revisa los productos de tu carrito antes de continuar.</p></div>
     </div>
     <div id="cartItems" class="cart-items"><p class="muted">Todavía no has añadido productos.</p></div>
     <div id="cartStepbar" class="cart-stepbar">
