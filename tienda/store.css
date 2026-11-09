@@ -1613,3 +1613,9 @@ body.customer-screen-visible{overflow:hidden}
 @media(max-width:700px){
   #carrito .order-heading-main{margin-left:-12.5px!important}
 }
+
+
+/* v63 — Separar el bloque del encabezado a 1 px del borde izquierdo */
+@media(max-width:700px){
+  #carrito .order-heading-main{margin-left:-13px!important}
+}
