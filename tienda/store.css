@@ -2153,3 +2153,15 @@ body.customer-screen-visible{overflow:hidden}
     transform:none!important;
   }
 }
+
+
+/* v88 — Subir los productos del carrito y acercarlos a 3px de la descripción */
+@media(max-width:700px){
+  #carrito .order-heading{
+    margin-bottom:3px!important;
+  }
+  #carrito .cart-items{
+    margin-top:0!important;
+    padding-top:0!important;
+  }
+}
