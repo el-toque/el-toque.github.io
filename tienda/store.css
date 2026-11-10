@@ -2186,3 +2186,18 @@ body.customer-screen-visible{overflow:hidden}
   #carrito .order-heading{margin-bottom:3px!important;padding-bottom:0!important}
   #carrito .cart-items{margin-top:0!important;padding-top:0!important}
 }
+
+
+/* v92 — Centrar la flecha de Regresar y darle un trazo visual minimalista */
+#carrito .order-back-icon{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:0!important;
+  font-family:Arial,sans-serif!important;
+  font-size:19px!important;
+  font-weight:400!important;
+  line-height:1!important;
+  text-align:center!important;
+  transform:none!important;
+}
