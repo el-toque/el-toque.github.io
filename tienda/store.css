@@ -2433,3 +2433,8 @@ body.customer-screen-visible{overflow:hidden}
   #cartItems .cart-controls{grid-column:3!important;grid-row:1!important;gap:6px!important}
   #cartItems .cart-controls .qty{width:100px!important;min-width:100px!important;height:30px!important}
 }
+
+
+/* v106 — Desplazar la cápsula de cantidad a la izquierda para separarla de la papelera */
+#cartItems .cart-controls .qty{transform:translateX(-18px)!important}
+@media(max-width:620px){#cartItems .cart-controls .qty{transform:translateX(-18px)!important}}
