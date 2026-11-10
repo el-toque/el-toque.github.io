@@ -2461,3 +2461,7 @@ body.customer-screen-visible{overflow:hidden}
 
 /* v108 — Mover la cápsula de botones −/+ un 15% hacia la izquierda */
 #cartItems .cart-controls .qty{transform:translateX(-15%)!important}
+
+
+/* v109 — La cápsula −/+ es hija directa de .cart-row, no de .cart-controls */
+#cartItems .cart-row > .qty{transform:translateX(-15%)!important}
