@@ -2321,3 +2321,9 @@ body.customer-screen-visible{overflow:hidden}
 }
 #cartItems .qty{transform:translateY(8px)!important}
 #cartItems .remove{transform:translateY(8px)!important}
+
+
+/* v101 — Desplazar controles de cantidad a la izquierda y reservar espacio a su derecha */
+#cartItems .qty{
+  transform:translate(-16px,8px)!important;
+}
