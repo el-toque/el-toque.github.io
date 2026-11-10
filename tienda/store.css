@@ -2457,3 +2457,7 @@ body.customer-screen-visible{overflow:hidden}
   #cartItems .cart-controls{width:180px!important;min-width:180px!important;justify-content:flex-start!important}
   #cartItems .cart-controls .qty{width:100px!important;min-width:100px!important;transform:none!important}
 }
+
+
+/* v108 — Mover la cápsula de botones −/+ un 15% hacia la izquierda */
+#cartItems .cart-controls .qty{transform:translateX(-15%)!important}
