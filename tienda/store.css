@@ -2355,3 +2355,41 @@ body.customer-screen-visible{overflow:hidden}
   stroke-linejoin:round!important;
 }
 #cartItems .remove:active{opacity:.65!important}
+
+
+/* v104 — Papelera a la derecha inmediata de los botones de cantidad */
+#cartItems .cart-row{
+  grid-template-columns:100px minmax(0,1fr) auto 30px!important;
+  column-gap:10px!important;
+}
+#cartItems .qty{
+  grid-column:3!important;
+  grid-row:1!important;
+  justify-self:end!important;
+  transform:translateY(8px)!important;
+}
+#cartItems .remove{
+  grid-column:4!important;
+  grid-row:1!important;
+  justify-self:end!important;
+  align-self:end!important;
+  margin:0 0 4px!important;
+  transform:translateY(8px)!important;
+}
+@media(max-width:620px){
+  #cartItems .cart-row{
+    grid-template-columns:68px minmax(0,1fr) auto 30px!important;
+    column-gap:7px!important;
+  }
+  #cartItems .qty{
+    grid-column:3!important;
+    grid-row:1!important;
+    transform:translateY(8px)!important;
+  }
+  #cartItems .remove{
+    grid-column:4!important;
+    grid-row:1!important;
+    justify-self:end!important;
+    transform:translateY(8px)!important;
+  }
+}
