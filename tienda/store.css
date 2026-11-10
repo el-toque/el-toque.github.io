@@ -2201,3 +2201,24 @@ body.customer-screen-visible{overflow:hidden}
   text-align:center!important;
   transform:none!important;
 }
+
+
+/* v93 — Miniaturas del pedido: 100px en escritorio y 68px en móvil */
+#carrito .cart-row{
+  grid-template-columns:100px 1fr auto auto!important;
+}
+#carrito .cart-row img{
+  width:100px!important;
+  height:100px!important;
+  object-fit:contain!important;
+}
+@media(max-width:620px){
+  #carrito .cart-row{
+    grid-template-columns:68px 1fr auto!important;
+  }
+  #carrito .cart-row img{
+    width:68px!important;
+    height:68px!important;
+    object-fit:contain!important;
+  }
+}
