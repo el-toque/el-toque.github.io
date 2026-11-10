@@ -2438,3 +2438,22 @@ body.customer-screen-visible{overflow:hidden}
 /* v106 — Desplazar la cápsula de cantidad a la izquierda para separarla de la papelera */
 #cartItems .cart-controls .qty{transform:translateX(-18px)!important}
 @media(max-width:620px){#cartItems .cart-controls .qty{transform:translateX(-18px)!important}}
+
+
+/* v107 — Separar físicamente la cápsula +/− de la papelera para evitar superposición */
+#cartItems .cart-controls{
+  position:relative!important;width:180px!important;min-width:180px!important;
+  justify-content:flex-start!important;gap:0!important;padding:0 40px 0 0!important;
+}
+#cartItems .cart-controls .qty{
+  position:relative!important;flex:0 0 100px!important;width:100px!important;min-width:100px!important;
+  margin:0!important;transform:none!important;
+}
+#cartItems .cart-controls .remove{
+  position:absolute!important;right:0!important;top:50%!important;bottom:auto!important;
+  transform:translateY(-50%)!important;margin:0!important;
+}
+@media(max-width:620px){
+  #cartItems .cart-controls{width:180px!important;min-width:180px!important;justify-content:flex-start!important}
+  #cartItems .cart-controls .qty{width:100px!important;min-width:100px!important;transform:none!important}
+}
