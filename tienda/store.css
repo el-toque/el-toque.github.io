@@ -2282,3 +2282,14 @@ body.customer-screen-visible{overflow:hidden}
   line-height:1!important;
   color:var(--gold)!important;
 }
+
+
+/* v98 — Subir solo el nombre del producto hasta la altura superior de su foto */
+#cartItems .cart-product-name{
+  transform:translateY(-22px)!important;
+}
+@media(max-width:620px){
+  #cartItems .cart-product-name{
+    transform:translateY(-6px)!important;
+  }
+}
