@@ -2311,3 +2311,13 @@ body.customer-screen-visible{overflow:hidden}
     transform:translateY(-12px)!important;
   }
 }
+
+
+/* v100 — Bajar controles de cantidad y botón Quitar a una misma línea */
+#cartItems .qty,
+#cartItems .remove{
+  align-self:end!important;
+  margin-bottom:4px!important;
+}
+#cartItems .qty{transform:translateY(8px)!important}
+#cartItems .remove{transform:translateY(8px)!important}
