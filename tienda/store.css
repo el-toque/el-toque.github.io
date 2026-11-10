@@ -2293,3 +2293,21 @@ body.customer-screen-visible{overflow:hidden}
     transform:translateY(-6px)!important;
   }
 }
+
+
+/* v99 — Elevar un poco más el nombre y acercar la línea divisoria */
+#cartItems .cart-product-name{
+  transform:translateY(-30px)!important;
+}
+#cartItems .cart-product-divider{
+  margin:1px 0!important;
+  transform:translateY(-30px)!important;
+}
+@media(max-width:620px){
+  #cartItems .cart-product-name{
+    transform:translateY(-12px)!important;
+  }
+  #cartItems .cart-product-divider{
+    transform:translateY(-12px)!important;
+  }
+}
