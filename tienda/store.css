@@ -2222,3 +2222,11 @@ body.customer-screen-visible{overflow:hidden}
     object-fit:contain!important;
   }
 }
+
+
+/* v94 — Elevar ligeramente el título y la descripción de Ver mi pedido */
+@media(max-width:700px){
+  #carrito .order-heading-title{
+    transform:translateY(-7px)!important;
+  }
+}
