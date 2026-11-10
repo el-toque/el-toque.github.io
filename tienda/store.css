@@ -2165,3 +2165,10 @@ body.customer-screen-visible{overflow:hidden}
     padding-top:0!important;
   }
 }
+
+
+/* v89 — Separación de 2px entre la descripción y los productos seleccionados */
+@media(max-width:700px){
+  #carrito .order-heading{margin-bottom:2px!important}
+  #carrito .cart-items{margin-top:0!important;padding-top:0!important}
+}
