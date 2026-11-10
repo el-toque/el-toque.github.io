@@ -2223,3 +2223,24 @@ body.customer-screen-visible{overflow:hidden}
   }
 }
 
+
+
+/* v96 — Miniaturas de productos en Ver mi pedido: 100px escritorio y 68px móvil */
+#cartItems .cart-row{
+  grid-template-columns:100px minmax(0,1fr) auto auto!important;
+}
+#cartItems .cart-row img{
+  width:100px!important;
+  height:100px!important;
+  object-fit:contain!important;
+}
+@media(max-width:620px){
+  #cartItems .cart-row{
+    grid-template-columns:68px minmax(0,1fr) auto!important;
+  }
+  #cartItems .cart-row img{
+    width:68px!important;
+    height:68px!important;
+    object-fit:contain!important;
+  }
+}
