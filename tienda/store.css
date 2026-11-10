@@ -2393,3 +2393,43 @@ body.customer-screen-visible{overflow:hidden}
     transform:translateY(8px)!important;
   }
 }
+
+
+/* v105 — Controles del carrito con el mismo diseño compacto de ElectroIsla */
+#cartItems .cart-row{grid-template-columns:100px minmax(0,1fr) auto!important;column-gap:10px!important}
+#cartItems .cart-controls{
+  grid-column:3!important;grid-row:1!important;display:flex!important;align-items:center!important;
+  justify-content:flex-end!important;gap:6px!important;align-self:end!important;
+  margin-bottom:4px!important;transform:translateY(8px)!important;
+}
+#cartItems .cart-controls .qty{
+  display:grid!important;grid-template-columns:30px 1fr 30px!important;align-items:center!important;
+  justify-items:center!important;gap:0!important;width:100px!important;min-width:100px!important;
+  height:30px!important;padding:0!important;margin:0!important;border:1px solid #dbe8f8!important;
+  border-radius:16px!important;background:#fff!important;overflow:hidden!important;transform:none!important;
+}
+#cartItems .cart-controls .qty button{
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  width:30px!important;height:28px!important;min-width:30px!important;min-height:28px!important;
+  margin:0!important;padding:0!important;border:0!important;border-radius:15px!important;
+  background:#f4f8ff!important;color:#074899!important;font-size:18px!important;
+  font-weight:500!important;line-height:28px!important;
+}
+#cartItems .cart-controls .qty b{
+  min-width:0!important;width:auto!important;margin:0!important;padding:0!important;
+  color:#074899!important;font-size:12px!important;font-weight:500!important;line-height:1!important;text-align:center!important;
+}
+#cartItems .cart-controls .remove{
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  flex:0 0 34px!important;width:34px!important;height:34px!important;min-width:34px!important;
+  margin:0!important;padding:5px!important;border:0!important;background:transparent!important;color:#d94b4b!important;transform:none!important;
+}
+#cartItems .cart-controls .remove svg{
+  display:block!important;width:19px!important;height:19px!important;fill:none!important;stroke:currentColor!important;
+  stroke-width:1.7!important;stroke-linecap:round!important;stroke-linejoin:round!important;
+}
+@media(max-width:620px){
+  #cartItems .cart-row{grid-template-columns:68px minmax(0,1fr) auto!important;column-gap:7px!important}
+  #cartItems .cart-controls{grid-column:3!important;grid-row:1!important;gap:6px!important}
+  #cartItems .cart-controls .qty{width:100px!important;min-width:100px!important;height:30px!important}
+}
