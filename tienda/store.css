@@ -2244,3 +2244,41 @@ body.customer-screen-visible{overflow:hidden}
     object-fit:contain!important;
   }
 }
+
+
+/* v97 — Tipografía de nombre, descripción y precio en los productos de Ver mi pedido */
+#cartItems .cart-product-info{min-width:0;align-self:center}
+#cartItems .cart-product-name{
+  display:block!important;
+  margin:0!important;
+  padding:0!important;
+  font-size:12px!important;
+  font-weight:600!important;
+  line-height:1!important;
+}
+#cartItems .cart-product-divider{
+  display:block!important;
+  width:100%!important;
+  height:1px!important;
+  margin:4px 0!important;
+  padding:0!important;
+  background:var(--line)!important;
+}
+#cartItems .cart-product-description{
+  display:block!important;
+  margin:0!important;
+  padding:0!important;
+  font-size:9.5px!important;
+  font-weight:400!important;
+  line-height:1!important;
+  color:var(--muted)!important;
+}
+#cartItems .cart-product-price{
+  display:block!important;
+  margin:14px 0 0!important;
+  padding:0!important;
+  font-size:13px!important;
+  font-weight:600!important;
+  line-height:1!important;
+  color:var(--gold)!important;
+}
