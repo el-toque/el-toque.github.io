@@ -2327,3 +2327,31 @@ body.customer-screen-visible{overflow:hidden}
 #cartItems .qty{
   transform:translate(calc(-16px - 15%),8px)!important;
 }
+
+
+/* v103 — Papelera minimalista roja a la derecha de los controles de cantidad */
+#cartItems .remove{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:30px!important;
+  height:30px!important;
+  min-width:30px!important;
+  padding:5px!important;
+  margin-left:0!important;
+  border:0!important;
+  background:transparent!important;
+  color:#d94b4b!important;
+  cursor:pointer!important;
+}
+#cartItems .remove svg{
+  display:block!important;
+  width:19px!important;
+  height:19px!important;
+  fill:none!important;
+  stroke:currentColor!important;
+  stroke-width:1.7!important;
+  stroke-linecap:round!important;
+  stroke-linejoin:round!important;
+}
+#cartItems .remove:active{opacity:.65!important}
