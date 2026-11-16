@@ -1370,3 +1370,12 @@ body.login-screen .auth-panel:before{
 
 /* Confirmación visual de creación de vale */
 .toast.voucher-created{background:#98612f;border-color:#d9ad78;color:#fff}
+
+/* Ventana independiente para consultar y cobrar vales */
+.voucher-dialog{width:min(620px,calc(100% - 24px));max-width:620px;max-height:min(88vh,850px);overflow:auto;padding:18px;border:1px solid var(--ei-line,#34373c);border-radius:16px;background:var(--ei-card,#151719);color:var(--ei-text,#f4efe6);box-shadow:0 24px 80px #0009}
+.voucher-dialog::backdrop{background:#080b10b8;backdrop-filter:blur(3px)}
+.voucher-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--ei-line,#34373c)}
+.voucher-dialog-head strong{color:#efc45f;font-size:1.05rem}
+.voucher-dialog .voucher-detail{position:static;min-width:0}
+.voucher-dialog .voucher-detail-card{padding:0;border:0;background:transparent}
+@media(max-width:520px){.voucher-dialog{width:calc(100% - 18px);max-height:90vh;padding:13px;border-radius:14px}.voucher-dialog .voucher-actions{grid-template-columns:1fr}}
