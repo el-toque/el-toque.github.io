@@ -144,7 +144,7 @@ async function sendCloseoutWhatsApp(message,preopenedWindow){
  try{
   const {data,error}=await db.rpc("store_public_config");
   if(error)throw error;
-  const phone=String(data?.[0]?.whatsapp_number||"").replace(/\\D/g,"");
+  const phone=String(data?.[0]?.whatsapp_number||"").replace(/\D/g,"");
   if(!phone){if(preopenedWindow)preopenedWindow.close();return {sent:false,reason:"El administrador no tiene un número de WhatsApp configurado para la tienda."};}
   const url="https://wa.me/"+phone+"?text="+encodeURIComponent(message);
   if(preopenedWindow)preopenedWindow.location.href=url;
@@ -289,6 +289,7 @@ $("closeTurnBtn")?.addEventListener("click",async()=>{
  if(working||!navigator.onLine){status("Necesitas conexión para cerrar el turno.");return;}if(!canCloseTurn){status("Tu cuenta no tiene permiso para cerrar la jornada. Solicítalo al administrador.");return;}
  if(typeof window.getIPVPendingSalesCount==="function"){const pending=await window.getIPVPendingSalesCount();if(pending===null){status("No se pudo comprobar la cola de ventas pendientes. Sincroniza y vuelve a intentarlo.");return;}if(pending>0){status("Tienes "+pending+" venta(s) pendiente(s) de sincronizar. Sincronízalas antes de cerrar el IPV.");return;}}
  if(!confirm("¿Confirmas el cierre del "+shiftLabel()+"? El cierre quedará guardado y sus existencias finales pasarán al siguiente turno."))return;
+ const whatsappWindow=!independentMode?window.open("about:blank","_blank"):null;
  working=true;$("closeTurnBtn").disabled=true;status("Guardando cierre en el servidor…");
  try{
   const payload=rows.filter(r=>r.product.trim()!=="").map(r=>({product:r.product.trim(),start:Number(r.start)||0,entry:Number(r.entry)||0,sold:Number(r.sold)||0,price:Number(r.price)||0}));
@@ -297,12 +298,14 @@ $("closeTurnBtn")?.addEventListener("click",async()=>{
   for(const r of payload){if([r.start,r.entry,r.sold,r.price].some(n=>!Number.isFinite(n)||n<0)||r.sold>r.start+r.entry)throw new Error("Revisa "+r.product+": Vendido no puede superar Disponible y no se admiten valores negativos.");}
   const billCounts={};document.querySelectorAll("#dailyBillsBody [data-bill-denomination]").forEach(el=>{const n=Number(el.value);if(!Number.isInteger(n)||n<0)throw new Error("Completa el conteo de billetes de todas las denominaciones.");billCounts[el.dataset.billDenomination]=n;});if(Object.keys(billCounts).length!==denominations.length)throw new Error("El conteo de billetes debe incluir todas las denominaciones.");const {data,error}=independentMode?await db.rpc("worker_independent_close",{p_session_id:independentSessionId,p_rows:payload,p_bill_counts:billCounts}):await db.rpc("close_worker_turn",{p_rows:payload,p_business_date:businessDate,p_session_no:sessionNo,p_bill_counts:billCounts});if(error)throw error;
   closure=data;physicalCountConfirmed=false;physicalCountValues={};physicalCountResult="";const date=data.business_date,number=independentMode?data.session_no:data.closure_no;$("turnDocumentNo").textContent="N°"+String(number).padStart(2,"0");
-  await exportData(data.rows,number,data.shift_no||0,date,"both",true);
+  await exportData(data.rows,number,data.shift_no||0,date,"both",true,independentMode);
   localStorage.removeItem(key());
-  status("Turno cerrado correctamente. Documento N°"+String(number).padStart(2,"0")+". Total: "+money(data.total)+".");
+  let whatsappResult=null;
+   if(!independentMode){const message=buildCloseoutWhatsAppMessage(data.rows,number,date,billCounts,data);whatsappResult=await sendCloseoutWhatsApp(message,whatsappWindow);}
+   status("Turno cerrado correctamente. Documento N°"+String(number).padStart(2,"0")+". Total: "+money(data.total)+"."+(independentMode?"":" "+(whatsappResult?.sent?"WhatsApp preparado: revisa el mensaje y pulsa Enviar.":whatsappResult?.reason||"WhatsApp no disponible.")));
   await history();
   if(independentMode){localStorage.removeItem(key());await loadIndependent();}else{rows=(data.rows||[]).map(r=>row(r.product,r.final,0,0,r.price));render();$("closeTurnBtn").disabled=true;}
- }catch(e){status("No se pudo cerrar: "+(e.message||"Error inesperado"));$("closeTurnBtn").disabled=!canCloseTurn||!physicalCountConfirmed;}
+ }catch(e){if(whatsappWindow)whatsappWindow.close();status("No se pudo cerrar: "+(e.message||"Error inesperado"));$("closeTurnBtn").disabled=!canCloseTurn||!physicalCountConfirmed;}
  finally{working=false;}
 });
 const observer=new MutationObserver(()=>{if($("appPanel")?.classList.contains("hidden")){ready=false;session=null;shift=0;rows=[];}else init();});
