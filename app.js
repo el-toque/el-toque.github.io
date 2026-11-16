@@ -99,6 +99,76 @@ async function init(){
  }catch(error){showLogin();fail("loginError","No se pudo preparar el acceso: "+(error?.message||"Error inesperado")+". Recarga la página e inténtalo de nuevo.");}
 }
 function showLogin(){user=null;profile=null;adminIPVTarget=null;updateHeaderIndicators(0);document.body.classList.add("login-screen");document.body.classList.remove("admin-mode","worker-mode","admin-sidebar-open");$("adminSidebar")?.classList.add("hidden");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.classList.add("hidden");$("appPanel").classList.add("hidden");$("loginPanel").classList.remove("hidden");$("sessionLabel").textContent="SIN SESIÓN"}
+
+let qrAdminConfig=null;
+async function loadQrCatalogAdmin(){
+ const host=$("qrAdminProductSettings");if(!host||!admin())return;
+ host.innerHTML='<p class="muted small">Cargando configuración del catálogo QR…</p>';
+ const {data,error}=await client.rpc("qr_admin_catalog_config");
+ if(error){host.innerHTML='<p class="form-error">No se pudo cargar: '+esc(error.message)+'</p>';return}
+ qrAdminConfig=data||{};const s=qrAdminConfig.settings||{};
+ $("qrCatalogEnabled").checked=!!s.enabled;
+ $("qrPromoEnabled").checked=!!s.promotional_message_enabled;
+ $("qrPromoLinkEnabled").checked=!!s.promotional_link_enabled;
+ $("qrOffersEnabled").checked=s.offers_enabled!==false;
+ $("qrFeaturedEnabled").checked=s.featured_enabled!==false;
+ $("qrPromoMessage").value=s.promotional_message||"";
+ $("qrFeaturedCoverUrl").value=s.featured_cover_url||"";
+ const cover=$("qrFeaturedCoverPreview");cover.classList.toggle("hidden",!s.featured_cover_url);if(s.featured_cover_url)cover.src=s.featured_cover_url;
+ const items=Array.isArray(data.items)?data.items:[];
+ host.innerHTML=items.length?items.map(p=>'<div class="qr-admin-product-row" data-product-key="'+esc(p.product_key)+'" data-price="'+Number(p.price||0)+'"><div class="qr-admin-product-name"><strong>'+esc(p.name)+'</strong><span class="muted small">Precio normal: '+money(p.price)+'</span></div><label class="qr-admin-toggle"><input type="checkbox" data-qr-featured '+(p.featured?'checked':'')+'> Destacado</label><label>Orden<input data-qr-order type="number" min="0" step="1" value="'+Number(p.featured_order||0)+'"></label><label>Precio promocional<input data-qr-promo type="number" min="0" step="0.01" placeholder="Sin oferta" value="'+(p.promotional_price==null?"":Number(p.promotional_price))+'"></label></div>').join(""):'<p class="empty">No hay productos activos en el inventario del turno titular. Cuando el administrador incorpore productos, aparecerán aquí.</p>';
+ $("qrAdminMessage").textContent="Turno titular: "+Number(data.shift_no||0)+" · Sesión "+Number(data.session_no||0);
+}
+$("refreshQrAdmin")?.addEventListener("click",loadQrCatalogAdmin);
+$("qrFeaturedCoverFile")?.addEventListener("change",e=>{const file=e.target.files?.[0];if(!file)return;const preview=$("qrFeaturedCoverPreview");preview.src=URL.createObjectURL(file);preview.classList.remove("hidden")});
+$("qrFeaturedCoverUrl")?.addEventListener("change",e=>{const value=e.target.value.trim(),preview=$("qrFeaturedCoverPreview");preview.classList.toggle("hidden",!value);if(value)preview.src=value});
+$("saveQrCatalogSettings")?.addEventListener("click",async()=>{
+ const btn=$("saveQrCatalogSettings"),message=$("qrAdminMessage");if(btn.disabled)return;
+ btn.disabled=true;btn.textContent="Guardando…";message.textContent="";
+ try{
+  let coverUrl=$("qrFeaturedCoverUrl").value.trim()||null;
+  const file=$("qrFeaturedCoverFile").files?.[0];
+  if(file){
+   if(!file.type.startsWith("image/"))throw new Error("Selecciona un archivo de imagen válido.");
+   if(file.size>6*1024*1024)throw new Error("La imagen de portada no puede superar 6 MB.");
+   const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
+   const path="qr/featured-cover-"+(crypto.randomUUID?crypto.randomUUID():Date.now())+"."+ext;
+   const {error:uploadError}=await client.storage.from("product-images").upload(path,file,{upsert:false,contentType:file.type});
+   if(uploadError)throw uploadError;
+   coverUrl=client.storage.from("product-images").getPublicUrl(path).data.publicUrl;
+  }
+  const {error:settingsError}=await client.rpc("qr_admin_update_catalog_settings",{
+   p_enabled:$("qrCatalogEnabled").checked,
+   p_promotional_message:$("qrPromoMessage").value.trim(),
+   p_promotional_message_enabled:$("qrPromoEnabled").checked,
+   p_promotional_link_enabled:$("qrPromoLinkEnabled").checked,
+   p_offers_enabled:$("qrOffersEnabled").checked,
+   p_featured_enabled:$("qrFeaturedEnabled").checked,
+   p_featured_cover_url:coverUrl
+  });
+  if(settingsError)throw settingsError;
+  const rows=[...document.querySelectorAll(".qr-admin-product-row")];
+  for(const row of rows){
+   const price=Number(row.dataset.price||0),raw=row.querySelector("[data-qr-promo]").value.trim();
+   const promo=raw===""?null:Number(raw);
+   if(promo!==null&&(!Number.isFinite(promo)||promo<0||promo>=price))throw new Error("El precio promocional de "+row.querySelector(".qr-admin-product-name strong").textContent+" debe ser menor que el precio normal.");
+   const order=Math.max(0,Math.floor(Number(row.querySelector("[data-qr-order]").value)||0));
+   const {error}=await client.rpc("qr_admin_set_product_settings",{
+    p_product_key:row.dataset.productKey,
+    p_featured:row.querySelector("[data-qr-featured]").checked,
+    p_featured_order:order,
+    p_promotional_price:promo
+   });
+   if(error)throw error;
+  }
+  $("qrFeaturedCoverUrl").value=coverUrl||"";
+  $("qrFeaturedCoverFile").value="";
+  message.textContent="Configuración del catálogo QR guardada correctamente.";
+  await loadQrCatalogAdmin();
+ }catch(e){message.textContent=e.message||"No se pudo guardar la configuración QR."}
+ finally{btn.disabled=false;btn.textContent="Guardar configuración QR"}
+});
+
 async function enter(authUser){
  user=authUser;
  let data=null,error=null;
@@ -116,7 +186,7 @@ async function enter(authUser){
  if(admin()){document.querySelector('[data-tab="dashboard"]').classList.add("active");showSection("dashboard");}else{document.querySelector('[data-tab="shop"]').classList.add("active");showSection("shop");}$("appPanel").classList.remove("hidden");const initialPanel=$(admin()?"dashboardTab":"shopTab");if(initialPanel)initialPanel.classList.remove("hidden");
  // La autenticación ya está confirmada. Los errores de módulos no deben expulsar al usuario.
  const tasks=admin()
-  ?[loadProducts,loadSales,loadWorkers,loadAdminDashboard,loadAdminCloseouts,loadAdminIPV,loadAdminIndependentIPV,loadAdminTransfers]
+  ?[loadProducts,loadSales,loadWorkers,loadAdminDashboard,loadAdminCloseouts,loadAdminIPV,loadAdminIndependentIPV,loadAdminTransfers,loadQrCatalogAdmin]
   :[loadProducts,loadWorkerAllocations,...(workerPermission("can_view_own_closeout")?[loadDailyBillCounts]:[]),cacheWorkerState,updatePendingBadge,loadVouchers];
  const results=await Promise.allSettled(tasks.map(fn=>Promise.resolve().then(fn)));
  const failed=results.filter(x=>x.status==="rejected");
