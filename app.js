@@ -126,6 +126,15 @@ $("saveQrCatalogSettings")?.addEventListener("click",async()=>{
  const btn=$("saveQrCatalogSettings"),message=$("qrAdminMessage");if(btn.disabled)return;
  btn.disabled=true;btn.textContent="Guardando…";message.textContent="";
  try{
+  const rows=[...document.querySelectorAll(".qr-admin-product-row")];
+  const preparedRows=rows.map(row=>{
+   const price=Number(row.dataset.price||0),raw=row.querySelector("[data-qr-promo]").value.trim();
+   const promo=raw===""?null:Number(raw);
+   if(promo!==null&&(!Number.isFinite(promo)||promo<0||promo>=price))throw new Error("El precio promocional de "+row.querySelector(".qr-admin-product-name strong").textContent+" debe ser menor que el precio normal.");
+   const rawOrder=row.querySelector("[data-qr-order]").value.trim(),order=rawOrder===""?0:Number(rawOrder);
+   if(!Number.isFinite(order)||order<0||!Number.isInteger(order))throw new Error("El orden de los productos destacados debe ser un número entero igual o mayor que cero.");
+   return {row,promo,order};
+  });
   let coverUrl=$("qrFeaturedCoverUrl").value.trim()||null;
   const file=$("qrFeaturedCoverFile").files?.[0];
   if(file){
@@ -147,12 +156,7 @@ $("saveQrCatalogSettings")?.addEventListener("click",async()=>{
    p_featured_cover_url:coverUrl
   });
   if(settingsError)throw settingsError;
-  const rows=[...document.querySelectorAll(".qr-admin-product-row")];
-  for(const row of rows){
-   const price=Number(row.dataset.price||0),raw=row.querySelector("[data-qr-promo]").value.trim();
-   const promo=raw===""?null:Number(raw);
-   if(promo!==null&&(!Number.isFinite(promo)||promo<0||promo>=price))throw new Error("El precio promocional de "+row.querySelector(".qr-admin-product-name strong").textContent+" debe ser menor que el precio normal.");
-   const order=Math.max(0,Math.floor(Number(row.querySelector("[data-qr-order]").value)||0));
+  for(const {row,promo,order} of preparedRows){
    const {error}=await client.rpc("qr_admin_set_product_settings",{
     p_product_key:row.dataset.productKey,
     p_featured:row.querySelector("[data-qr-featured]").checked,
