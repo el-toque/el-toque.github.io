@@ -345,7 +345,6 @@ $("shopSellBtn").addEventListener("click",async()=>{
   fail("shopMessage",e?.message||"No se pudo crear el vale.");
  }finally{btn.disabled=false;renderShopCart();}
 });
-let workerVouchers=[];
 function voucherStatusLabel(status){return status==="pending"?"Pendiente":status==="paid"?"Pagado":"Anulado";}
 function voucherCode(v){return v.voucher_code||((Number(v.shift_no)===1?"T1-":"T2-")+String(v.voucher_no||0).padStart(5,"0"));}
 async function loadVouchers(){
