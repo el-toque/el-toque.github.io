@@ -4,7 +4,7 @@ const cfg=window.IPV_CONFIG||{};
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0)+" CUP";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-let client=null,initPromise=null,user=null,profile=null,loginInProgress=false,products=[],cart=[],categories=[],shopCategory="all",workerAllocations=[],workerVouchers=[],selectedVoucherId=null;let adminIPVTarget=null;let adminIPVImages=new Map();
+let client=null,initPromise=null,user=null,profile=null,loginInProgress=false,products=[],cart=[],categories=[],shopCategory="all",workerAllocations=[],workerVouchers=[],selectedVoucherId=null;let voucherActionInProgress=false;let adminIPVTarget=null;let adminIPVImages=new Map();
 const ipvProductKey=name=>String(name??"").trim().toLowerCase();
 // Almacenamiento local duradero para sesión de trabajador, catálogo y ventas pendientes.
 const OFFLINE_DB="ipv_digital_offline_v1";
@@ -375,7 +375,7 @@ function renderVoucherDetail(v){
  const status=v.status||"pending";
  let action="";
  if(status==="pending"){
-  action='<div class="voucher-pay-form"><h3>Registrar pago</h3><label>Forma de pago<select id="voucherPaymentMethod"><option value="cash">CUP</option><option value="transfer">Transferencia</option></select></label><div id="voucherTransferFields" class="voucher-transfer-fields hidden"><label>Código de transferencia<input id="voucherTransferCode" maxlength="100" autocomplete="off" placeholder="Código del pago" required></label><label>Nombre de quien realiza la transferencia<input id="voucherPayerFirstName" maxlength="60" autocomplete="given-name" placeholder="Nombre" required></label><label>Primer apellido<input id="voucherPayerSurname" maxlength="60" autocomplete="family-name" placeholder="Primer apellido" required></label><label>Número de teléfono<input id="voucherPayerPhone" type="tel" inputmode="tel" maxlength="24" autocomplete="tel" placeholder="Teléfono de quien transfiere" required></label></div><div class="voucher-actions"><button type="button" class="primary" data-voucher-pay="'+esc(v.id)+'">Confirmar pago</button><button type="button" class="secondary danger" data-voucher-cancel="'+esc(v.id)+'">Anular vale</button></div></div>';
+  action='<div class="voucher-pay-form"><h3>Registrar pago</h3><label>Forma de pago<select id="voucherPaymentMethod"><option value="cash">CUP</option><option value="transfer">Transferencia</option></select></label><div id="voucherTransferFields" class="voucher-transfer-fields hidden"><label>Código de transferencia<input id="voucherTransferCode" maxlength="100" autocomplete="off" placeholder="Código del pago" required></label><label>Nombre de quien realiza la transferencia<input id="voucherPayerFirstName" maxlength="60" autocomplete="given-name" placeholder="Nombre" required></label><label>Primer apellido<input id="voucherPayerSurname" maxlength="60" autocomplete="family-name" placeholder="Primer apellido" required></label><label>Número de teléfono<input id="voucherPayerPhone" type="tel" inputmode="tel" maxlength="24" autocomplete="tel" placeholder="Teléfono de quien transfiere" required></label></div><div class="voucher-actions"><button type="button" class="primary" data-voucher-pay="'+esc(v.id)+'">Confirmar pago</button><button type="button" class="secondary danger" data-voucher-cancel="'+esc(v.id)+'">Anular vale</button></div><p id="voucherActionStatus" class="voucher-action-status" role="status" aria-live="polite"></p></div>';
  }else if(status==="paid"){
   const payer=[v.transfer_payer_first_name,v.transfer_payer_surname].filter(Boolean).join(" ");
   action='<div class="voucher-payment-result"><strong>Pago confirmado</strong><p>Recibido por: '+esc(v.paid_by_name||"Trabajador")+' · '+(v.paid_at?new Date(v.paid_at).toLocaleString("es-ES"):"")+'</p><p>Forma de pago: '+(v.payment_method==="transfer"?"Transferencia":"CUP")+'</p>'+(v.payment_method==="transfer"?'<p>Código: '+esc(v.transfer_code||"—")+'</p><p>Transfiere: '+esc(payer||"—")+' · '+esc(v.transfer_payer_phone||"—")+'</p>':"")+'</div>';
@@ -403,21 +403,39 @@ $("voucherDetail")?.addEventListener("click",async e=>{
  const pay=e.target.closest("[data-voucher-pay]");
  const cancel=e.target.closest("[data-voucher-cancel]");
  if(!pay&&!cancel)return;
+ if(voucherActionInProgress)return;
  if(!navigator.onLine){toast("Necesitas conexión para registrar el pago o anular el vale.");return;}
- const btn=pay||cancel;btn.disabled=true;
+ const btn=pay||cancel;
+ const detail=$("voucherDetail");
+ const actionButtons=Array.from(detail.querySelectorAll("[data-voucher-pay],[data-voucher-cancel]"));
+ const status=$("voucherActionStatus");
+ if(pay){
+  const method=$("voucherPaymentMethod")?.value||"cash";
+  const code=$("voucherTransferCode")?.value.trim()||"";
+  const first=$("voucherPayerFirstName")?.value.trim()||"";
+  const surname=$("voucherPayerSurname")?.value.trim()||"";
+  const phone=$("voucherPayerPhone")?.value.trim()||"";
+  if(method==="transfer"){
+   const digits=phone.replace(/[^0-9]/g,"");
+   if(!code||!first||!surname||digits.length<7||digits.length>15){toast("Completa el código, nombre, primer apellido y un teléfono válido de quien transfiere.");return;}
+  }
+ }
+ let reason="";
+ if(cancel){const answer=prompt("Motivo de anulación del vale (opcional):");if(answer===null)return;reason=answer.trim();}
+ voucherActionInProgress=true;
+ actionButtons.forEach(b=>{b.disabled=true;b.setAttribute("aria-disabled","true");});
+ btn.classList.add("is-processing");
+ btn.textContent=pay?"Procesando pago…":"Anulando vale…";
+ if(status)status.textContent=pay?"Conectando con el inventario compartido y registrando el pago. No pulses otra vez.":"Registrando la anulación y liberando las existencias…";
  try{
   const ctx=await ensureTurnContext();
   if(pay){
-   const method=$("voucherPaymentMethod").value;
+   const method=$("voucherPaymentMethod")?.value||"cash";
    const code=$("voucherTransferCode")?.value.trim()||"";
    const first=$("voucherPayerFirstName")?.value.trim()||"";
    const surname=$("voucherPayerSurname")?.value.trim()||"";
    const phone=$("voucherPayerPhone")?.value.trim()||"";
-   if(method==="transfer"){
-    const digits=phone.replace(/[^0-9]/g,"");
-    if(!code||!first||!surname||digits.length<7||digits.length>15){toast("Completa el código, nombre, primer apellido y un teléfono válido de quien transfiere.");btn.disabled=false;return;}
-   }
-   const {data,error}=await client.rpc("worker_turn_pay_voucher",{
+   const {error}=await client.rpc("worker_turn_pay_voucher",{
     p_voucher_id:pay.dataset.voucherPay,p_payment_method:method,
     p_transfer_code:method==="transfer"?code:null,
     p_transfer_payer_first_name:method==="transfer"?first:null,
@@ -428,17 +446,23 @@ $("voucherDetail")?.addEventListener("click",async e=>{
    if(error)throw error;
    toast("Pago confirmado. Venta registrada en este turno.");
   }else{
-   const reason=prompt("Motivo de anulación del vale (opcional):");if(reason===null){btn.disabled=false;return;}
    const {error}=await client.rpc("worker_turn_cancel_voucher",{
-    p_voucher_id:cancel.dataset.voucherCancel,p_reason:reason.trim(),
+    p_voucher_id:cancel.dataset.voucherCancel,p_reason:reason,
     p_business_date:ctx.businessDate,p_session_no:ctx.sessionNo
    });
    if(error)throw error;
    toast("Vale anulado y existencias liberadas.");
   }
-  await Promise.all([loadVouchers(),loadProducts(),loadWorkerAllocations(),loadDailyBillCounts()]);
- }catch(err){toast(err?.message||"No se pudo completar la operación.");}
- finally{btn.disabled=false;}
+  await loadVouchers();
+  Promise.all([loadProducts(),loadWorkerAllocations(),loadDailyBillCounts()]).catch(err=>console.warn("[IPV actualización tras vale]",err));
+ }catch(err){
+  toast(err?.message||"No se pudo completar la operación.");
+  if(status)status.textContent="No se pudo completar. Comprueba la conexión y actualiza los vales antes de volver a intentarlo.";
+  actionButtons.forEach(b=>{b.disabled=false;b.removeAttribute("aria-disabled");b.classList.remove("is-processing");});
+  btn.textContent=pay?"Confirmar pago":"Anular vale";
+ }finally{
+  voucherActionInProgress=false;
+ }
 });
 function localBusinessDate(d=new Date()){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");return `${y}-${m}-${day}`;}
 let dailyBillCounts={};
