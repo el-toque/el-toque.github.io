@@ -71,7 +71,7 @@ async function syncPendingSales(){
  finally{syncingPending=false;await updatePendingBadge();}
 }
 async function cacheWorkerState(){if(!user||!profile||admin())return;await localPut("worker_profile_"+user.id,profile);await localPut("worker_snapshot_"+user.id,{products,categories,workerAllocations,saved_at:new Date().toISOString()});}
-const toast=msg=>{const el=$("toast");el.textContent=msg;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),2600)};
+const toast=(msg,kind="")=>{const el=$("toast");el.textContent=msg;el.classList.toggle("voucher-created",kind==="voucher-created");el.classList.add("show");setTimeout(()=>{el.classList.remove("show");el.classList.remove("voucher-created")},3000)};
 const admin=()=>profile?.role==="admin";
 const workerPermission=key=>admin()||profile?.worker_permissions?.[key]!==false;
 function fail(el,msg){$(el).textContent=msg}
@@ -335,12 +335,13 @@ $("shopSellBtn").addEventListener("click",async()=>{
   });
   if(error)throw error;
   cart=[];$("shopCustomerName").value="";renderShopCart();renderShopProducts();
-  fail("shopMessage","Vale "+(data?.voucher_code||"creado")+" correctamente. Existencias reservadas.");
-  toast("Vale "+(data?.voucher_code||"creado")+" guardado");
-  selectedVoucherId=data?.id||null;
-  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.tab==="vales"));
-  showSection("vales");
-  await Promise.all([loadVouchers(),loadProducts()]);
+  fail("shopMessage","");
+  selectedVoucherId=null;
+  showShopOrder(false);
+  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.tab==="shop"));
+  showSection("shop");
+  await Promise.all([loadVouchers(),loadProducts(),loadWorkerAllocations()]);
+  toast("Vale "+(data?.voucher_code||"creado")+" creado. Existencias reservadas.","voucher-created");
  }catch(e){
   fail("shopMessage",e?.message||"No se pudo crear el vale.");
  }finally{btn.disabled=false;renderShopCart();}
