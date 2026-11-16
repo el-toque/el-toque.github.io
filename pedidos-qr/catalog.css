@@ -24,3 +24,5 @@ button,input,select,textarea{font:inherit}button,a,select{touch-action:manipulat
 .tracking-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}.tracking-actions .submit-button,.tracking-actions .whatsapp-button{width:100%;cursor:pointer}
 .edit-lines{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.edit-line{display:grid;gap:6px;font-size:12px}.edit-line input{min-width:0;width:100%;padding:10px;border:1px solid var(--line);border-radius:9px}
 @media(max-width:420px){.tracking-actions{grid-template-columns:1fr}.edit-lines{grid-template-columns:1fr}}
+
+.offline-catalog-notice{margin:12px auto;padding:11px 14px;border:1px solid #c18b42;border-radius:10px;background:#fff4df;color:#684719;font-size:.84rem;line-height:1.45}
