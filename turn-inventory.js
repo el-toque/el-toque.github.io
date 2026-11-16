@@ -121,47 +121,12 @@ $("turnPendingRequests")?.addEventListener("click",async e=>{
  }catch(error){button.disabled=false;status("No se pudo aprobar la entrada: "+(error.message||"Error inesperado"));}
 });
 
-function buildCloseoutWhatsAppMessage(savedRows,number,date,billCounts,data){
- const total=(savedRows||[]).reduce((n,r)=>n+Number(r.amount||0),0);
- const billTotal=denominations.reduce((n,v)=>n+v*(Number(billCounts[v])||0),0);
- const lines=[
-  "IPV DIGITAL · CIERRE DE TURNO",
-  "Trabajador: "+(session.user.user_metadata?.full_name||session.user.email),
-  "Turno: "+shiftLabel(),
-  "Documento: N°"+String(number).padStart(2,"0"),
-  "Fecha: "+date,
-  "",
-  "DETALLE DEL IPV",
-  "Producto | Inicio | Entrada | Vendido | Final | Importe"
- ];
- (savedRows||[]).forEach(r=>lines.push([r.product,r.start,r.entry,r.sold,r.final,money(r.amount)].join(" | ")));
- lines.push("TOTAL DEL IPV: "+money(total),"","CONTEO DE BILLETES");
- denominations.filter(v=>Number(billCounts[v])>0).forEach(v=>lines.push(v+" CUP: "+Number(billCounts[v])+" = "+money(v*Number(billCounts[v]))));
- lines.push("TOTAL EFECTIVO CONTADO: "+money(billTotal));
- return lines.join("\n");
-}
-async function sendCloseoutWhatsApp(message,preopenedWindow){
- try{
-  const {data,error}=await db.rpc("store_public_config");
-  if(error)throw error;
-  const phone=String(data?.[0]?.whatsapp_number||"").replace(/\D/g,"");
-  if(!phone){if(preopenedWindow)preopenedWindow.close();return {sent:false,reason:"El administrador no tiene un número de WhatsApp configurado para la tienda."};}
-  const url="https://wa.me/"+phone+"?text="+encodeURIComponent(message);
-  if(preopenedWindow)preopenedWindow.location.href=url;
-  else window.location.href=url;
-  return {sent:true};
- }catch(error){
-  if(preopenedWindow)preopenedWindow.close();
-  console.warn("[IPV WhatsApp cierre]",error);
-  return {sent:false,reason:"El cierre quedó guardado, pero no se pudo preparar WhatsApp: "+(error.message||"Error inesperado")};
- }
-}
 async function history(){
  const result=independentMode?await db.from("worker_independent_closures").select("id,session_no,business_date,total,created_at").eq("worker_id",session.user.id).order("session_no",{ascending:false}).limit(12):await db.from("worker_turn_closures").select("closure_no,shift_no,business_date,total,created_at").eq("worker_id",session.user.id).order("closure_no",{ascending:false}).limit(12);
  const {data,error}=result;if(error){$("turnHistory").innerHTML="<p>No se pudo cargar el historial.</p>";return;}
  $("turnHistory").innerHTML=(data||[]).map(x=>"<div class=\"turn-history-row\"><strong>N°"+String(independentMode?x.session_no:x.closure_no).padStart(2,"0")+" · "+(independentMode?"IPV Independiente":"Turno "+x.shift_no)+"</strong><span>"+esc(x.business_date)+" · "+money(x.total)+"</span></div>").join("")||"<p class=\"muted small\">Todavía no hay turnos cerrados.</p>";
 }
-async function exportData(savedRows,number,shiftNo,date,format="both",archive=false,download=true){
+async function exportData(savedRows,number,shiftNo,date,format="both",archive=false){
  const billCounts={};document.querySelectorAll("#dailyBillsBody [data-bill-denomination]").forEach(el=>billCounts[el.dataset.billDenomination]=Number(el.value)||0);
  const bills=denominations.filter(v=>billCounts[v]>0).map(v=>({"Denominación":v+" CUP","Cantidad de billetes":billCounts[v],"Importe":v*billCounts[v]}));
  const billTotal=denominations.reduce((n,v)=>n+v*(billCounts[v]||0),0);
@@ -287,9 +252,8 @@ $("turnRows")?.addEventListener("input",e=>{
 $("closeTurnBtn")?.addEventListener("click",async()=>{
  if(!physicalCountConfirmed){status("No puedes cerrar el IPV ni entregar el inventario: primero realiza y confirma el conteo físico de todos los productos sin diferencias.");return;}
  if(working||!navigator.onLine){status("Necesitas conexión para cerrar el turno.");return;}if(!canCloseTurn){status("Tu cuenta no tiene permiso para cerrar la jornada. Solicítalo al administrador.");return;}
- const whatsappWindow=!independentMode?window.open("about:blank","_blank"):null;
- if(typeof window.getIPVPendingSalesCount==="function"){const pending=await window.getIPVPendingSalesCount();if(pending===null){if(whatsappWindow)whatsappWindow.close();status("No se pudo comprobar la cola de ventas pendientes. Sincroniza y vuelve a intentarlo.");return;}if(pending>0){if(whatsappWindow)whatsappWindow.close();status("Tienes "+pending+" venta(s) pendiente(s) de sincronizar. Sincronízalas antes de cerrar el IPV.");return;}}
- if(!confirm("¿Confirmas el cierre del "+shiftLabel()+"? El cierre quedará guardado y sus existencias finales pasarán al siguiente turno.")){if(whatsappWindow)whatsappWindow.close();return;}
+ if(typeof window.getIPVPendingSalesCount==="function"){const pending=await window.getIPVPendingSalesCount();if(pending===null){status("No se pudo comprobar la cola de ventas pendientes. Sincroniza y vuelve a intentarlo.");return;}if(pending>0){status("Tienes "+pending+" venta(s) pendiente(s) de sincronizar. Sincronízalas antes de cerrar el IPV.");return;}}
+ if(!confirm("¿Confirmas el cierre del "+shiftLabel()+"? El cierre quedará guardado y sus existencias finales pasarán al siguiente turno.")){return;}
  working=true;$("closeTurnBtn").disabled=true;status("Guardando cierre en el servidor…");
  try{
   const payload=rows.filter(r=>r.product.trim()!=="").map(r=>({product:r.product.trim(),start:Number(r.start)||0,entry:Number(r.entry)||0,sold:Number(r.sold)||0,price:Number(r.price)||0}));
@@ -298,14 +262,12 @@ $("closeTurnBtn")?.addEventListener("click",async()=>{
   for(const r of payload){if([r.start,r.entry,r.sold,r.price].some(n=>!Number.isFinite(n)||n<0)||r.sold>r.start+r.entry)throw new Error("Revisa "+r.product+": Vendido no puede superar Disponible y no se admiten valores negativos.");}
   const billCounts={};document.querySelectorAll("#dailyBillsBody [data-bill-denomination]").forEach(el=>{const n=Number(el.value);if(!Number.isInteger(n)||n<0)throw new Error("Completa el conteo de billetes de todas las denominaciones.");billCounts[el.dataset.billDenomination]=n;});if(Object.keys(billCounts).length!==denominations.length)throw new Error("El conteo de billetes debe incluir todas las denominaciones.");const {data,error}=independentMode?await db.rpc("worker_independent_close",{p_session_id:independentSessionId,p_rows:payload,p_bill_counts:billCounts}):await db.rpc("close_worker_turn",{p_rows:payload,p_business_date:businessDate,p_session_no:sessionNo,p_bill_counts:billCounts});if(error)throw error;
   closure=data;physicalCountConfirmed=false;physicalCountValues={};physicalCountResult="";const date=data.business_date,number=independentMode?data.session_no:data.closure_no;$("turnDocumentNo").textContent="N°"+String(number).padStart(2,"0");
-  await exportData(data.rows,number,data.shift_no||0,date,"both",true,independentMode);
+  await exportData(data.rows,number,data.shift_no||0,date,"both",true);
   localStorage.removeItem(key());
-  let whatsappResult=null;
-   if(!independentMode){const message=buildCloseoutWhatsAppMessage(data.rows,number,date,billCounts,data);whatsappResult=await sendCloseoutWhatsApp(message,whatsappWindow);}
-   status("Turno cerrado correctamente. Documento N°"+String(number).padStart(2,"0")+". Total: "+money(data.total)+"."+(independentMode?"":" "+(whatsappResult?.sent?"WhatsApp preparado: revisa el mensaje y pulsa Enviar.":whatsappResult?.reason||"WhatsApp no disponible.")));
+   status("Turno cerrado correctamente. Documento N°"+String(number).padStart(2,"0")+". Total: "+money(data.total)+".");
   await history();
   if(independentMode){localStorage.removeItem(key());await loadIndependent();}else{rows=(data.rows||[]).map(r=>row(r.product,r.final,0,0,r.price));render();$("closeTurnBtn").disabled=true;}
- }catch(e){if(whatsappWindow)whatsappWindow.close();status("No se pudo cerrar: "+(e.message||"Error inesperado"));$("closeTurnBtn").disabled=!canCloseTurn||!physicalCountConfirmed;}
+ }catch(e){status("No se pudo cerrar: "+(e.message||"Error inesperado"));$("closeTurnBtn").disabled=!canCloseTurn||!physicalCountConfirmed;}
  finally{working=false;}
 });
 const observer=new MutationObserver(()=>{if($("appPanel")?.classList.contains("hidden")){ready=false;session=null;shift=0;rows=[];}else init();});
