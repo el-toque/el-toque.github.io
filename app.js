@@ -436,7 +436,7 @@ async function loadVouchers(){
  host.innerHTML='<p class="muted small">Cargando vales y pedidos QR…</p>';
  const [vouchers,qr]=await Promise.all([
   client.rpc("worker_turn_list_vouchers"),
-  client.rpc("qr_worker_list_orders")
+  profile?.ipv_mode==="independent"?Promise.resolve({data:[],error:null}):client.rpc("qr_worker_list_orders")
  ]);
  if(vouchers.error){host.innerHTML='<p class="form-error">No se pudieron cargar los vales: '+esc(vouchers.error.message)+'</p>';return;}
  workerVouchers=Array.isArray(vouchers.data)?vouchers.data:[];
