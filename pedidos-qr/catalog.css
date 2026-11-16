@@ -20,3 +20,7 @@ button,input,select,textarea{font:inherit}button,a,select{touch-action:manipulat
 @media(min-width:650px){.product-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.product-image-wrap{aspect-ratio:1.35/1}.product-info{padding:14px}.product-info h3{font-size:16px}.offer-card{flex-basis:320px}}
 @media(min-width:950px){.product-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:390px){.page{padding-left:14px;padding-right:14px}.product-grid{gap:9px}.product-info{padding:9px}.product-info h3{font-size:13px}.product-price{font-size:15px}.catalog-tools{font-size:11px}.cart-bar{padding-left:14px;padding-right:14px}}
+
+.tracking-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}.tracking-actions .submit-button,.tracking-actions .whatsapp-button{width:100%;cursor:pointer}
+.edit-lines{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.edit-line{display:grid;gap:6px;font-size:12px}.edit-line input{min-width:0;width:100%;padding:10px;border:1px solid var(--line);border-radius:9px}
+@media(max-width:420px){.tracking-actions{grid-template-columns:1fr}.edit-lines{grid-template-columns:1fr}}
