@@ -1,10 +1,10 @@
 "use strict";
-const CACHE_NAME="el-toque-qr-static-v5";
+const CACHE_NAME="el-toque-qr-static-v6";
 const SCOPE=self.registration.scope;
 const PRECACHE=[
   SCOPE,
   SCOPE+"index.html",
-  SCOPE+"catalog.css?v=3",
+  SCOPE+"catalog.css?v=4",
   SCOPE+"catalog.js?v=4",
   new URL("../config.js",SCOPE).href,
   new URL("../icons/logo-transparent.svg",SCOPE).href,
