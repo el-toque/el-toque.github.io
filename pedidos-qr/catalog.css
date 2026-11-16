@@ -26,3 +26,11 @@ button,input,select,textarea{font:inherit}button,a,select{touch-action:manipulat
 @media(max-width:420px){.tracking-actions{grid-template-columns:1fr}.edit-lines{grid-template-columns:1fr}}
 
 .offline-catalog-notice{margin:12px auto;padding:11px 14px;border:1px solid #c18b42;border-radius:10px;background:#fff4df;color:#684719;font-size:.84rem;line-height:1.45}
+
+/* Accesibilidad táctil y respeto de las zonas seguras en móviles. */
+body{padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+.cart-bar{padding-bottom:max(12px,env(safe-area-inset-bottom))}
+.category-chip{min-height:40px}
+.add-button{min-height:42px}
+.submit-button,.cart-bar button{min-height:46px}
+.qty-control button{width:40px;height:40px;min-width:40px;font-size:18px}
