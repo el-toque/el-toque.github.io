@@ -1328,3 +1328,42 @@ body.login-screen .auth-panel:before{
 .online-supply-picker select{width:100%;min-height:40px;padding:8px;border:1px solid var(--border,#3a4039);border-radius:8px;background:var(--input-bg,#10120f);color:inherit}
 .online-order-item-assignment button{justify-self:start;font-size:.75rem;padding:7px 10px}
 .online-order-item-assignment small{grid-column:1/-1}
+
+
+/* Sistema de vales compartidos entre Turno 1 y Turno 2 */
+#valesTab .voucher-search{display:grid;gap:7px;max-width:560px;margin:12px 0 18px;color:var(--ei-muted,#aaa)}
+#valesTab .voucher-search input,#valesTab .voucher-pay-form input,#valesTab .voucher-pay-form select{width:100%;min-width:0;padding:11px 12px;border:1px solid var(--ei-line,#3a3d42);border-radius:9px;background:var(--ei-card,#17191c);color:var(--ei-text,#f4efe6)}
+#valesTab .voucher-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,1.1fr);gap:18px;align-items:start}
+#valesTab .voucher-list{display:grid;grid-template-columns:1fr;gap:10px;min-width:0}
+#valesTab .voucher-card{display:grid;gap:8px;width:100%;padding:14px 15px;text-align:left;border:1px solid var(--ei-line,#34373c);border-radius:12px;background:var(--ei-card,#151719);color:var(--ei-text,#f4efe6);cursor:pointer}
+#valesTab .voucher-card.is-pending{border-left:3px solid #d9aa45}
+#valesTab .voucher-card-top,#valesTab .voucher-card-bottom{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#valesTab .voucher-card-top>strong{color:#efc45f;font-size:1rem}
+#valesTab .voucher-customer{font-size:1rem}
+#valesTab .voucher-card-meta,#valesTab .voucher-detail-meta{color:var(--ei-muted,#aaa);font-size:.78rem}
+#valesTab .voucher-card-bottom{padding-top:8px;border-top:1px solid var(--ei-line,#303238);font-size:.82rem}
+#valesTab .voucher-card-bottom strong{color:#efc45f;font-size:1rem}
+#valesTab .voucher-status{display:inline-flex;align-items:center;padding:5px 9px;border-radius:99px;background:#3b321d;color:#f0ce79;font-size:.72rem;font-weight:850}
+#valesTab .voucher-status.paid{background:#173522;color:#a6e0b2}
+#valesTab .voucher-status.cancelled{background:#3c2020;color:#e6a3a3}
+#valesTab .voucher-detail{position:sticky;top:16px;min-width:0}
+#valesTab .voucher-detail-card{padding:17px;border:1px solid var(--ei-line,#34373c);border-radius:13px;background:var(--ei-card,#151719)}
+#valesTab .voucher-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+#valesTab .voucher-detail-head h2{margin:2px 0;color:#efc45f}
+#valesTab .voucher-detail-head p:last-child{margin:4px 0}
+#valesTab .voucher-items{display:grid;gap:0;margin-top:15px;border-top:1px solid var(--ei-line,#303238)}
+#valesTab .voucher-item{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--ei-line,#303238);font-size:.86rem}
+#valesTab .voucher-item strong{white-space:nowrap}
+#valesTab .voucher-total{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px 0;border-bottom:1px solid var(--ei-line,#303238)}
+#valesTab .voucher-total strong{color:#efc45f;font-size:1.25rem}
+#valesTab .voucher-pay-form{display:grid;gap:12px;padding-top:15px}
+#valesTab .voucher-pay-form h3{margin:0}
+#valesTab .voucher-pay-form label{display:grid;gap:6px;font-size:.84rem;color:var(--ei-muted,#aaa)}
+#valesTab .voucher-transfer-fields{display:grid;gap:10px}
+#valesTab .voucher-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:3px}
+#valesTab .voucher-actions button{flex:1;min-width:130px}
+#valesTab .voucher-actions .danger{border-color:#7b3d3d;color:#efaaaa}
+#valesTab .voucher-payment-result{margin-top:15px;padding:13px;border:1px solid var(--ei-line,#303238);border-radius:10px;background:#18201a;font-size:.84rem}
+#valesTab .voucher-payment-result p{margin:6px 0 0}
+#valesTab .voucher-payment-result.is-cancelled{background:#211717}
+@media(max-width:760px){#valesTab .voucher-layout{grid-template-columns:1fr}#valesTab .voucher-detail{position:static}#valesTab .voucher-actions{display:grid;grid-template-columns:1fr 1fr}}
