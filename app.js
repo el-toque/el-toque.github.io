@@ -388,8 +388,11 @@ $("voucherSearch")?.addEventListener("input",renderVoucherList);
 $("refreshVouchers")?.addEventListener("click",loadVouchers);
 $("voucherList")?.addEventListener("click",e=>{
  const card=e.target.closest("[data-voucher-open]");if(!card)return;
- const v=workerVouchers.find(x=>x.id===card.dataset.voucherOpen);if(v)renderVoucherDetail(v);
+ const v=workerVouchers.find(x=>x.id===card.dataset.voucherOpen);
+ if(v){renderVoucherDetail(v);const dialog=$("voucherDialog");if(dialog&&!dialog.open)dialog.showModal();}
 });
+$("closeVoucherDialog")?.addEventListener("click",()=>$("voucherDialog")?.close());
+$("voucherDialog")?.addEventListener("click",e=>{if(e.target===$("voucherDialog"))$("voucherDialog").close();});
 $("voucherDetail")?.addEventListener("change",e=>{
  if(e.target.id!=="voucherPaymentMethod")return;
  const transfer=e.target.value==="transfer";
