@@ -4,7 +4,7 @@ const cfg=window.IPV_CONFIG||{};
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0)+" CUP";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-let client=null,initPromise=null,user=null,profile=null,loginInProgress=false,products=[],cart=[],categories=[],shopCategory="all",workerAllocations=[];let adminIPVTarget=null;let adminIPVImages=new Map();
+let client=null,initPromise=null,user=null,profile=null,loginInProgress=false,products=[],cart=[],categories=[],shopCategory="all",workerAllocations=[],workerVouchers=[],selectedVoucherId=null;let adminIPVTarget=null;let adminIPVImages=new Map();
 const ipvProductKey=name=>String(name??"").trim().toLowerCase();
 // Almacenamiento local duradero para sesión de trabajador, catálogo y ventas pendientes.
 const OFFLINE_DB="ipv_digital_offline_v1";
@@ -76,7 +76,7 @@ const admin=()=>profile?.role==="admin";
 const workerPermission=key=>admin()||profile?.worker_permissions?.[key]!==false;
 function fail(el,msg){$(el).textContent=msg}
 async function init(){
- if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js?v=68",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
+ if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js?v=69",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
  window.addEventListener("online",()=>{updateHeaderIndicators(0);syncPendingSales();});window.addEventListener("offline",()=>{updateHeaderIndicators(0);updatePendingBadge();});window.addEventListener("ipv:turn-context-updated",()=>updateHeaderIndicators(0));
  // Inicializa el indicador visual sin esperar a que termine la recuperación de sesión.
  updateHeaderIndicators(0);
@@ -117,12 +117,14 @@ async function enter(authUser){
  // La autenticación ya está confirmada. Los errores de módulos no deben expulsar al usuario.
  const tasks=admin()
   ?[loadProducts,loadSales,loadWorkers,loadAdminDashboard,loadAdminCloseouts,loadAdminIPV,loadAdminIndependentIPV,loadAdminTransfers]
-  :[loadProducts,loadWorkerAllocations,...(workerPermission("can_view_own_closeout")?[loadDailyBillCounts]:[]),cacheWorkerState,updatePendingBadge];
+  :[loadProducts,loadWorkerAllocations,...(workerPermission("can_view_own_closeout")?[loadDailyBillCounts]:[]),cacheWorkerState,updatePendingBadge,loadVouchers];
  const results=await Promise.allSettled(tasks.map(fn=>Promise.resolve().then(fn)));
  const failed=results.filter(x=>x.status==="rejected");
  if(failed.length){console.error("[IPV module loading]",failed.map(x=>x.reason));toast("Sesión activa. Algunos datos no pudieron actualizarse; puedes reintentar desde la sección correspondiente.");}
  if(admin()&&!window.ipvAdminIPVChannel){const refreshDashboardIfVisible=()=>{if(!$("dashboardTab").classList.contains("hidden"))loadAdminDashboard();};window.ipvAdminIPVChannel=client.channel("admin-ipv-live").on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_inventory_items"},()=>{if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();refreshDashboardIfVisible();}).on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_closures"},()=>{if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();if(!$("ipvHistoryTab").classList.contains("hidden"))loadAdminIPVHistory();if(!$("closeoutsTab").classList.contains("hidden"))loadAdminCloseouts();refreshDashboardIfVisible();}).on("postgres_changes",{event:"*",schema:"public",table:"worker_independent_inventory_items"},()=>{if(!$("independentTab").classList.contains("hidden"))loadAdminIndependentIPV();}).on("postgres_changes",{event:"*",schema:"public",table:"worker_independent_closures"},()=>{if(!$("independentTab").classList.contains("hidden"))loadAdminIndependentIPV();}).on("postgres_changes",{event:"*",schema:"public",table:"products"},refreshDashboardIfVisible).on("postgres_changes",{event:"*",schema:"public",table:"profiles"},refreshDashboardIfVisible).on("postgres_changes",{event:"*",schema:"public",table:"worker_stock_allocations"},refreshDashboardIfVisible).on("postgres_changes",{event:"*",schema:"public",table:"worker_independent_inventory_items"},refreshDashboardIfVisible).on("postgres_changes",{event:"*",schema:"public",table:"worker_independent_sessions"},refreshDashboardIfVisible).on("postgres_changes",{event:"*",schema:"public",table:"sales"},refreshDashboardIfVisible).on("postgres_changes",{event:"*",schema:"public",table:"ipv_transfers"},()=>{if(!$("transfersTab").classList.contains("hidden"))loadAdminTransfers();}).subscribe((status,error)=>{if(status==="SUBSCRIBED"){console.info("[IPV realtime] Sincronización automática activa.");if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();refreshDashboardIfVisible();}else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"){console.warn("[IPV realtime] Canal no disponible; se mantiene la actualización manual.",error);}});}
  if(!admin()&&!window.ipvWorkerProductImagesChannel){window.ipvWorkerProductImagesChannel=client.channel("worker-product-images").on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_product_images"},()=>{if(!$("shopTab").classList.contains("hidden"))loadProducts();}).subscribe((status,error)=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("[IPV product images realtime] Canal no disponible; se actualizará al recargar la tienda.",error);});}
+ if(!admin()&&!window.ipvWorkerVouchersChannel){const refreshVouchers=()=>{if(!$("valesTab").classList.contains("hidden"))loadVouchers();if(!$("shopTab").classList.contains("hidden"))loadProducts();};window.ipvWorkerVouchersChannel=client.channel("worker-turn-vouchers-"+user.id).on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_vouchers"},refreshVouchers).on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_voucher_items"},refreshVouchers).subscribe((status,error)=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("[IPV vales realtime] Canal no disponible; usa Actualizar para consultar los vales.",error);});}
+
 }
 $("loginForm").addEventListener("submit",async e=>{
  e.preventDefault();fail("loginError","");
@@ -144,8 +146,8 @@ $("loginForm").addEventListener("submit",async e=>{
  finally{loginInProgress=false;if(btn){btn.disabled=false;btn.textContent=original;}}
 });
 const logout=async()=>{try{await client.auth.signOut();showLogin();}catch(error){toast("No se pudo cerrar la sesión: "+(error?.message||"Error inesperado"));}};$("logoutBtn").addEventListener("click",logout);$("workerLogoutBtn")?.addEventListener("click",logout);
-function showSection(tab){const sections=["dashboard","inventory","independent","sales","closeouts","ipvHistory","transfers","workers","shop","daily","onlineStore"];sections.forEach(t=>{const panel=$(t+"Tab");if(panel)panel.classList.toggle("hidden",t!==tab);});const active=$(tab+"Tab");if(active)active.classList.remove("hidden");return !!active;}
-document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(b.closest("#adminTabs")||b.closest("#workerTabs")){document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.setAttribute("aria-expanded","false");}if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","independent","sales","workers","ipvHistory"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailyBillCounts();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="inventory")loadAdminIPV();if(b.dataset.tab==="independent")loadAdminIndependentIPV();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="ipvHistory")loadAdminIPVHistory();if(b.dataset.tab==="transfers")loadAdminTransfers();if(b.dataset.tab==="onlineStore")loadOnlineStoreAdmin();}));
+function showSection(tab){const sections=["dashboard","inventory","independent","sales","closeouts","ipvHistory","transfers","workers","shop","vales","daily","onlineStore"];sections.forEach(t=>{const panel=$(t+"Tab");if(panel)panel.classList.toggle("hidden",t!==tab);});const active=$(tab+"Tab");if(active)active.classList.remove("hidden");return !!active;}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(b.closest("#adminTabs")||b.closest("#workerTabs")){document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.setAttribute("aria-expanded","false");}if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","independent","sales","workers","ipvHistory"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailyBillCounts();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="vales")loadVouchers();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="inventory")loadAdminIPV();if(b.dataset.tab==="independent")loadAdminIndependentIPV();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="ipvHistory")loadAdminIPVHistory();if(b.dataset.tab==="transfers")loadAdminTransfers();if(b.dataset.tab==="onlineStore")loadOnlineStoreAdmin();}));
 /* Ocultar el botón del menú bajo el encabezado al desplazar la página hacia abajo. */
 /* Detectar el desplazamiento real tanto de la página como de contenedores internos. */
 let menuToggleLastY=0;
@@ -316,9 +318,125 @@ $("shopCartList").addEventListener("click",e=>{const minus=e.target.closest("[da
 function showShopOrder(show){$("shopCatalogView").classList.toggle("hidden",show);$("shopOrderView").classList.toggle("hidden",!show);if(show)renderShopCart();}
 $("viewOrderBtn").addEventListener("click",()=>showShopOrder(true));
 $("backToCatalog").addEventListener("click",()=>showShopOrder(false));
-$("shopPayment").addEventListener("change",()=>{$("transferCodeWrap").classList.toggle("hidden",$("shopPayment").value!=="transfer");if($("shopPayment").value!=="transfer")$("transferCode").value="";});
-$("shopSellBtn").addEventListener("click",async()=>{if(!cart.length){fail("shopMessage","Agrega al menos un producto al carrito.");return}const method=$("shopPayment").value,code=$("transferCode").value.trim();if(method==="transfer"&&!code){fail("shopMessage","Introduce el código de la transferencia antes de confirmar.");$("transferCode").focus();return}const btn=$("shopSellBtn");btn.disabled=true;if(!navigator.onLine){try{const entry=await saveOfflineSale(cart,method,code);cart=[];$("transferCode").value="";renderShopCart();showShopOrder(false);fail("shopMessage","Pendiente de sincronizar. Se guardó en este teléfono.");toast("Venta guardada sin conexión");}catch(e){fail("shopMessage","No se pudo guardar localmente. No cierres esta página.");}finally{btn.disabled=false;}return;}fail("shopMessage","Procesando venta…");const id=crypto.randomUUID();let turnCtx;try{turnCtx=await ensureTurnContext();}catch(e){btn.disabled=false;fail("shopMessage",e.message);return;}const saleArgs={p_items:cart.map(x=>({turn_item_id:x.product_id,quantity:x.quantity})),p_payment_method:method,p_idempotency_key:id,p_transfer_code:method==="transfer"?code:null};const {data,error}=profile?.ipv_mode==="independent"?await client.rpc("worker_independent_create_sale",{p_session_id:turnCtx.sessionId,...saleArgs}):await client.rpc("worker_turn_create_sale",{...saleArgs,p_business_date:turnCtx.businessDate,p_session_no:turnCtx.sessionNo});btn.disabled=false;if(error){if(!navigator.onLine||/fetch|network|failed to fetch|load failed/i.test(error.message||"")){try{await saveOfflineSale(cart,method,code,id);cart=[];renderShopCart();showShopOrder(false);fail("shopMessage","Pendiente de sincronizar. Se guardó en este teléfono.");}catch(e){fail("shopMessage","No se pudo guardar la venta localmente.");}return;}fail("shopMessage",error.message);return;}cart=[];$("transferCode").value="";renderShopCart();showShopOrder(false);fail("shopMessage","Venta confirmada. Folio: "+data);toast("Venta registrada y existencias descontadas");await (window.refreshWorkerTurnInventory?.()||Promise.resolve());await loadProducts();await loadWorkerAllocations();await loadDailyBillCounts();});
-$("refreshShop").onclick=loadProducts;
+
+$("shopSellBtn").addEventListener("click",async()=>{
+ if(!cart.length){fail("shopMessage","Agrega al menos un producto al pedido.");return;}
+ const customerName=$("shopCustomerName").value.trim();
+ if(customerName.length<2){fail("shopMessage","Introduce el nombre de la persona para el vale.");$("shopCustomerName").focus();return;}
+ if(!navigator.onLine){fail("shopMessage","Necesitas conexión para crear el vale y reservar existencias de forma segura.");return;}
+ const btn=$("shopSellBtn");btn.disabled=true;fail("shopMessage","Reservando las existencias y creando el vale…");
+ try{
+  const turnCtx=await ensureTurnContext();
+  const {data,error}=await client.rpc("worker_turn_create_voucher",{
+   p_items:cart.map(x=>({turn_item_id:x.product_id,quantity:x.quantity})),
+   p_customer_name:customerName,
+   p_business_date:turnCtx.businessDate,
+   p_session_no:turnCtx.sessionNo
+  });
+  if(error)throw error;
+  cart=[];$("shopCustomerName").value="";renderShopCart();renderShopProducts();
+  fail("shopMessage","Vale "+(data?.voucher_code||"creado")+" correctamente. Existencias reservadas.");
+  toast("Vale "+(data?.voucher_code||"creado")+" guardado");
+  selectedVoucherId=data?.id||null;
+  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.tab==="vales"));
+  showSection("vales");
+  await Promise.all([loadVouchers(),loadProducts()]);
+ }catch(e){
+  fail("shopMessage",e?.message||"No se pudo crear el vale.");
+ }finally{btn.disabled=false;renderShopCart();}
+});
+let workerVouchers=[];
+function voucherStatusLabel(status){return status==="pending"?"Pendiente":status==="paid"?"Pagado":"Anulado";}
+function voucherCode(v){return v.voucher_code||((Number(v.shift_no)===1?"T1-":"T2-")+String(v.voucher_no||0).padStart(5,"0"));}
+async function loadVouchers(){
+ const host=$("voucherList");if(!host||!user||admin())return;
+ if(!navigator.onLine){host.innerHTML='<p class="muted small">Conéctate a internet para consultar los vales compartidos entre turnos.</p>';return;}
+ host.innerHTML='<p class="muted small">Cargando vales…</p>';
+ const {data,error}=await client.rpc("worker_turn_list_vouchers");
+ if(error){host.innerHTML='<p class="form-error">No se pudieron cargar los vales: '+esc(error.message)+'</p>';return;}
+ workerVouchers=Array.isArray(data)?data:[];
+ renderVoucherList();
+ if(selectedVoucherId){const selected=workerVouchers.find(v=>v.id===selectedVoucherId);if(selected)renderVoucherDetail(selected);else{$("voucherDetail").innerHTML='<p class="muted small">Selecciona un vale para consultar su contenido.</p>';}}
+}
+function renderVoucherList(){
+ const host=$("voucherList");if(!host)return;
+ const q=($("voucherSearch")?.value||"").trim().toLowerCase();
+ const list=workerVouchers.filter(v=>(voucherCode(v)+" "+(v.customer_name||"")+" "+(v.created_by_name||"")).toLowerCase().includes(q));
+ if(!list.length){host.innerHTML='<p class="empty">No hay vales que coincidan con la búsqueda.</p>';return;}
+ host.innerHTML=list.map(v=>{
+  const status=v.status||"pending";
+  return '<button type="button" class="voucher-card '+(status==="pending"?"is-pending":"")+'" data-voucher-open="'+esc(v.id)+'"><span class="voucher-card-top"><strong>'+esc(voucherCode(v))+'</strong><span class="voucher-status '+esc(status)+'">'+voucherStatusLabel(status)+'</span></span><strong class="voucher-customer">'+esc(v.customer_name||"Cliente")+'</strong><span class="voucher-card-meta">Creado por '+esc(v.created_by_name||"Trabajador")+' · '+new Date(v.created_at).toLocaleString("es-ES")+'</span><span class="voucher-card-bottom"><span>'+((v.items||[]).reduce((n,i)=>n+Number(i.quantity||0),0))+' unidades</span><strong>'+money(v.total)+'</strong></span></button>';
+ }).join("");
+}
+function renderVoucherDetail(v){
+ const host=$("voucherDetail");if(!host||!v)return;
+ selectedVoucherId=v.id;
+ const items=(v.items||[]).map(i=>'<div class="voucher-item"><span>'+esc(i.product_name)+' × '+Number(i.quantity)+'</span><strong>'+money(i.line_total??Number(i.unit_price)*Number(i.quantity))+'</strong></div>').join("");
+ const status=v.status||"pending";
+ let action="";
+ if(status==="pending"){
+  action='<div class="voucher-pay-form"><h3>Registrar pago</h3><label>Forma de pago<select id="voucherPaymentMethod"><option value="cash">CUP</option><option value="transfer">Transferencia</option></select></label><div id="voucherTransferFields" class="voucher-transfer-fields hidden"><label>Código de transferencia<input id="voucherTransferCode" maxlength="100" autocomplete="off" placeholder="Código del pago" required></label><label>Nombre de quien realiza la transferencia<input id="voucherPayerFirstName" maxlength="60" autocomplete="given-name" placeholder="Nombre" required></label><label>Primer apellido<input id="voucherPayerSurname" maxlength="60" autocomplete="family-name" placeholder="Primer apellido" required></label><label>Número de teléfono<input id="voucherPayerPhone" type="tel" inputmode="tel" maxlength="24" autocomplete="tel" placeholder="Teléfono de quien transfiere" required></label></div><div class="voucher-actions"><button type="button" class="primary" data-voucher-pay="'+esc(v.id)+'">Confirmar pago</button><button type="button" class="secondary danger" data-voucher-cancel="'+esc(v.id)+'">Anular vale</button></div></div>';
+ }else if(status==="paid"){
+  const payer=[v.transfer_payer_first_name,v.transfer_payer_surname].filter(Boolean).join(" ");
+  action='<div class="voucher-payment-result"><strong>Pago confirmado</strong><p>Recibido por: '+esc(v.paid_by_name||"Trabajador")+' · '+(v.paid_at?new Date(v.paid_at).toLocaleString("es-ES"):"")+'</p><p>Forma de pago: '+(v.payment_method==="transfer"?"Transferencia":"CUP")+'</p>'+(v.payment_method==="transfer"?'<p>Código: '+esc(v.transfer_code||"—")+'</p><p>Transfiere: '+esc(payer||"—")+' · '+esc(v.transfer_payer_phone||"—")+'</p>':"")+'</div>';
+ }else{
+  action='<div class="voucher-payment-result is-cancelled"><strong>Vale anulado</strong><p>'+esc(v.cancel_reason||"Sin motivo indicado")+'</p></div>';
+ }
+ host.innerHTML='<article class="voucher-detail-card"><div class="voucher-detail-head"><div><p class="eyebrow">DETALLE DEL VALE</p><h2>'+esc(voucherCode(v))+'</h2><p>'+esc(v.customer_name||"Cliente")+'</p></div><span class="voucher-status '+esc(status)+'">'+voucherStatusLabel(status)+'</span></div><p class="voucher-detail-meta">Turno '+Number(v.shift_no)+' · Creado por '+esc(v.created_by_name||"Trabajador")+' · '+new Date(v.created_at).toLocaleString("es-ES")+'</p><div class="voucher-items">'+items+'</div><div class="voucher-total"><span>Total del pedido</span><strong>'+money(v.total)+'</strong></div>'+action+'</article>';
+}
+$("voucherSearch")?.addEventListener("input",renderVoucherList);
+$("refreshVouchers")?.addEventListener("click",loadVouchers);
+$("voucherList")?.addEventListener("click",e=>{
+ const card=e.target.closest("[data-voucher-open]");if(!card)return;
+ const v=workerVouchers.find(x=>x.id===card.dataset.voucherOpen);if(v)renderVoucherDetail(v);
+});
+$("voucherDetail")?.addEventListener("change",e=>{
+ if(e.target.id!=="voucherPaymentMethod")return;
+ const transfer=e.target.value==="transfer";
+ $("voucherTransferFields")?.classList.toggle("hidden",!transfer);
+ ["voucherTransferCode","voucherPayerFirstName","voucherPayerSurname","voucherPayerPhone"].forEach(id=>{const el=$(id);if(el)el.required=transfer;});
+});
+$("voucherDetail")?.addEventListener("click",async e=>{
+ const pay=e.target.closest("[data-voucher-pay]");
+ const cancel=e.target.closest("[data-voucher-cancel]");
+ if(!pay&&!cancel)return;
+ if(!navigator.onLine){toast("Necesitas conexión para registrar el pago o anular el vale.");return;}
+ const btn=pay||cancel;btn.disabled=true;
+ try{
+  const ctx=await ensureTurnContext();
+  if(pay){
+   const method=$("voucherPaymentMethod").value;
+   const code=$("voucherTransferCode")?.value.trim()||"";
+   const first=$("voucherPayerFirstName")?.value.trim()||"";
+   const surname=$("voucherPayerSurname")?.value.trim()||"";
+   const phone=$("voucherPayerPhone")?.value.trim()||"";
+   if(method==="transfer"){
+    const digits=phone.replace(/[^0-9]/g,"");
+    if(!code||!first||!surname||digits.length<7||digits.length>15){toast("Completa el código, nombre, primer apellido y un teléfono válido de quien transfiere.");btn.disabled=false;return;}
+   }
+   const {data,error}=await client.rpc("worker_turn_pay_voucher",{
+    p_voucher_id:pay.dataset.voucherPay,p_payment_method:method,
+    p_transfer_code:method==="transfer"?code:null,
+    p_transfer_payer_first_name:method==="transfer"?first:null,
+    p_transfer_payer_surname:method==="transfer"?surname:null,
+    p_transfer_payer_phone:method==="transfer"?phone:null,
+    p_business_date:ctx.businessDate,p_session_no:ctx.sessionNo
+   });
+   if(error)throw error;
+   toast("Pago confirmado. Venta registrada en este turno.");
+  }else{
+   const reason=prompt("Motivo de anulación del vale (opcional):");if(reason===null){btn.disabled=false;return;}
+   const {error}=await client.rpc("worker_turn_cancel_voucher",{
+    p_voucher_id:cancel.dataset.voucherCancel,p_reason:reason.trim(),
+    p_business_date:ctx.businessDate,p_session_no:ctx.sessionNo
+   });
+   if(error)throw error;
+   toast("Vale anulado y existencias liberadas.");
+  }
+  await Promise.all([loadVouchers(),loadProducts(),loadWorkerAllocations(),loadDailyBillCounts()]);
+ }catch(err){toast(err?.message||"No se pudo completar la operación.");}
+ finally{btn.disabled=false;}
+});
 function localBusinessDate(d=new Date()){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");return `${y}-${m}-${day}`;}
 let dailyBillCounts={};
 const dailyBillDenominations=[5000,2000,1000,500,200,100,50,20,10,5,3,1];
@@ -649,7 +767,7 @@ async function loadSales(){
  if(!user)return;
  const rows=[];
  for(let from=0;;from+=1000){
-  const {data,error}=await client.from("sales").select("id,worker_id,total,payment_method,origin,transfer_code,status,cancel_reason,created_at,profiles!sales_worker_id_fkey(full_name,ipv_mode),sale_items(worker_turn_item_id,product_name,quantity,unit_price,products(name))").order("created_at",{ascending:false}).range(from,from+999);
+  const {data,error}=await client.from("sales").select("id,worker_id,total,payment_method,origin,transfer_code,transfer_payer_first_name,transfer_payer_surname,transfer_payer_phone,voucher_code,status,cancel_reason,created_at,profiles!sales_worker_id_fkey(full_name,ipv_mode),sale_items(worker_turn_item_id,product_name,quantity,unit_price,products(name))").order("created_at",{ascending:false}).range(from,from+999);
   if(error){toast("Ventas: "+error.message);return}
   rows.push(...(data||[]));if(!data||data.length<1000)break;
  }
@@ -672,7 +790,7 @@ function renderAdminSales(){
  $("salesWorkerSummary").innerHTML=[...groups.values()].map(g=>'<article class="stat"><span>'+esc(g.name)+'</span><strong>'+g.count+' ventas</strong><small>CUP: '+money(g.cash)+' · Transferencias: '+money(g.transfer)+' · Total: '+money(g.total)+'</small></article>').join("")||'<p class="muted small">No hay ventas en este período.</p>';
  $("salesBody").innerHTML=rows.map(s=>{
   const items=(s.sale_items||[]).map(i=>esc(i.product_name||i.products?.name||"Producto")+" × "+(Number(i.quantity)||0)).join("<br>")||"—";
-  return '<tr><td>'+new Date(s.created_at).toLocaleString("es-ES")+'</td><td>'+esc(s.profiles?.full_name||"Trabajador")+'</td><td>'+items+'</td><td>'+money(s.total)+'</td><td>'+esc(({cash:"CUP",card:"Tarjeta",transfer:"Transferencia"})[s.payment_method]||s.payment_method||"—")+'</td><td>'+esc(s.transfer_code||"—")+'</td><td>'+esc(s.status||"—")+(s.cancel_reason?'<small>'+esc(s.cancel_reason)+'</small>':"")+'</td><td>'+(s.status==="completed"?'<button class="mini-btn danger" data-cancel-sale="'+s.id+'">Cancelar</button>':"—")+'</td></tr>';
+  const transferDetails=s.payment_method==="transfer"?[s.transfer_code,[s.transfer_payer_first_name,s.transfer_payer_surname].filter(Boolean).join(" "),s.transfer_payer_phone].filter(Boolean).join(" · "):(s.voucher_code||"—");\n  return '<tr><td>'+new Date(s.created_at).toLocaleString("es-ES")+'</td><td>'+esc(s.profiles?.full_name||"Trabajador")+'</td><td>'+items+'</td><td>'+money(s.total)+'</td><td>'+esc(({cash:"CUP",card:"Tarjeta",transfer:"Transferencia"})[s.payment_method]||s.payment_method||"—")+'</td><td>'+esc(transferDetails)+'</td><td>'+esc(s.status||"—")+(s.cancel_reason?'<small>'+esc(s.cancel_reason)+'</small>':"")+'</td><td>'+(s.status==="completed"?'<button class="mini-btn danger" data-cancel-sale="'+s.id+'">Cancelar</button>':"—")+'</td></tr>';
  }).join("");
  $("salesEmpty").classList.toggle("hidden",rows.length>0);
 }
