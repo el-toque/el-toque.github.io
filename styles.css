@@ -1379,3 +1379,12 @@ body.login-screen .auth-panel:before{
 .voucher-dialog .voucher-detail{position:static;min-width:0}
 .voucher-dialog .voucher-detail-card{padding:0;border:0;background:transparent}
 @media(max-width:520px){.voucher-dialog{width:calc(100% - 18px);max-height:90vh;padding:13px;border-radius:14px}.voucher-dialog .voucher-actions{grid-template-columns:1fr}}
+
+
+/* Estado visible durante el cobro y la anulación de vales */
+#valesTab .voucher-action-status{margin:2px 0 0;padding:10px 12px;border:1px solid #8a6935;border-radius:9px;background:#2a2418;color:#f0d49a;font-size:.82rem;line-height:1.45}
+#valesTab .voucher-action-status:empty{display:none}
+#valesTab .voucher-actions button.is-processing{display:inline-flex;align-items:center;justify-content:center;gap:9px;opacity:.9;cursor:wait}
+#valesTab .voucher-actions button.is-processing::before{content:"";width:14px;height:14px;flex:0 0 14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:voucherSpin .75s linear infinite}
+#valesTab .voucher-actions button:disabled{opacity:.58;cursor:wait}
+@keyframes voucherSpin{to{transform:rotate(360deg)}}
