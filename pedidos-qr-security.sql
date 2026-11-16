@@ -55,6 +55,9 @@ on public.qr_orders for select to authenticated
 using (private.is_current_qr_worker());
 
 drop policy if exists qr_order_events_worker_read on public.qr_order_events;
+-- Realtime Postgres Changes necesita SELECT; RLS limita el acceso al turno titular.
+grant select on table public.qr_orders, public.qr_order_events to authenticated;
+
 create policy qr_order_events_worker_read
 on public.qr_order_events for select to authenticated
 using (
