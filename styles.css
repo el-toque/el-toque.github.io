@@ -1367,3 +1367,6 @@ body.login-screen .auth-panel:before{
 #valesTab .voucher-payment-result p{margin:6px 0 0}
 #valesTab .voucher-payment-result.is-cancelled{background:#211717}
 @media(max-width:760px){#valesTab .voucher-layout{grid-template-columns:1fr}#valesTab .voucher-detail{position:static}#valesTab .voucher-actions{display:grid;grid-template-columns:1fr 1fr}}
+
+/* Confirmación visual de creación de vale */
+.toast.voucher-created{background:#98612f;border-color:#d9ad78;color:#fff}
