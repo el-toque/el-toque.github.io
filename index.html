@@ -72,8 +72,9 @@
   <section id="valesTab" class="panel hidden voucher-panel">
     <div class="toolbar"><div><p class="eyebrow">IPV DIGITAL · PEDIDOS PENDIENTES</p><h2>Vales</h2><p class="muted small">Consulta los pedidos reservados por ambos turnos y registra el pago cuando estén listos.</p></div><button id="refreshVouchers" class="secondary" type="button">↻ Actualizar</button></div>
     <label class="voucher-search">Buscar por número de vale o nombre<input id="voucherSearch" type="search" placeholder="Ej. T1-00001 o nombre del cliente"></label>
-    <div class="voucher-layout"><div id="voucherList" class="voucher-list"><p class="muted small">Cargando vales…</p></div><div id="voucherDetail" class="voucher-detail"><p class="muted small">Selecciona un vale para consultar sus productos y registrar el pago.</p></div></div>
+    <div class="voucher-layout"><div id="voucherList" class="voucher-list"><p class="muted small">Cargando vales…</p></div></div>
   </section>
+  <dialog id="voucherDialog" class="voucher-dialog" aria-labelledby="voucherDialogTitle"><div class="voucher-dialog-head"><strong id="voucherDialogTitle">Detalle del vale</strong><button type="button" class="secondary" id="closeVoucherDialog" aria-label="Cerrar detalle">✕</button></div><div id="voucherDetail" class="voucher-detail"><p class="muted small">Selecciona un vale para consultar su contenido.</p></div></dialog>
   <section id="dailyTab" class="panel hidden">
     <section class="turn-inventory-section">
       <div class="turn-document-head">
