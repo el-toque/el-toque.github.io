@@ -4,7 +4,7 @@ const cfg=window.IPV_CONFIG||{};
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0)+" CUP";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-let client=null,initPromise=null,user=null,profile=null,loginInProgress=false,products=[],cart=[],categories=[],shopCategory="all",workerAllocations=[],workerVouchers=[],selectedVoucherId=null;let voucherActionInProgress=false;let adminIPVTarget=null;let adminIPVImages=new Map();
+let client=null,initPromise=null,user=null,profile=null,loginInProgress=false,products=[],cart=[],categories=[],shopCategory="all",workerAllocations=[],workerVouchers=[],workerQrOrders=[],selectedVoucherId=null,selectedQrOrderId=null;let qrKnownOrders=null;let voucherActionInProgress=false;let adminIPVTarget=null;let adminIPVImages=new Map();
 const ipvProductKey=name=>String(name??"").trim().toLowerCase();
 // Almacenamiento local duradero para sesión de trabajador, catálogo y ventas pendientes.
 const OFFLINE_DB="ipv_digital_offline_v1";
@@ -99,6 +99,80 @@ async function init(){
  }catch(error){showLogin();fail("loginError","No se pudo preparar el acceso: "+(error?.message||"Error inesperado")+". Recarga la página e inténtalo de nuevo.");}
 }
 function showLogin(){user=null;profile=null;adminIPVTarget=null;updateHeaderIndicators(0);document.body.classList.add("login-screen");document.body.classList.remove("admin-mode","worker-mode","admin-sidebar-open");$("adminSidebar")?.classList.add("hidden");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.classList.add("hidden");$("appPanel").classList.add("hidden");$("loginPanel").classList.remove("hidden");$("sessionLabel").textContent="SIN SESIÓN"}
+
+let qrAdminConfig=null;
+async function loadQrCatalogAdmin(){
+ const host=$("qrAdminProductSettings");if(!host||!admin())return;
+ host.innerHTML='<p class="muted small">Cargando configuración del catálogo QR…</p>';
+ const {data,error}=await client.rpc("qr_admin_catalog_config");
+ if(error){host.innerHTML='<p class="form-error">No se pudo cargar: '+esc(error.message)+'</p>';return}
+ qrAdminConfig=data||{};const s=qrAdminConfig.settings||{};
+ $("qrCatalogEnabled").checked=!!s.enabled;
+ $("qrPromoEnabled").checked=!!s.promotional_message_enabled;
+ $("qrPromoLinkEnabled").checked=!!s.promotional_link_enabled;
+ $("qrOffersEnabled").checked=s.offers_enabled!==false;
+ $("qrFeaturedEnabled").checked=s.featured_enabled!==false;
+ $("qrPromoMessage").value=s.promotional_message||"";
+ $("qrFeaturedCoverUrl").value=s.featured_cover_url||"";
+ const cover=$("qrFeaturedCoverPreview");cover.classList.toggle("hidden",!s.featured_cover_url);if(s.featured_cover_url)cover.src=s.featured_cover_url;
+ const items=Array.isArray(data.items)?data.items:[];
+ host.innerHTML=items.length?items.map(p=>'<div class="qr-admin-product-row" data-product-key="'+esc(p.product_key)+'" data-price="'+Number(p.price||0)+'"><div class="qr-admin-product-name"><strong>'+esc(p.name)+'</strong><span class="muted small">Precio normal: '+money(p.price)+'</span></div><label class="qr-admin-toggle"><input type="checkbox" data-qr-featured '+(p.featured?'checked':'')+'> Destacado</label><label>Orden<input data-qr-order type="number" min="0" step="1" value="'+Number(p.featured_order||0)+'"></label><label>Precio promocional<input data-qr-promo type="number" min="0" step="0.01" placeholder="Sin oferta" value="'+(p.promotional_price==null?"":Number(p.promotional_price))+'"></label></div>').join(""):'<p class="empty">No hay productos activos en el inventario del turno titular. Cuando el administrador incorpore productos, aparecerán aquí.</p>';
+ $("qrAdminMessage").textContent="Turno titular: "+Number(data.shift_no||0)+" · Sesión "+Number(data.session_no||0);
+}
+$("refreshQrAdmin")?.addEventListener("click",loadQrCatalogAdmin);
+$("qrFeaturedCoverFile")?.addEventListener("change",e=>{const file=e.target.files?.[0];if(!file)return;const preview=$("qrFeaturedCoverPreview");preview.src=URL.createObjectURL(file);preview.classList.remove("hidden")});
+$("qrFeaturedCoverUrl")?.addEventListener("change",e=>{const value=e.target.value.trim(),preview=$("qrFeaturedCoverPreview");preview.classList.toggle("hidden",!value);if(value)preview.src=value});
+$("saveQrCatalogSettings")?.addEventListener("click",async()=>{
+ const btn=$("saveQrCatalogSettings"),message=$("qrAdminMessage");if(btn.disabled)return;
+ btn.disabled=true;btn.textContent="Guardando…";message.textContent="";
+ try{
+  const rows=[...document.querySelectorAll(".qr-admin-product-row")];
+  const preparedRows=rows.map(row=>{
+   const price=Number(row.dataset.price||0),raw=row.querySelector("[data-qr-promo]").value.trim();
+   const promo=raw===""?null:Number(raw);
+   if(promo!==null&&(!Number.isFinite(promo)||promo<0||promo>=price))throw new Error("El precio promocional de "+row.querySelector(".qr-admin-product-name strong").textContent+" debe ser menor que el precio normal.");
+   const rawOrder=row.querySelector("[data-qr-order]").value.trim(),order=rawOrder===""?0:Number(rawOrder);
+   if(!Number.isFinite(order)||order<0||!Number.isInteger(order))throw new Error("El orden de los productos destacados debe ser un número entero igual o mayor que cero.");
+   return {row,promo,order};
+  });
+  let coverUrl=$("qrFeaturedCoverUrl").value.trim()||null;
+  const file=$("qrFeaturedCoverFile").files?.[0];
+  if(file){
+   if(!file.type.startsWith("image/"))throw new Error("Selecciona un archivo de imagen válido.");
+   if(file.size>6*1024*1024)throw new Error("La imagen de portada no puede superar 6 MB.");
+   const ext=(file.name.split(".").pop()||"jpg").toLowerCase().replace(/[^a-z0-9]/g,"")||"jpg";
+   const path="qr/featured-cover-"+(crypto.randomUUID?crypto.randomUUID():Date.now())+"."+ext;
+   const {error:uploadError}=await client.storage.from("product-images").upload(path,file,{upsert:false,contentType:file.type});
+   if(uploadError)throw uploadError;
+   coverUrl=client.storage.from("product-images").getPublicUrl(path).data.publicUrl;
+  }
+  const {error:settingsError}=await client.rpc("qr_admin_update_catalog_settings",{
+   p_enabled:$("qrCatalogEnabled").checked,
+   p_promotional_message:$("qrPromoMessage").value.trim(),
+   p_promotional_message_enabled:$("qrPromoEnabled").checked,
+   p_promotional_link_enabled:$("qrPromoLinkEnabled").checked,
+   p_offers_enabled:$("qrOffersEnabled").checked,
+   p_featured_enabled:$("qrFeaturedEnabled").checked,
+   p_featured_cover_url:coverUrl
+  });
+  if(settingsError)throw settingsError;
+  for(const {row,promo,order} of preparedRows){
+   const {error}=await client.rpc("qr_admin_set_product_settings",{
+    p_product_key:row.dataset.productKey,
+    p_featured:row.querySelector("[data-qr-featured]").checked,
+    p_featured_order:order,
+    p_promotional_price:promo
+   });
+   if(error)throw error;
+  }
+  $("qrFeaturedCoverUrl").value=coverUrl||"";
+  $("qrFeaturedCoverFile").value="";
+  message.textContent="Configuración del catálogo QR guardada correctamente.";
+  await loadQrCatalogAdmin();
+ }catch(e){message.textContent=e.message||"No se pudo guardar la configuración QR."}
+ finally{btn.disabled=false;btn.textContent="Guardar configuración QR"}
+});
+
 async function enter(authUser){
  user=authUser;
  let data=null,error=null;
@@ -116,7 +190,7 @@ async function enter(authUser){
  if(admin()){document.querySelector('[data-tab="dashboard"]').classList.add("active");showSection("dashboard");}else{document.querySelector('[data-tab="shop"]').classList.add("active");showSection("shop");}$("appPanel").classList.remove("hidden");const initialPanel=$(admin()?"dashboardTab":"shopTab");if(initialPanel)initialPanel.classList.remove("hidden");
  // La autenticación ya está confirmada. Los errores de módulos no deben expulsar al usuario.
  const tasks=admin()
-  ?[loadProducts,loadSales,loadWorkers,loadAdminDashboard,loadAdminCloseouts,loadAdminIPV,loadAdminIndependentIPV,loadAdminTransfers]
+  ?[loadProducts,loadSales,loadWorkers,loadAdminDashboard,loadAdminCloseouts,loadAdminIPV,loadAdminIndependentIPV,loadAdminTransfers,loadQrCatalogAdmin]
   :[loadProducts,loadWorkerAllocations,...(workerPermission("can_view_own_closeout")?[loadDailyBillCounts]:[]),cacheWorkerState,updatePendingBadge,loadVouchers];
  const results=await Promise.allSettled(tasks.map(fn=>Promise.resolve().then(fn)));
  const failed=results.filter(x=>x.status==="rejected");
@@ -124,6 +198,8 @@ async function enter(authUser){
  if(admin()&&!window.ipvAdminIPVChannel){const refreshDashboardIfVisible=()=>{if(!$("dashboardTab").classList.contains("hidden"))loadAdminDashboard();};window.ipvAdminIPVChannel=client.channel("admin-ipv-live").on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_inventory_items"},()=>{if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();refreshDashboardIfVisible();}).on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_closures"},()=>{if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();if(!$("ipvHistoryTab").classList.contains("hidden"))loadAdminIPVHistory();if(!$("closeoutsTab").classList.contains("hidden"))loadAdminCloseouts();refreshDashboardIfVisible();}).on("postgres_changes",{event:"*",schema:"public",table:"worker_independent_inventory_items"},()=>{if(!$("independentTab").classList.contains("hidden"))loadAdminIndependentIPV();}).on("postgres_changes",{event:"*",schema:"public",table:"worker_independent_closures"},()=>{if(!$("independentTab").classList.contains("hidden"))loadAdminIndependentIPV();}).on("postgres_changes",{event:"*",schema:"public",table:"products"},refreshDashboardIfVisible).on("postgres_changes",{event:"*",schema:"public",table:"profiles"},refreshDashboardIfVisible).on("postgres_changes",{event:"*",schema:"public",table:"worker_stock_allocations"},refreshDashboardIfVisible).on("postgres_changes",{event:"*",schema:"public",table:"worker_independent_inventory_items"},refreshDashboardIfVisible).on("postgres_changes",{event:"*",schema:"public",table:"worker_independent_sessions"},refreshDashboardIfVisible).on("postgres_changes",{event:"*",schema:"public",table:"sales"},refreshDashboardIfVisible).on("postgres_changes",{event:"*",schema:"public",table:"ipv_transfers"},()=>{if(!$("transfersTab").classList.contains("hidden"))loadAdminTransfers();}).subscribe((status,error)=>{if(status==="SUBSCRIBED"){console.info("[IPV realtime] Sincronización automática activa.");if(!$("inventoryTab").classList.contains("hidden"))loadAdminIPV();refreshDashboardIfVisible();}else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"){console.warn("[IPV realtime] Canal no disponible; se mantiene la actualización manual.",error);}});}
  if(!admin()&&!window.ipvWorkerProductImagesChannel){window.ipvWorkerProductImagesChannel=client.channel("worker-product-images").on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_product_images"},()=>{if(!$("shopTab").classList.contains("hidden"))loadProducts();}).subscribe((status,error)=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("[IPV product images realtime] Canal no disponible; se actualizará al recargar la tienda.",error);});}
  if(!admin()&&!window.ipvWorkerVouchersChannel){const refreshVouchers=()=>{if(!$("valesTab").classList.contains("hidden"))loadVouchers();if(!$("shopTab").classList.contains("hidden"))loadProducts();};window.ipvWorkerVouchersChannel=client.channel("worker-turn-vouchers-"+user.id).on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_vouchers"},refreshVouchers).on("postgres_changes",{event:"*",schema:"public",table:"worker_turn_voucher_items"},refreshVouchers).subscribe((status,error)=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("[IPV vales realtime] Canal no disponible; usa Actualizar para consultar los vales.",error);});}
+ if(!admin()&&profile?.ipv_mode!=="independent"&&!window.ipvWorkerQrChannel){window.ipvWorkerQrChannel=client.channel("worker-qr-orders-"+user.id).on("postgres_changes",{event:"*",schema:"public",table:"qr_orders"},()=>{pollQrNotifications();if(!$("valesTab").classList.contains("hidden"))loadVouchers();}).on("postgres_changes",{event:"INSERT",schema:"public",table:"qr_order_events"},()=>{pollQrNotifications();if(!$("valesTab").classList.contains("hidden"))loadVouchers();}).subscribe((status,error)=>{if(status==="SUBSCRIBED")console.info("[IPV QR] Notificaciones en tiempo real activas.");else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("[IPV QR] Se utilizará sincronización automática de respaldo.",error);});}
+ if(!admin()&&profile?.ipv_mode!=="independent")startQrPolling();
 
 }
 $("loginForm").addEventListener("submit",async e=>{
@@ -147,7 +223,7 @@ $("loginForm").addEventListener("submit",async e=>{
 });
 const logout=async()=>{try{await client.auth.signOut();showLogin();}catch(error){toast("No se pudo cerrar la sesión: "+(error?.message||"Error inesperado"));}};$("logoutBtn").addEventListener("click",logout);$("workerLogoutBtn")?.addEventListener("click",logout);
 function showSection(tab){const sections=["dashboard","inventory","independent","sales","closeouts","ipvHistory","transfers","workers","shop","vales","daily","onlineStore"];sections.forEach(t=>{const panel=$(t+"Tab");if(panel)panel.classList.toggle("hidden",t!==tab);});const active=$(tab+"Tab");if(active)active.classList.remove("hidden");return !!active;}
-document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(b.closest("#adminTabs")||b.closest("#workerTabs")){document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.setAttribute("aria-expanded","false");}if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","independent","sales","workers","ipvHistory"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailyBillCounts();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="vales")loadVouchers();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="inventory")loadAdminIPV();if(b.dataset.tab==="independent")loadAdminIndependentIPV();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="ipvHistory")loadAdminIPVHistory();if(b.dataset.tab==="transfers")loadAdminTransfers();if(b.dataset.tab==="onlineStore")loadOnlineStoreAdmin();}));
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(b.dataset.tab==="vales"){$("qrOrderAlert")?.classList.add("hidden");markQrNotificationsSeen();}if(b.closest("#adminTabs")||b.closest("#workerTabs")){document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.setAttribute("aria-expanded","false");}if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","independent","sales","workers","ipvHistory"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailyBillCounts();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="vales")loadVouchers();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="inventory")loadAdminIPV();if(b.dataset.tab==="independent")loadAdminIndependentIPV();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="ipvHistory")loadAdminIPVHistory();if(b.dataset.tab==="transfers")loadAdminTransfers();if(b.dataset.tab==="onlineStore")loadOnlineStoreAdmin();}));
 /* Ocultar el botón del menú bajo el encabezado al desplazar la página hacia abajo. */
 /* Detectar el desplazamiento real tanto de la página como de contenedores internos. */
 let menuToggleLastY=0;
@@ -346,51 +422,123 @@ $("shopSellBtn").addEventListener("click",async()=>{
   fail("shopMessage",e?.message||"No se pudo crear el vale.");
  }finally{btn.disabled=false;renderShopCart();}
 });
-function voucherStatusLabel(status){return status==="pending"?"Pendiente":status==="paid"?"Pagado":"Anulado";}
+let qrAlertTimer=null;
+let qrAudioContext=null;
+function unlockQrAudio(){try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;if(!qrAudioContext)qrAudioContext=new Ctx();if(qrAudioContext.state==="suspended")qrAudioContext.resume().catch(()=>{})}catch(e){console.warn("[IPV QR audio unlock]",e)}}
+document.addEventListener("pointerdown",unlockQrAudio,{passive:true});
+document.addEventListener("keydown",unlockQrAudio);
+function playQrAlertSound(){try{unlockQrAudio();const ctx=qrAudioContext;if(!ctx||ctx.state!=="running")return;[0,180].forEach((delay,i)=>{const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type="sine";osc.frequency.value=i?1040:780;gain.gain.setValueAtTime(.0001,ctx.currentTime+delay/1000);gain.gain.exponentialRampToValueAtTime(.16,ctx.currentTime+delay/1000+.025);gain.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+delay/1000+.16);osc.connect(gain);gain.connect(ctx.destination);osc.start(ctx.currentTime+delay/1000);osc.stop(ctx.currentTime+delay/1000+.18)})}catch(e){console.warn("[IPV QR sound]",e)}}
+function showQrOrderAlert(){const el=$("qrOrderAlert");if(el)el.classList.remove("hidden")}
+function updateQrPendingBadge(orders=workerQrOrders){const count=(orders||[]).filter(o=>["new","preparing","ready"].includes(o.status)).length;const badge=$("qrPendingBadge");if(badge){badge.textContent=String(count);badge.classList.toggle("hidden",count===0);badge.setAttribute("aria-label",count+" pedidos QR pendientes")}}
+async function markQrNotificationsSeen(){if(!user||admin()||profile?.ipv_mode==="independent"||!navigator.onLine)return;try{const {error}=await client.rpc("qr_worker_mark_notifications_seen");if(error)throw error;$("qrOrderAlert")?.classList.add("hidden");await pollQrNotifications()}catch(e){console.warn("[IPV QR notifications seen]",e.message)}}
+async function pollQrNotifications(){if(!user||admin()||profile?.ipv_mode==="independent"||!navigator.onLine)return;const {data,error}=await client.rpc("qr_worker_list_orders");if(error){console.warn("[IPV QR notifications]",error.message);return}const current=Array.isArray(data)?data:[];updateQrPendingBadge(current);const next=new Map(current.map(o=>[o.id,o.updated_at||o.created_at]));const changed=current.some(o=>o.notification_unseen&&(!qrKnownOrders||qrKnownOrders.get(o.id)!==(o.updated_at||o.created_at)));const hasUnseen=current.some(o=>o.notification_unseen);if(hasUnseen&&changed){playQrAlertSound();if(!$("valesTab").classList.contains("hidden")){await loadVouchers();await markQrNotificationsSeen()}else showQrOrderAlert()}qrKnownOrders=next}
+function startQrPolling(){if(window.ipvQrPollTimer)clearInterval(window.ipvQrPollTimer);qrKnownOrders=null;pollQrNotifications();window.ipvQrPollTimer=setInterval(pollQrNotifications,15000)}
+function openQrOrdersFromAlert(){ $("qrOrderAlert")?.classList.add("hidden");document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab==="vales"));showSection("vales");loadVouchers();markQrNotificationsSeen()}
+$("qrOrderAlertOpen")?.addEventListener("click",openQrOrdersFromAlert);
+function voucherStatusLabel(status){return status==="pending"?"Pendiente":status==="paid"?"Pagado":status==="new"?"Nuevo":status==="preparing"?"En preparación":status==="ready"?"Listo":status==="attended"?"Atendido":"Cancelado";}
 function voucherCode(v){return v.voucher_code||((Number(v.shift_no)===1?"T1-":"T2-")+String(v.voucher_no||0).padStart(5,"0"));}
+function qrOrderCode(v){return v.order_code||((Number(v.shift_no)===1?"T1-QR-":"T2-QR-")+String(v.order_number||0).padStart(5,"0"));}
 async function loadVouchers(){
  const host=$("voucherList");if(!host||!user||admin())return;
- if(!navigator.onLine){host.innerHTML='<p class="muted small">Conéctate a internet para consultar los vales compartidos entre turnos.</p>';return;}
- host.innerHTML='<p class="muted small">Cargando vales…</p>';
- const {data,error}=await client.rpc("worker_turn_list_vouchers");
- if(error){host.innerHTML='<p class="form-error">No se pudieron cargar los vales: '+esc(error.message)+'</p>';return;}
- workerVouchers=Array.isArray(data)?data:[];
+ if(!navigator.onLine){host.innerHTML='<p class="muted small">Conéctate a internet para consultar los vales y pedidos QR.</p>';return;}
+ host.innerHTML='<p class="muted small">Cargando vales y pedidos QR…</p>';
+ const [vouchers,qr]=await Promise.all([
+  client.rpc("worker_turn_list_vouchers"),
+  profile?.ipv_mode==="independent"?Promise.resolve({data:[],error:null}):client.rpc("qr_worker_list_orders")
+ ]);
+ if(vouchers.error){host.innerHTML='<p class="form-error">No se pudieron cargar los vales: '+esc(vouchers.error.message)+'</p>';return;}
+ workerVouchers=Array.isArray(vouchers.data)?vouchers.data:[];
+ if(qr.error){workerQrOrders=[];console.warn("[IPV QR orders]",qr.error.message);toast("Los vales están disponibles, pero no se pudieron actualizar los pedidos QR: "+qr.error.message);}
+ else workerQrOrders=Array.isArray(qr.data)?qr.data:[];
+ updateQrPendingBadge(workerQrOrders);
  renderVoucherList();
- if(selectedVoucherId){const selected=workerVouchers.find(v=>v.id===selectedVoucherId);if(selected)renderVoucherDetail(selected);else{$("voucherDetail").innerHTML='<p class="muted small">Selecciona un vale para consultar su contenido.</p>';}}
+ if(selectedQrOrderId){const selected=workerQrOrders.find(v=>v.id===selectedQrOrderId);if(selected)renderQrOrderDetail(selected);}
+ else if(selectedVoucherId){const selected=workerVouchers.find(v=>v.id===selectedVoucherId);if(selected)renderVoucherDetail(selected);else{$("voucherDetail").innerHTML='<p class="muted small">Selecciona un vale o pedido para consultar su contenido.</p>';}}
 }
 function renderVoucherList(){
  const host=$("voucherList");if(!host)return;
  const q=($("voucherSearch")?.value||"").trim().toLowerCase();
- const list=workerVouchers.filter(v=>(voucherCode(v)+" "+(v.customer_name||"")+" "+(v.created_by_name||"")).toLowerCase().includes(q));
- if(!list.length){host.innerHTML='<p class="empty">No hay vales que coincidan con la búsqueda.</p>';return;}
+ const statusFilter=$("voucherStatusFilter")?.value||"all";
+ const originFilter=$("voucherOriginFilter")?.value||"all";
+ const vouchers=workerVouchers.map(v=>({...v,_kind:"voucher",_code:voucherCode(v)}));
+ const qr=workerQrOrders.map(v=>({...v,_kind:"qr",_code:qrOrderCode(v)}));
+ let list=[...vouchers,...qr].filter(v=>{
+  const searchable=(v._code+" "+(v.customer_name||"")+" "+(v.created_by_name||"")+" "+(v.items||[]).map(i=>i.product_name||"").join(" ")).toLowerCase();
+  if(q&&!searchable.includes(q))return false;
+  if(originFilter==="qr"&&v._kind!=="qr")return false;
+  if(originFilter==="conventional"&&v._kind!=="voucher")return false;
+  if(originFilter==="inherited"&&!(v._kind==="qr"&&v.inherited))return false;
+  if(statusFilter==="pending"&&!((v._kind==="voucher"&&v.status==="pending")||(v._kind==="qr"&&["new","preparing","ready"].includes(v.status))))return false;
+  if(statusFilter==="new"&&!(v._kind==="qr"&&v.status==="new"))return false;
+  if(statusFilter==="preparing"&&!(v._kind==="qr"&&v.status==="preparing"))return false;
+  if(statusFilter==="ready"&&!(v._kind==="qr"&&v.status==="ready"))return false;
+  if(statusFilter==="attended"&&!((v._kind==="voucher"&&v.status==="paid")||(v._kind==="qr"&&v.status==="attended")))return false;
+  if(statusFilter==="cancelled"&&v.status!=="cancelled")return false;
+  if(statusFilter==="history"&&!((v._kind==="voucher"&&["paid","cancelled"].includes(v.status))||(v._kind==="qr"&&["attended","cancelled"].includes(v.status))))return false;
+  return true;
+ });
+ list.sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+ if(!list.length){host.innerHTML='<p class="empty">No hay pedidos que coincidan con la búsqueda o los filtros.</p>';return;}
  host.innerHTML=list.map(v=>{
-  const status=v.status||"pending";
-  return '<button type="button" class="voucher-card '+(status==="pending"?"is-pending":"")+'" data-voucher-open="'+esc(v.id)+'"><span class="voucher-card-top"><strong>'+esc(voucherCode(v))+'</strong><span class="voucher-status '+esc(status)+'">'+voucherStatusLabel(status)+'</span></span><strong class="voucher-customer">'+esc(v.customer_name||"Cliente")+'</strong><span class="voucher-card-meta">Creado por '+esc(v.created_by_name||"Trabajador")+' · '+new Date(v.created_at).toLocaleString("es-ES")+'</span><span class="voucher-card-bottom"><span>'+((v.items||[]).reduce((n,i)=>n+Number(i.quantity||0),0))+' unidades</span><strong>'+money(v.total)+'</strong></span></button>';
+  const status=v.status||"pending",isQr=v._kind==="qr";
+  const units=(v.items||[]).reduce((n,i)=>n+Number(i.quantity||0),0);
+  const badges=(isQr?'<span class="qr-origin-badge">QR</span>':'<span class="voucher-origin-badge">VALE</span>')+(v.inherited?'<span class="inherited-badge">HEREDADO · T'+Number(v.shift_no)+'</span>':"");
+  return '<button type="button" class="voucher-card '+(status==="pending"||["new","preparing","ready"].includes(status)?"is-pending ":"")+(isQr?"qr-card":"")+'" '+(isQr?'data-qr-open="'+esc(v.id)+'"':'data-voucher-open="'+esc(v.id)+'"')+'><span class="voucher-card-top"><strong>'+esc(v._code)+'</strong><span class="voucher-badges">'+badges+'</span><span class="voucher-status '+esc(status)+'">'+voucherStatusLabel(status)+'</span></span><strong class="voucher-customer">'+esc(v.customer_name||"Cliente")+'</strong><span class="voucher-card-meta">'+(isQr?"Recibido":"Creado por "+esc(v.created_by_name||"Trabajador"))+' · '+new Date(v.created_at).toLocaleString("es-ES")+'</span><span class="voucher-card-bottom"><span>'+units+' unidades</span><strong>'+money(v.total)+'</strong></span></button>';
  }).join("");
 }
 function renderVoucherDetail(v){
  const host=$("voucherDetail");if(!host||!v)return;
- selectedVoucherId=v.id;
+ selectedQrOrderId=null;selectedVoucherId=v.id;$("voucherDialogTitle").textContent="Detalle del vale";
  const items=(v.items||[]).map(i=>'<div class="voucher-item"><span>'+esc(i.product_name)+' × '+Number(i.quantity)+'</span><strong>'+money(i.line_total??Number(i.unit_price)*Number(i.quantity))+'</strong></div>').join("");
- const status=v.status||"pending";
- let action="";
+ const status=v.status||"pending";let action="";
  if(status==="pending"){
   action='<div class="voucher-pay-form"><h3>Registrar pago</h3><label>Forma de pago<select id="voucherPaymentMethod"><option value="cash">CUP</option><option value="transfer">Transferencia</option></select></label><div id="voucherTransferFields" class="voucher-transfer-fields hidden"><label>Código de transferencia<input id="voucherTransferCode" maxlength="100" autocomplete="off" placeholder="Código del pago" required></label><label>Nombre de quien realiza la transferencia<input id="voucherPayerFirstName" maxlength="60" autocomplete="given-name" placeholder="Nombre" required></label><label>Primer apellido<input id="voucherPayerSurname" maxlength="60" autocomplete="family-name" placeholder="Primer apellido" required></label><label>Número de teléfono<input id="voucherPayerPhone" type="tel" inputmode="tel" maxlength="24" autocomplete="tel" placeholder="Teléfono de quien transfiere" required></label></div><div class="voucher-actions"><button type="button" class="primary" data-voucher-pay="'+esc(v.id)+'">Confirmar pago</button><button type="button" class="secondary danger" data-voucher-cancel="'+esc(v.id)+'">Anular vale</button></div><p id="voucherActionStatus" class="voucher-action-status" role="status" aria-live="polite"></p></div>';
- }else if(status==="paid"){
-  const payer=[v.transfer_payer_first_name,v.transfer_payer_surname].filter(Boolean).join(" ");
-  action='<div class="voucher-payment-result"><strong>Pago confirmado</strong><p>Recibido por: '+esc(v.paid_by_name||"Trabajador")+' · '+(v.paid_at?new Date(v.paid_at).toLocaleString("es-ES"):"")+'</p><p>Forma de pago: '+(v.payment_method==="transfer"?"Transferencia":"CUP")+'</p>'+(v.payment_method==="transfer"?'<p>Código: '+esc(v.transfer_code||"—")+'</p><p>Transfiere: '+esc(payer||"—")+' · '+esc(v.transfer_payer_phone||"—")+'</p>':"")+'</div>';
- }else{
-  action='<div class="voucher-payment-result is-cancelled"><strong>Vale anulado</strong><p>'+esc(v.cancel_reason||"Sin motivo indicado")+'</p></div>';
- }
+ }else if(status==="paid"){const payer=[v.transfer_payer_first_name,v.transfer_payer_surname].filter(Boolean).join(" ");action='<div class="voucher-payment-result"><strong>Pago confirmado</strong><p>Recibido por: '+esc(v.paid_by_name||"Trabajador")+' · '+(v.paid_at?new Date(v.paid_at).toLocaleString("es-ES"):"")+'</p><p>Forma de pago: '+(v.payment_method==="transfer"?"Transferencia":"CUP")+'</p>'+(v.payment_method==="transfer"?'<p>Código: '+esc(v.transfer_code||"—")+'</p><p>Transfiere: '+esc(payer||"—")+' · '+esc(v.transfer_payer_phone||"—")+'</p>':"")+'</div>';}
+ else action='<div class="voucher-payment-result is-cancelled"><strong>Vale anulado</strong><p>'+esc(v.cancel_reason||"Sin motivo indicado")+'</p></div>';
  host.innerHTML='<article class="voucher-detail-card"><div class="voucher-detail-head"><div><p class="eyebrow">DETALLE DEL VALE</p><h2>'+esc(voucherCode(v))+'</h2><p>'+esc(v.customer_name||"Cliente")+'</p></div><span class="voucher-status '+esc(status)+'">'+voucherStatusLabel(status)+'</span></div><p class="voucher-detail-meta">Turno '+Number(v.shift_no)+' · Creado por '+esc(v.created_by_name||"Trabajador")+' · '+new Date(v.created_at).toLocaleString("es-ES")+'</p><div class="voucher-items">'+items+'</div><div class="voucher-total"><span>Total del pedido</span><strong>'+money(v.total)+'</strong></div>'+action+'</article>';
+}
+function renderQrOrderDetail(v){
+ const host=$("voucherDetail");if(!host||!v)return;selectedQrOrderId=v.id;selectedVoucherId=null;$("voucherDialogTitle").textContent="Pedido QR";
+ const status=v.status,items=(v.items||[]).map(i=>'<div class="voucher-item"><span>'+esc(i.product_name)+' × '+Number(i.quantity)+'</span><strong>'+money(i.line_total)+'</strong></div>').join("");
+ let action="";
+ if(status==="new")action='<div class="qr-worker-actions"><button type="button" class="primary" data-qr-start="'+esc(v.id)+'">Comenzar preparación</button><button type="button" class="secondary danger" data-qr-cancel="'+esc(v.id)+'">Cancelar pedido</button></div>';
+ else if(status==="preparing")action='<div class="qr-worker-actions"><button type="button" class="primary" data-qr-ready="'+esc(v.id)+'">Marcar como listo</button><button type="button" class="secondary danger" data-qr-cancel="'+esc(v.id)+'">Cancelar pedido</button></div>';
+ else if(status==="ready")action='<div class="voucher-pay-form"><h3>Confirmar pago y entrega</h3><label>Forma de pago<select id="qrPaymentMethod"><option value="cash">CUP</option><option value="transfer">Transferencia</option></select></label><label id="qrTransferWrap" class="hidden">Código de operación<input id="qrTransferCode" maxlength="100" placeholder="Código de la transferencia"></label><div class="qr-worker-actions"><button type="button" class="primary" data-qr-pay="'+esc(v.id)+'">Confirmar pago y marcar atendido</button><button type="button" class="secondary danger" data-qr-cancel="'+esc(v.id)+'">Cancelar pedido</button></div><p class="muted small">Al confirmar el pago, la venta se registra y el pedido pasa automáticamente a Atendido.</p></div>';
+ else if(status==="attended")action='<div class="voucher-payment-result"><strong>Pedido atendido</strong><p>Finalizado por: '+esc(v.paid_by_name||"Trabajador")+' · Turno '+Number(v.paid_shift_no||0)+'</p><p>Pago: '+(v.payment_method==="transfer"?"Transferencia":"CUP")+'</p>'+(v.payment_method==="transfer"?'<p>Código: '+esc(v.transfer_code||"—")+'</p>':"")+'</div>';
+ else action='<div class="voucher-payment-result is-cancelled"><strong>Pedido cancelado</strong></div>';
+ const shareLink=v.tracking_token&&(!v.tracking_expires_at||new Date(v.tracking_expires_at)>new Date())?'<button type="button" class="secondary full" data-qr-share="'+esc(v.id)+'">Compartir seguimiento por WhatsApp</button>':"";
+ host.innerHTML='<article class="voucher-detail-card qr-detail-card"><div class="voucher-detail-head"><div><p class="eyebrow">PEDIDO POR QR</p><h2>'+esc(qrOrderCode(v))+'</h2><p>'+esc(v.customer_name||"Cliente")+'</p></div><span class="voucher-status '+esc(status)+'">'+voucherStatusLabel(status)+'</span></div><p class="voucher-detail-meta">Turno de origen: '+Number(v.shift_no)+(v.inherited?' · HEREDADO':'')+' · '+new Date(v.created_at).toLocaleString("es-ES")+'</p>'+(v.observations?'<p class="qr-observations"><strong>Observaciones:</strong> '+esc(v.observations)+'</p>':"")+'<div class="voucher-items">'+items+'</div><div class="voucher-total"><span>Total del pedido</span><strong>'+money(v.total)+'</strong></div>'+action+'</article>';
 }
 $("voucherSearch")?.addEventListener("input",renderVoucherList);
 $("refreshVouchers")?.addEventListener("click",loadVouchers);
 $("voucherList")?.addEventListener("click",e=>{
- const card=e.target.closest("[data-voucher-open]");if(!card)return;
- const v=workerVouchers.find(x=>x.id===card.dataset.voucherOpen);
- if(v){renderVoucherDetail(v);const dialog=$("voucherDialog");if(dialog&&!dialog.open)dialog.showModal();}
+ const qrCard=e.target.closest("[data-qr-open]"),card=e.target.closest("[data-voucher-open]");if(!qrCard&&!card)return;
+ if(qrCard){const v=workerQrOrders.find(x=>x.id===qrCard.dataset.qrOpen);if(v){renderQrOrderDetail(v);const dialog=$("voucherDialog");if(dialog&&!dialog.open)dialog.showModal();}}
+ else{const v=workerVouchers.find(x=>x.id===card.dataset.voucherOpen);if(v){renderVoucherDetail(v);const dialog=$("voucherDialog");if(dialog&&!dialog.open)dialog.showModal();}}
 });
+$("voucherDetail")?.addEventListener("change",e=>{if(e.target.id==="qrPaymentMethod")$("qrTransferWrap")?.classList.toggle("hidden",e.target.value!=="transfer")});
+$("voucherDetail")?.addEventListener("click",async e=>{
+ const share=e.target.closest("[data-qr-share]");if(share){const order=workerQrOrders.find(x=>x.id===share.dataset.qrShare);if(order?.tracking_token){const url=new URL(location.href);url.search="";url.searchParams.set("seguimiento",order.tracking_token);const message="Seguimiento de tu pedido "+qrOrderCode(order)+": "+url.toString();window.open("https://wa.me/?text="+encodeURIComponent(message),"_blank","noopener")}return}
+ const start=e.target.closest("[data-qr-start]"),ready=e.target.closest("[data-qr-ready]"),pay=e.target.closest("[data-qr-pay]"),cancel=e.target.closest("[data-qr-cancel]");
+ if(!start&&!ready&&!pay&&!cancel)return;if(voucherActionInProgress)return;if(!navigator.onLine){toast("Necesitas conexión para actualizar un pedido QR.");return}
+ const btn=start||ready||pay||cancel,orderId=btn.dataset.qrStart||btn.dataset.qrReady||btn.dataset.qrPay||btn.dataset.qrCancel;
+ const buttons=Array.from($("voucherDetail").querySelectorAll("[data-qr-start],[data-qr-ready],[data-qr-pay],[data-qr-cancel]"));
+ if(pay&&$("qrPaymentMethod").value==="transfer"&&!$("qrTransferCode").value.trim()){toast("Introduce el código de operación.");return}
+ let reason="";if(cancel){const r=prompt("Motivo de cancelación (opcional):");if(r===null)return;reason=r.trim()}
+ voucherActionInProgress=true;buttons.forEach(b=>b.disabled=true);const old=btn.textContent;btn.textContent="Procesando…";
+ try{
+  let result;
+  if(pay)result=await client.rpc("qr_worker_pay_order",{p_order_id:orderId,p_payment_method:$("qrPaymentMethod").value,p_transfer_code:$("qrPaymentMethod").value==="transfer"?$("qrTransferCode").value.trim():null});
+  else result=await client.rpc("qr_worker_set_status",{p_order_id:orderId,p_status:start?"preparing":ready?"ready":"cancelled",p_reason:reason||null});
+  if(result.error)throw result.error;
+  toast(pay?"Pago confirmado. Pedido atendido y venta registrada.":cancel?"Pedido cancelado y reserva liberada.":ready?"Pedido marcado como listo.":"Preparación iniciada.");
+  selectedQrOrderId=orderId;await loadVouchers();const updated=workerQrOrders.find(x=>x.id===orderId);if(updated)renderQrOrderDetail(updated);else $("voucherDialog").close();
+  if(pay||cancel)Promise.allSettled([loadProducts(),loadWorkerAllocations()]);
+ }catch(err){toast(err.message||"No se pudo actualizar el pedido QR.");buttons.forEach(b=>b.disabled=false);btn.textContent=old}
+ finally{voucherActionInProgress=false}
+});
+$("voucherStatusFilter")?.addEventListener("change",renderVoucherList);
+$("voucherOriginFilter")?.addEventListener("change",renderVoucherList);
 $("closeVoucherDialog")?.addEventListener("click",()=>$("voucherDialog")?.close());
 $("voucherDialog")?.addEventListener("click",e=>{if(e.target===$("voucherDialog"))$("voucherDialog").close();});
 $("voucherDetail")?.addEventListener("change",e=>{
@@ -818,7 +966,7 @@ function renderAdminSales(){
  $("salesBody").innerHTML=rows.map(s=>{
   const items=(s.sale_items||[]).map(i=>esc(i.product_name||i.products?.name||"Producto")+" × "+(Number(i.quantity)||0)).join("<br>")||"—";
   const transferDetails=s.payment_method==="transfer"?[s.transfer_code,[s.transfer_payer_first_name,s.transfer_payer_surname].filter(Boolean).join(" "),s.transfer_payer_phone].filter(Boolean).join(" · "):(s.voucher_code||"—");
-  return '<tr><td>'+new Date(s.created_at).toLocaleString("es-ES")+'</td><td>'+esc(s.profiles?.full_name||"Trabajador")+'</td><td>'+items+'</td><td>'+money(s.total)+'</td><td>'+esc(({cash:"CUP",card:"Tarjeta",transfer:"Transferencia"})[s.payment_method]||s.payment_method||"—")+'</td><td>'+esc(transferDetails)+'</td><td>'+esc(s.status||"—")+(s.cancel_reason?'<small>'+esc(s.cancel_reason)+'</small>':"")+'</td><td>'+(s.status==="completed"?'<button class="mini-btn danger" data-cancel-sale="'+s.id+'">Cancelar</button>':"—")+'</td></tr>';
+  const originLabel=({qr:"Pedido por QR",voucher:"Vale convencional",worker:"Tienda del trabajador",online_store:"Tienda en línea",independent:"IPV Independiente"})[s.origin]||s.origin||"Tienda del trabajador";return '<tr><td>'+new Date(s.created_at).toLocaleString("es-ES")+'</td><td>'+esc(s.profiles?.full_name||"Trabajador")+'</td><td>'+esc(originLabel)+'</td><td>'+items+'</td><td>'+money(s.total)+'</td><td>'+esc(({cash:"CUP",card:"Tarjeta",transfer:"Transferencia"})[s.payment_method]||s.payment_method||"—")+'</td><td>'+esc(transferDetails)+'</td><td>'+esc(s.status||"—")+(s.cancel_reason?'<small>'+esc(s.cancel_reason)+'</small>':"")+'</td><td>'+(s.status==="completed"?'<button class="mini-btn danger" data-cancel-sale="'+s.id+'">Cancelar</button>':"—")+'</td></tr>';
  }).join("");
  $("salesEmpty").classList.toggle("hidden",rows.length>0);
 }

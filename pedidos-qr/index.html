@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0755a4">
+<meta name="description" content="Explora el catálogo de El Toque y realiza tu pedido por QR.">
+<title>El Toque · Catálogo</title>
+<link rel="icon" href="../icons/logo-transparent.svg">
+<link rel="stylesheet" href="./catalog.css?v=4">
+</head>
+<body>
+<header class="brand-header">
+  <a class="brand" href="./" aria-label="El Toque, inicio">
+    <img src="../icons/logo-transparent.svg" alt="">
+    <span>el toque</span>
+  </a>
+  <span class="brand-caption">CATÁLOGO DIGITAL</span>
+</header>
+<main id="page" class="page">
+  <div id="offlineCatalogNotice" class="offline-catalog-notice hidden" role="status"></div><section class="welcome">
+    <p class="eyebrow">BIENVENIDO A EL TOQUE</p>
+    <h1>¡Bienvenido!</h1>
+    <p id="welcomeMessage">Explora nuestro catálogo y realiza tu pedido</p>
+  </section>
+  <div id="promoBanner" class="promo-banner hidden">
+    <span id="promoIcon" aria-hidden="true">✦</span>
+    <div><strong id="promoText"></strong></div>
+    <a id="promoLink" class="promo-link hidden" href="#offers">Ver ofertas</a>
+  </div>
+  <div id="offlineNotice" class="notice hidden" role="status"></div>
+  <div id="catalogUnavailable" class="unavailable hidden">
+    <span class="unavailable-mark">!</span><h2>Pedidos temporalmente no disponibles</h2>
+    <p>En este momento no podemos recibir pedidos. Inténtalo nuevamente más tarde.</p>
+  </div>
+  <section id="offersSection" class="catalog-section hidden">
+    <div class="section-heading"><div><p class="eyebrow">PROMOCIONES</p><h2>Ofertas</h2></div><a href="#catalog">Ver catálogo</a></div>
+    <div id="offersCarousel" class="offers-carousel" aria-label="Ofertas"></div>
+  </section>
+  <section id="featuredSection" class="catalog-section hidden">
+    <div id="featuredCover" class="featured-cover hidden"></div>
+    <div class="section-heading"><div><p class="eyebrow">SELECCIÓN EL TOQUE</p><h2>Productos destacados</h2></div></div>
+    <div id="featuredGrid" class="product-grid"></div>
+  </section>
+  <section id="catalog" class="catalog-section">
+    <div class="section-heading"><div><p class="eyebrow">PARA TI</p><h2>Nuestro catálogo</h2><p class="muted">Precios en CUP</p></div></div>
+    <label class="search"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Buscar productos…" autocomplete="off"></label>
+    <div id="categoryFilters" class="category-filters"></div>
+    <div class="catalog-tools">
+      <label class="offer-filter"><input id="onlyOffers" type="checkbox"> Solo ofertas</label>
+      <label class="sort-control">Ordenar
+        <select id="sortSelect"><option value="default">Predeterminado</option><option value="asc">Menor precio</option><option value="desc">Mayor precio</option></select>
+      </label>
+    </div>
+    <div id="productGrid" class="product-grid"></div>
+    <p id="emptyCatalog" class="empty hidden">No encontramos productos con esos criterios.</p>
+  </section>
+</main>
+<div id="cartBar" class="cart-bar hidden"><div><span id="cartCount">0 productos</span><strong id="cartTotal">0,00 CUP</strong></div><button id="viewOrderBtn" type="button">Ver pedido <span>→</span></button></div>
+<section id="orderScreen" class="order-screen hidden" aria-labelledby="orderTitle">
+  <div class="order-top"><button id="backCatalogBtn" class="back-button" type="button">← Volver al catálogo</button><span class="order-tag">PEDIDO QR</span></div>
+  <h1 id="orderTitle">Tu pedido</h1>
+  <p class="muted">Revisa los productos antes de enviarlo.</p>
+  <div id="cartLines" class="cart-lines"></div>
+  <div class="order-total-row"><span>Total</span><strong id="orderTotal">0,00 CUP</strong></div>
+  <form id="orderForm" class="order-form">
+    <label>Tu nombre <input id="customerName" maxlength="120" required placeholder="Escribe tu nombre" autocomplete="name"></label>
+    <label>Observaciones <textarea id="customerNotes" maxlength="500" rows="3" placeholder="Indicaciones adicionales (opcional)"></textarea></label>
+    <button id="submitOrderBtn" class="submit-button" type="submit">Enviar pedido</button>
+    <p id="orderMessage" class="form-message" role="status"></p>
+  </form>
+</section>
+<section id="confirmationScreen" class="confirmation-screen hidden">
+  <div class="confirmation-icon">✓</div><p class="eyebrow">PEDIDO RECIBIDO</p><h1>¡Gracias por tu pedido!</h1>
+  <p id="confirmationText">Tu pedido fue recibido correctamente.</p>
+  <div class="confirmation-actions"><a id="trackOrderLink" class="submit-button" href="#">Seguir mi pedido</a><button id="shareWhatsappBtn" class="whatsapp-button" type="button">Compartir por WhatsApp</button><button id="newOrderBtn" class="text-button" type="button">Hacer otro pedido</button></div>
+</section>
+<section id="trackingScreen" class="tracking-screen hidden">
+  <button id="backFromTrackingBtn" class="back-button" type="button">← Volver al catálogo</button>
+  <p class="eyebrow">SEGUIMIENTO PRIVADO</p><h1>Estado de tu pedido</h1><div id="trackingContent"></div>
+</section>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../config.js"></script>
+<script src="./catalog.js?v=5"></script>
+</body>
+</html>
