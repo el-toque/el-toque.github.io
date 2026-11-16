@@ -121,12 +121,47 @@ $("turnPendingRequests")?.addEventListener("click",async e=>{
  }catch(error){button.disabled=false;status("No se pudo aprobar la entrada: "+(error.message||"Error inesperado"));}
 });
 
+function buildCloseoutWhatsAppMessage(savedRows,number,date,billCounts,data){
+ const total=(savedRows||[]).reduce((n,r)=>n+Number(r.amount||0),0);
+ const billTotal=denominations.reduce((n,v)=>n+v*(Number(billCounts[v])||0),0);
+ const lines=[
+  "IPV DIGITAL · CIERRE DE TURNO",
+  "Trabajador: "+(session.user.user_metadata?.full_name||session.user.email),
+  "Turno: "+shiftLabel(),
+  "Documento: N°"+String(number).padStart(2,"0"),
+  "Fecha: "+date,
+  "",
+  "DETALLE DEL IPV",
+  "Producto | Inicio | Entrada | Vendido | Final | Importe"
+ ];
+ (savedRows||[]).forEach(r=>lines.push([r.product,r.start,r.entry,r.sold,r.final,money(r.amount)].join(" | ")));
+ lines.push("TOTAL DEL IPV: "+money(total),"","CONTEO DE BILLETES");
+ denominations.filter(v=>Number(billCounts[v])>0).forEach(v=>lines.push(v+" CUP: "+Number(billCounts[v])+" = "+money(v*Number(billCounts[v]))));
+ lines.push("TOTAL EFECTIVO CONTADO: "+money(billTotal));
+ return lines.join("\n");
+}
+async function sendCloseoutWhatsApp(message,preopenedWindow){
+ try{
+  const {data,error}=await db.rpc("store_public_config");
+  if(error)throw error;
+  const phone=String(data?.[0]?.whatsapp_number||"").replace(/\\D/g,"");
+  if(!phone){if(preopenedWindow)preopenedWindow.close();return {sent:false,reason:"El administrador no tiene un número de WhatsApp configurado para la tienda."};}
+  const url="https://wa.me/"+phone+"?text="+encodeURIComponent(message);
+  if(preopenedWindow)preopenedWindow.location.href=url;
+  else window.open(url,"_blank");
+  return {sent:true};
+ }catch(error){
+  if(preopenedWindow)preopenedWindow.close();
+  console.warn("[IPV WhatsApp cierre]",error);
+  return {sent:false,reason:"El cierre quedó guardado, pero no se pudo preparar WhatsApp: "+(error.message||"Error inesperado")};
+ }
+}
 async function history(){
  const result=independentMode?await db.from("worker_independent_closures").select("id,session_no,business_date,total,created_at").eq("worker_id",session.user.id).order("session_no",{ascending:false}).limit(12):await db.from("worker_turn_closures").select("closure_no,shift_no,business_date,total,created_at").eq("worker_id",session.user.id).order("closure_no",{ascending:false}).limit(12);
  const {data,error}=result;if(error){$("turnHistory").innerHTML="<p>No se pudo cargar el historial.</p>";return;}
  $("turnHistory").innerHTML=(data||[]).map(x=>"<div class=\"turn-history-row\"><strong>N°"+String(independentMode?x.session_no:x.closure_no).padStart(2,"0")+" · "+(independentMode?"IPV Independiente":"Turno "+x.shift_no)+"</strong><span>"+esc(x.business_date)+" · "+money(x.total)+"</span></div>").join("")||"<p class=\"muted small\">Todavía no hay turnos cerrados.</p>";
 }
-async function exportData(savedRows,number,shiftNo,date,format="both",archive=false){
+async function exportData(savedRows,number,shiftNo,date,format="both",archive=false,download=true){
  const billCounts={};document.querySelectorAll("#dailyBillsBody [data-bill-denomination]").forEach(el=>billCounts[el.dataset.billDenomination]=Number(el.value)||0);
  const bills=denominations.filter(v=>billCounts[v]>0).map(v=>({"Denominación":v+" CUP","Cantidad de billetes":billCounts[v],"Importe":v*billCounts[v]}));
  const billTotal=denominations.reduce((n,v)=>n+v*(billCounts[v]||0),0);
