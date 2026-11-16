@@ -148,7 +148,7 @@ async function sendCloseoutWhatsApp(message,preopenedWindow){
   if(!phone){if(preopenedWindow)preopenedWindow.close();return {sent:false,reason:"El administrador no tiene un número de WhatsApp configurado para la tienda."};}
   const url="https://wa.me/"+phone+"?text="+encodeURIComponent(message);
   if(preopenedWindow)preopenedWindow.location.href=url;
-  else window.open(url,"_blank");
+  else window.location.href=url;
   return {sent:true};
  }catch(error){
   if(preopenedWindow)preopenedWindow.close();
@@ -287,9 +287,9 @@ $("turnRows")?.addEventListener("input",e=>{
 $("closeTurnBtn")?.addEventListener("click",async()=>{
  if(!physicalCountConfirmed){status("No puedes cerrar el IPV ni entregar el inventario: primero realiza y confirma el conteo físico de todos los productos sin diferencias.");return;}
  if(working||!navigator.onLine){status("Necesitas conexión para cerrar el turno.");return;}if(!canCloseTurn){status("Tu cuenta no tiene permiso para cerrar la jornada. Solicítalo al administrador.");return;}
- if(typeof window.getIPVPendingSalesCount==="function"){const pending=await window.getIPVPendingSalesCount();if(pending===null){status("No se pudo comprobar la cola de ventas pendientes. Sincroniza y vuelve a intentarlo.");return;}if(pending>0){status("Tienes "+pending+" venta(s) pendiente(s) de sincronizar. Sincronízalas antes de cerrar el IPV.");return;}}
- if(!confirm("¿Confirmas el cierre del "+shiftLabel()+"? El cierre quedará guardado y sus existencias finales pasarán al siguiente turno."))return;
  const whatsappWindow=!independentMode?window.open("about:blank","_blank"):null;
+ if(typeof window.getIPVPendingSalesCount==="function"){const pending=await window.getIPVPendingSalesCount();if(pending===null){if(whatsappWindow)whatsappWindow.close();status("No se pudo comprobar la cola de ventas pendientes. Sincroniza y vuelve a intentarlo.");return;}if(pending>0){if(whatsappWindow)whatsappWindow.close();status("Tienes "+pending+" venta(s) pendiente(s) de sincronizar. Sincronízalas antes de cerrar el IPV.");return;}}
+ if(!confirm("¿Confirmas el cierre del "+shiftLabel()+"? El cierre quedará guardado y sus existencias finales pasarán al siguiente turno.")){if(whatsappWindow)whatsappWindow.close();return;}
  working=true;$("closeTurnBtn").disabled=true;status("Guardando cierre en el servidor…");
  try{
   const payload=rows.filter(r=>r.product.trim()!=="").map(r=>({product:r.product.trim(),start:Number(r.start)||0,entry:Number(r.entry)||0,sold:Number(r.sold)||0,price:Number(r.price)||0}));
