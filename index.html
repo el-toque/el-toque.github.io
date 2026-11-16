@@ -43,6 +43,23 @@
     <p class="muted small ipv-table-instructions">Añade la cantidad en la última columna de un producto existente o completa la fila nueva al final. Cada envío quedará pendiente hasta que el trabajador activo lo apruebe.</p>
     <div class="table-wrap ipv-live-table-wrap"><table class="turn-table ipv-live-table"><thead><tr><th>Producto</th><th>Inicio</th><th>Entrada</th><th>Disponible</th><th>Final</th><th>Vendido</th><th>Precio</th><th>Importe</th></tr></thead><tbody id="adminIPVRows"><tr><td colspan="8" class="muted">Cargando tabla IPV…</td></tr></tbody><tfoot><tr><th colspan="7">TOTAL GENERAL</th><th id="adminIPVTotal">0,00 CUP</th></tr></tfoot></table></div>
     <div class="ipv-live-meta"><span id="adminIPVRowCount">0 productos</span><span id="adminIPVLastUpdate">Esperando datos del turno</span></div>
+    <section class="qr-admin-settings" aria-labelledby="qrAdminTitle">
+      <div class="toolbar"><div><p class="eyebrow">CATÁLOGO PÚBLICO</p><h3 id="qrAdminTitle">Configuración de pedidos por QR</h3><p class="muted small">Controla la presentación del catálogo que abre el cliente al escanear el código. Los pedidos se gestionan únicamente desde Vale del trabajador.</p></div><button id="refreshQrAdmin" class="secondary" type="button">↻ Actualizar</button></div>
+      <div class="qr-admin-general">
+        <label class="qr-admin-toggle"><input id="qrCatalogEnabled" type="checkbox"> Activar pedidos por QR</label>
+        <label class="qr-admin-toggle"><input id="qrPromoEnabled" type="checkbox"> Mostrar mensaje promocional</label>
+        <label class="qr-admin-toggle"><input id="qrPromoLinkEnabled" type="checkbox"> Mostrar enlace «Ver ofertas»</label>
+        <label class="qr-admin-toggle"><input id="qrOffersEnabled" type="checkbox"> Activar sección Ofertas</label>
+        <label class="qr-admin-toggle"><input id="qrFeaturedEnabled" type="checkbox"> Activar Productos destacados</label>
+        <label class="qr-admin-message">Mensaje promocional<textarea id="qrPromoMessage" maxlength="240" rows="2" placeholder="Escribe el mensaje que verán los clientes"></textarea></label>
+        <label class="qr-admin-message">Imagen de portada para destacados<input id="qrFeaturedCoverUrl" type="url" placeholder="URL pública de la imagen (opcional)"><input id="qrFeaturedCoverFile" type="file" accept="image/*"></label>
+        <img id="qrFeaturedCoverPreview" class="qr-featured-preview hidden" alt="Vista previa de portada de destacados">
+      </div>
+      <div class="qr-admin-product-head"><h4>Productos del catálogo</h4><p class="muted small">Selecciona destacados, su orden y el precio promocional. Deja el precio promocional vacío para mantener el precio normal.</p></div>
+      <div id="qrAdminProductSettings" class="qr-admin-product-list"><p class="muted small">Cargando configuración QR…</p></div>
+      <div class="dialog-actions"><button id="saveQrCatalogSettings" class="primary" type="button">Guardar configuración QR</button></div>
+      <p id="qrAdminMessage" class="muted small" role="status" aria-live="polite"></p>
+    </section>
   </section>
   <section id="independentTab" class="panel hidden">
  <div class="toolbar"><div><p class="eyebrow">INVENTARIO AUTÓNOMO</p><h2>IPV Independiente</h2><p id="adminIndependentMeta" class="muted small">Buscando el perfil independiente…</p></div><button id="refreshIndependentIPV" class="secondary" type="button">↻ Actualizar</button></div>
