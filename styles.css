@@ -1403,3 +1403,6 @@ body.login-screen .auth-panel:before{
 @media(max-width:720px){.qr-admin-general{grid-template-columns:1fr}.qr-admin-product-row{grid-template-columns:1fr 1fr}.qr-admin-product-name{grid-column:1/-1}.qr-admin-product-row .qr-admin-toggle{grid-column:1/-1}}
 
 .qr-admin-toolbar-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.qr-admin-toolbar-actions a{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;padding:9px 12px;border:1px solid var(--ei-line,#34373c);border-radius:9px;color:var(--ei-text,#f5f5f5)}
+
+/* Ajustes de legibilidad táctil para pedidos QR en pantallas estrechas. */
+@media(max-width:420px){#valesTab .voucher-card-top{align-items:flex-start;justify-content:flex-start;flex-wrap:wrap}#valesTab .voucher-card-top>.voucher-status{margin-left:auto}#valesTab .qr-worker-actions{grid-template-columns:1fr}}
