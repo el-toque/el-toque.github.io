@@ -4,7 +4,7 @@ const cfg=window.IPV_CONFIG||{};
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat("es-ES",{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n)||0)+" CUP";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-let client=null,initPromise=null,user=null,profile=null,loginInProgress=false,products=[],cart=[],categories=[],shopCategory="all",workerAllocations=[],workerVouchers=[],selectedVoucherId=null;let voucherActionInProgress=false;let adminIPVTarget=null;let adminIPVImages=new Map();
+let client=null,initPromise=null,user=null,profile=null,loginInProgress=false,products=[],cart=[],categories=[],shopCategory="all",workerAllocations=[],workerVouchers=[],workerQrOrders=[],selectedVoucherId=null,selectedQrOrderId=null;let qrKnownOrders=null;let voucherActionInProgress=false;let adminIPVTarget=null;let adminIPVImages=new Map();
 const ipvProductKey=name=>String(name??"").trim().toLowerCase();
 // Almacenamiento local duradero para sesión de trabajador, catálogo y ventas pendientes.
 const OFFLINE_DB="ipv_digital_offline_v1";
@@ -346,51 +346,104 @@ $("shopSellBtn").addEventListener("click",async()=>{
   fail("shopMessage",e?.message||"No se pudo crear el vale.");
  }finally{btn.disabled=false;renderShopCart();}
 });
-function voucherStatusLabel(status){return status==="pending"?"Pendiente":status==="paid"?"Pagado":"Anulado";}
+function voucherStatusLabel(status){return status==="pending"?"Pendiente":status==="paid"?"Pagado":status==="new"?"Nuevo":status==="preparing"?"En preparación":status==="ready"?"Listo":status==="attended"?"Atendido":"Cancelado";}
 function voucherCode(v){return v.voucher_code||((Number(v.shift_no)===1?"T1-":"T2-")+String(v.voucher_no||0).padStart(5,"0"));}
+function qrOrderCode(v){return v.order_code||((Number(v.shift_no)===1?"T1-QR-":"T2-QR-")+String(v.order_number||0).padStart(5,"0"));}
 async function loadVouchers(){
  const host=$("voucherList");if(!host||!user||admin())return;
- if(!navigator.onLine){host.innerHTML='<p class="muted small">Conéctate a internet para consultar los vales compartidos entre turnos.</p>';return;}
- host.innerHTML='<p class="muted small">Cargando vales…</p>';
- const {data,error}=await client.rpc("worker_turn_list_vouchers");
- if(error){host.innerHTML='<p class="form-error">No se pudieron cargar los vales: '+esc(error.message)+'</p>';return;}
- workerVouchers=Array.isArray(data)?data:[];
+ if(!navigator.onLine){host.innerHTML='<p class="muted small">Conéctate a internet para consultar los vales y pedidos QR.</p>';return;}
+ host.innerHTML='<p class="muted small">Cargando vales y pedidos QR…</p>';
+ const [vouchers,qr]=await Promise.all([
+  client.rpc("worker_turn_list_vouchers"),
+  client.rpc("qr_worker_list_orders")
+ ]);
+ if(vouchers.error){host.innerHTML='<p class="form-error">No se pudieron cargar los vales: '+esc(vouchers.error.message)+'</p>';return;}
+ workerVouchers=Array.isArray(vouchers.data)?vouchers.data:[];
+ if(qr.error){workerQrOrders=[];console.warn("[IPV QR orders]",qr.error.message);toast("Los vales están disponibles, pero no se pudieron actualizar los pedidos QR: "+qr.error.message);}
+ else workerQrOrders=Array.isArray(qr.data)?qr.data:[];
  renderVoucherList();
- if(selectedVoucherId){const selected=workerVouchers.find(v=>v.id===selectedVoucherId);if(selected)renderVoucherDetail(selected);else{$("voucherDetail").innerHTML='<p class="muted small">Selecciona un vale para consultar su contenido.</p>';}}
+ if(selectedQrOrderId){const selected=workerQrOrders.find(v=>v.id===selectedQrOrderId);if(selected)renderQrOrderDetail(selected);}
+ else if(selectedVoucherId){const selected=workerVouchers.find(v=>v.id===selectedVoucherId);if(selected)renderVoucherDetail(selected);else{$("voucherDetail").innerHTML='<p class="muted small">Selecciona un vale o pedido para consultar su contenido.</p>';}}
 }
 function renderVoucherList(){
  const host=$("voucherList");if(!host)return;
  const q=($("voucherSearch")?.value||"").trim().toLowerCase();
- const list=workerVouchers.filter(v=>(voucherCode(v)+" "+(v.customer_name||"")+" "+(v.created_by_name||"")).toLowerCase().includes(q));
- if(!list.length){host.innerHTML='<p class="empty">No hay vales que coincidan con la búsqueda.</p>';return;}
+ const statusFilter=$("voucherStatusFilter")?.value||"all";
+ const originFilter=$("voucherOriginFilter")?.value||"all";
+ const vouchers=workerVouchers.map(v=>({...v,_kind:"voucher",_code:voucherCode(v)}));
+ const qr=workerQrOrders.map(v=>({...v,_kind:"qr",_code:qrOrderCode(v)}));
+ let list=[...vouchers,...qr].filter(v=>{
+  const searchable=(v._code+" "+(v.customer_name||"")+" "+(v.created_by_name||"")+" "+(v.items||[]).map(i=>i.product_name||"").join(" ")).toLowerCase();
+  if(q&&!searchable.includes(q))return false;
+  if(originFilter==="qr"&&v._kind!=="qr")return false;
+  if(originFilter==="conventional"&&v._kind!=="voucher")return false;
+  if(originFilter==="inherited"&&!(v._kind==="qr"&&v.inherited))return false;
+  if(statusFilter==="pending"&&!((v._kind==="voucher"&&v.status==="pending")||(v._kind==="qr"&&["new","preparing","ready"].includes(v.status))))return false;
+  if(["new","preparing","ready","attended","cancelled"].includes(statusFilter)&&v.status!==statusFilter)return false;
+  if(statusFilter==="attended"&&!((v._kind==="voucher"&&v.status==="paid")||(v._kind==="qr"&&v.status==="attended")))return false;
+  if(statusFilter==="cancelled"&&v.status!=="cancelled")return false;
+  return true;
+ });
+ list.sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+ if(!list.length){host.innerHTML='<p class="empty">No hay pedidos que coincidan con la búsqueda o los filtros.</p>';return;}
  host.innerHTML=list.map(v=>{
-  const status=v.status||"pending";
-  return '<button type="button" class="voucher-card '+(status==="pending"?"is-pending":"")+'" data-voucher-open="'+esc(v.id)+'"><span class="voucher-card-top"><strong>'+esc(voucherCode(v))+'</strong><span class="voucher-status '+esc(status)+'">'+voucherStatusLabel(status)+'</span></span><strong class="voucher-customer">'+esc(v.customer_name||"Cliente")+'</strong><span class="voucher-card-meta">Creado por '+esc(v.created_by_name||"Trabajador")+' · '+new Date(v.created_at).toLocaleString("es-ES")+'</span><span class="voucher-card-bottom"><span>'+((v.items||[]).reduce((n,i)=>n+Number(i.quantity||0),0))+' unidades</span><strong>'+money(v.total)+'</strong></span></button>';
+  const status=v.status||"pending",isQr=v._kind==="qr";
+  const units=(v.items||[]).reduce((n,i)=>n+Number(i.quantity||0),0);
+  const badges=(isQr?'<span class="qr-origin-badge">QR</span>':'<span class="voucher-origin-badge">VALE</span>')+(v.inherited?'<span class="inherited-badge">HEREDADO · T'+Number(v.shift_no)+'</span>':"");
+  return '<button type="button" class="voucher-card '+(status==="pending"||["new","preparing","ready"].includes(status)?"is-pending ":"")+(isQr?"qr-card":"")+'" '+(isQr?'data-qr-open="'+esc(v.id)+'"':'data-voucher-open="'+esc(v.id)+'')+'><span class="voucher-card-top"><strong>'+esc(v._code)+'</strong><span class="voucher-badges">'+badges+'</span><span class="voucher-status '+esc(status)+'">'+voucherStatusLabel(status)+'</span></span><strong class="voucher-customer">'+esc(v.customer_name||"Cliente")+'</strong><span class="voucher-card-meta">'+(isQr?"Recibido":"Creado por "+esc(v.created_by_name||"Trabajador"))+' · '+new Date(v.created_at).toLocaleString("es-ES")+'</span><span class="voucher-card-bottom"><span>'+units+' unidades</span><strong>'+money(v.total)+'</strong></span></button>';
  }).join("");
 }
 function renderVoucherDetail(v){
  const host=$("voucherDetail");if(!host||!v)return;
- selectedVoucherId=v.id;
+ selectedQrOrderId=null;selectedVoucherId=v.id;$("voucherDialogTitle").textContent="Detalle del vale";
  const items=(v.items||[]).map(i=>'<div class="voucher-item"><span>'+esc(i.product_name)+' × '+Number(i.quantity)+'</span><strong>'+money(i.line_total??Number(i.unit_price)*Number(i.quantity))+'</strong></div>').join("");
- const status=v.status||"pending";
- let action="";
+ const status=v.status||"pending";let action="";
  if(status==="pending"){
   action='<div class="voucher-pay-form"><h3>Registrar pago</h3><label>Forma de pago<select id="voucherPaymentMethod"><option value="cash">CUP</option><option value="transfer">Transferencia</option></select></label><div id="voucherTransferFields" class="voucher-transfer-fields hidden"><label>Código de transferencia<input id="voucherTransferCode" maxlength="100" autocomplete="off" placeholder="Código del pago" required></label><label>Nombre de quien realiza la transferencia<input id="voucherPayerFirstName" maxlength="60" autocomplete="given-name" placeholder="Nombre" required></label><label>Primer apellido<input id="voucherPayerSurname" maxlength="60" autocomplete="family-name" placeholder="Primer apellido" required></label><label>Número de teléfono<input id="voucherPayerPhone" type="tel" inputmode="tel" maxlength="24" autocomplete="tel" placeholder="Teléfono de quien transfiere" required></label></div><div class="voucher-actions"><button type="button" class="primary" data-voucher-pay="'+esc(v.id)+'">Confirmar pago</button><button type="button" class="secondary danger" data-voucher-cancel="'+esc(v.id)+'">Anular vale</button></div><p id="voucherActionStatus" class="voucher-action-status" role="status" aria-live="polite"></p></div>';
- }else if(status==="paid"){
-  const payer=[v.transfer_payer_first_name,v.transfer_payer_surname].filter(Boolean).join(" ");
-  action='<div class="voucher-payment-result"><strong>Pago confirmado</strong><p>Recibido por: '+esc(v.paid_by_name||"Trabajador")+' · '+(v.paid_at?new Date(v.paid_at).toLocaleString("es-ES"):"")+'</p><p>Forma de pago: '+(v.payment_method==="transfer"?"Transferencia":"CUP")+'</p>'+(v.payment_method==="transfer"?'<p>Código: '+esc(v.transfer_code||"—")+'</p><p>Transfiere: '+esc(payer||"—")+' · '+esc(v.transfer_payer_phone||"—")+'</p>':"")+'</div>';
- }else{
-  action='<div class="voucher-payment-result is-cancelled"><strong>Vale anulado</strong><p>'+esc(v.cancel_reason||"Sin motivo indicado")+'</p></div>';
- }
+ }else if(status==="paid"){const payer=[v.transfer_payer_first_name,v.transfer_payer_surname].filter(Boolean).join(" ");action='<div class="voucher-payment-result"><strong>Pago confirmado</strong><p>Recibido por: '+esc(v.paid_by_name||"Trabajador")+' · '+(v.paid_at?new Date(v.paid_at).toLocaleString("es-ES"):"")+'</p><p>Forma de pago: '+(v.payment_method==="transfer"?"Transferencia":"CUP")+'</p>'+(v.payment_method==="transfer"?'<p>Código: '+esc(v.transfer_code||"—")+'</p><p>Transfiere: '+esc(payer||"—")+' · '+esc(v.transfer_payer_phone||"—")+'</p>':"")+'</div>';}
+ else action='<div class="voucher-payment-result is-cancelled"><strong>Vale anulado</strong><p>'+esc(v.cancel_reason||"Sin motivo indicado")+'</p></div>';
  host.innerHTML='<article class="voucher-detail-card"><div class="voucher-detail-head"><div><p class="eyebrow">DETALLE DEL VALE</p><h2>'+esc(voucherCode(v))+'</h2><p>'+esc(v.customer_name||"Cliente")+'</p></div><span class="voucher-status '+esc(status)+'">'+voucherStatusLabel(status)+'</span></div><p class="voucher-detail-meta">Turno '+Number(v.shift_no)+' · Creado por '+esc(v.created_by_name||"Trabajador")+' · '+new Date(v.created_at).toLocaleString("es-ES")+'</p><div class="voucher-items">'+items+'</div><div class="voucher-total"><span>Total del pedido</span><strong>'+money(v.total)+'</strong></div>'+action+'</article>';
+}
+function renderQrOrderDetail(v){
+ const host=$("voucherDetail");if(!host||!v)return;selectedQrOrderId=v.id;selectedVoucherId=null;$("voucherDialogTitle").textContent="Pedido QR";
+ const status=v.status,items=(v.items||[]).map(i=>'<div class="voucher-item"><span>'+esc(i.product_name)+' × '+Number(i.quantity)+'</span><strong>'+money(i.line_total)+'</strong></div>').join("");
+ let action="";
+ if(status==="new")action='<div class="qr-worker-actions"><button type="button" class="primary" data-qr-start="'+esc(v.id)+'">Comenzar preparación</button><button type="button" class="secondary danger" data-qr-cancel="'+esc(v.id)+'">Cancelar pedido</button></div>';
+ else if(status==="preparing")action='<div class="qr-worker-actions"><button type="button" class="primary" data-qr-ready="'+esc(v.id)+'">Marcar como listo</button><button type="button" class="secondary danger" data-qr-cancel="'+esc(v.id)+'">Cancelar pedido</button></div>';
+ else if(status==="ready")action='<div class="voucher-pay-form"><h3>Confirmar pago y entrega</h3><label>Forma de pago<select id="qrPaymentMethod"><option value="cash">CUP</option><option value="transfer">Transferencia</option></select></label><label id="qrTransferWrap" class="hidden">Código de operación<input id="qrTransferCode" maxlength="100" placeholder="Código de la transferencia"></label><div class="qr-worker-actions"><button type="button" class="primary" data-qr-pay="'+esc(v.id)+'">Confirmar pago y marcar atendido</button><button type="button" class="secondary danger" data-qr-cancel="'+esc(v.id)+'">Cancelar pedido</button></div><p class="muted small">Al confirmar el pago, la venta se registra y el pedido pasa automáticamente a Atendido.</p></div>';
+ else if(status==="attended")action='<div class="voucher-payment-result"><strong>Pedido atendido</strong><p>Finalizado por: '+esc(v.paid_by_name||"Trabajador")+' · Turno '+Number(v.paid_shift_no||0)+'</p><p>Pago: '+(v.payment_method==="transfer"?"Transferencia":"CUP")+'</p>'+(v.payment_method==="transfer"?'<p>Código: '+esc(v.transfer_code||"—")+'</p>':"")+'</div>';
+ else action='<div class="voucher-payment-result is-cancelled"><strong>Pedido cancelado</strong></div>';
+ host.innerHTML='<article class="voucher-detail-card qr-detail-card"><div class="voucher-detail-head"><div><p class="eyebrow">PEDIDO POR QR</p><h2>'+esc(qrOrderCode(v))+'</h2><p>'+esc(v.customer_name||"Cliente")+'</p></div><span class="voucher-status '+esc(status)+'">'+voucherStatusLabel(status)+'</span></div><p class="voucher-detail-meta">Turno de origen: '+Number(v.shift_no)+(v.inherited?' · HEREDADO':'')+' · '+new Date(v.created_at).toLocaleString("es-ES")+'</p>'+(v.observations?'<p class="qr-observations"><strong>Observaciones:</strong> '+esc(v.observations)+'</p>':"")+'<div class="voucher-items">'+items+'</div><div class="voucher-total"><span>Total del pedido</span><strong>'+money(v.total)+'</strong></div>'+action+'</article>';
 }
 $("voucherSearch")?.addEventListener("input",renderVoucherList);
 $("refreshVouchers")?.addEventListener("click",loadVouchers);
 $("voucherList")?.addEventListener("click",e=>{
- const card=e.target.closest("[data-voucher-open]");if(!card)return;
- const v=workerVouchers.find(x=>x.id===card.dataset.voucherOpen);
- if(v){renderVoucherDetail(v);const dialog=$("voucherDialog");if(dialog&&!dialog.open)dialog.showModal();}
+ const qrCard=e.target.closest("[data-qr-open]"),card=e.target.closest("[data-voucher-open]");if(!qrCard&&!card)return;
+ if(qrCard){const v=workerQrOrders.find(x=>x.id===qrCard.dataset.qrOpen);if(v){renderQrOrderDetail(v);const dialog=$("voucherDialog");if(dialog&&!dialog.open)dialog.showModal();}}
+ else{const v=workerVouchers.find(x=>x.id===card.dataset.voucherOpen);if(v){renderVoucherDetail(v);const dialog=$("voucherDialog");if(dialog&&!dialog.open)dialog.showModal();}}
 });
+$("voucherDetail")?.addEventListener("change",e=>{if(e.target.id==="qrPaymentMethod")$("qrTransferWrap")?.classList.toggle("hidden",e.target.value!=="transfer")});
+$("voucherDetail")?.addEventListener("click",async e=>{
+ const start=e.target.closest("[data-qr-start]"),ready=e.target.closest("[data-qr-ready]"),pay=e.target.closest("[data-qr-pay]"),cancel=e.target.closest("[data-qr-cancel]");
+ if(!start&&!ready&&!pay&&!cancel)return;if(voucherActionInProgress)return;if(!navigator.onLine){toast("Necesitas conexión para actualizar un pedido QR.");return}
+ const btn=start||ready||pay||cancel,orderId=btn.dataset.qrStart||btn.dataset.qrReady||btn.dataset.qrPay||btn.dataset.qrCancel;
+ const buttons=Array.from($("voucherDetail").querySelectorAll("[data-qr-start],[data-qr-ready],[data-qr-pay],[data-qr-cancel]"));
+ if(pay&&$("qrPaymentMethod").value==="transfer"&&!$("qrTransferCode").value.trim()){toast("Introduce el código de operación.");return}
+ let reason="";if(cancel){const r=prompt("Motivo de cancelación (opcional):");if(r===null)return;reason=r.trim()}
+ voucherActionInProgress=true;buttons.forEach(b=>b.disabled=true);const old=btn.textContent;btn.textContent="Procesando…";
+ try{
+  let result;
+  if(pay)result=await client.rpc("qr_worker_pay_order",{p_order_id:orderId,p_payment_method:$("qrPaymentMethod").value,p_transfer_code:$("qrPaymentMethod").value==="transfer"?$("qrTransferCode").value.trim():null});
+  else result=await client.rpc("qr_worker_set_status",{p_order_id:orderId,p_status:start?"preparing":ready?"ready":"cancelled",p_reason:reason||null});
+  if(result.error)throw result.error;
+  toast(pay?"Pago confirmado. Pedido atendido y venta registrada.":cancel?"Pedido cancelado y reserva liberada.":ready?"Pedido marcado como listo.":"Preparación iniciada.");
+  selectedQrOrderId=orderId;await loadVouchers();const updated=workerQrOrders.find(x=>x.id===orderId);if(updated)renderQrOrderDetail(updated);else $("voucherDialog").close();
+  if(pay||cancel)Promise.allSettled([loadProducts(),loadWorkerAllocations()]);
+ }catch(err){toast(err.message||"No se pudo actualizar el pedido QR.");buttons.forEach(b=>b.disabled=false);btn.textContent=old}
+ finally{voucherActionInProgress=false}
+});
+$("voucherStatusFilter")?.addEventListener("change",renderVoucherList);
+$("voucherOriginFilter")?.addEventListener("change",renderVoucherList);
 $("closeVoucherDialog")?.addEventListener("click",()=>$("voucherDialog")?.close());
 $("voucherDialog")?.addEventListener("click",e=>{if(e.target===$("voucherDialog"))$("voucherDialog").close();});
 $("voucherDetail")?.addEventListener("change",e=>{
