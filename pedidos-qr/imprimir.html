@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>El Toque · Código QR de pedidos</title>
+<style>
+:root{color-scheme:light}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:#f2eee7;color:#17202b;font-family:Arial,Helvetica,sans-serif}.sheet{width:min(100%,680px);padding:44px 34px 38px;border:1px solid #ded7ca;border-radius:26px;background:#fff;text-align:center;box-shadow:0 18px 55px #1c27301a}.logo{width:112px;height:112px;object-fit:contain;margin:0 auto 10px}.brand{font-size:30px;font-weight:900;letter-spacing:2px;margin:0 0 8px}.gold{width:74px;height:4px;margin:18px auto 24px;border-radius:4px;background:#bd8c42}.headline{font-size:clamp(25px,5vw,38px);line-height:1.15;margin:0 0 12px}.sub{margin:0 auto 28px;max-width:440px;color:#5c6570;font-size:17px;line-height:1.5}.qr-wrap{display:inline-grid;place-items:center;padding:16px;border:1px solid #e7e1d7;border-radius:20px;background:white}.qr-wrap img,.qr-wrap canvas{display:block!important;width:260px!important;height:260px!important}.footer{margin:24px 0 0;color:#6a727a;font-size:13px}.actions{display:flex;justify-content:center;gap:12px;margin-top:26px}.actions button{border:0;border-radius:10px;padding:12px 20px;background:#0755a4;color:white;font-weight:800;font-size:15px;cursor:pointer}.actions a{padding:12px 18px;color:#0755a4;font-weight:700;text-decoration:none}@media print{body{min-height:0;padding:0;background:white}.sheet{width:100%;max-width:none;border:0;border-radius:0;box-shadow:none;padding:24mm 16mm}.actions{display:none}.qr-wrap{border:0}.qr-wrap img,.qr-wrap canvas{width:68mm!important;height:68mm!important}.logo{width:30mm;height:30mm}.headline{font-size:25pt}.sub{font-size:13pt}}
+</style>
+</head>
+<body>
+<main class="sheet">
+  <img class="logo" src="../icons/logo-transparent.svg" alt="El Toque">
+  <p class="brand">EL TOQUE</p>
+  <div class="gold"></div>
+  <h1 class="headline">Escanea y realiza tu pedido</h1>
+  <p class="sub">Explora nuestro catálogo, elige tus productos y envía tu pedido desde tu teléfono.</p>
+  <div class="qr-wrap"><div id="qrCode" aria-label="Código QR para abrir el catálogo"></div></div>
+  <p class="footer">Catálogo digital de El Toque · Pedidos por QR</p>
+  <div class="actions"><button type="button" onclick="window.print()">Imprimir código QR</button><a href="./">Volver al catálogo</a></div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(function(){var target="https://el-toque.github.io/pedidos-qr/";if(window.QRCode){new QRCode(document.getElementById("qrCode"),{text:target,width:520,height:520,colorDark:"#101820",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H});}else{document.getElementById("qrCode").textContent="No se pudo cargar el generador QR. Comprueba tu conexión e inténtalo de nuevo.";}})();
+</script>
+</body>
+</html>
