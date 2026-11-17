@@ -1,11 +1,11 @@
 "use strict";
-const CACHE_NAME="el-toque-qr-static-v7";
+const CACHE_NAME="el-toque-qr-static-v8";
 const SCOPE=self.registration.scope;
 const PRECACHE=[
   SCOPE,
   SCOPE+"index.html",
-  SCOPE+"catalog.css?v=4",
-  SCOPE+"catalog.js?v=5",
+  SCOPE+"catalog.css?v=6",
+  SCOPE+"catalog.js?v=9",
   new URL("../config.js",SCOPE).href,
   new URL("../icons/logo-transparent.svg",SCOPE).href,
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
@@ -34,9 +34,20 @@ self.addEventListener("fetch",event=>{
   if(!isQrAsset&&!isSupabaseSdk)return;
   event.respondWith((async()=>{
     const cache=await caches.open(CACHE_NAME);
+    if(request.mode==="navigate"){
+      try{
+        const response=await fetch(request,{cache:"no-store"});
+        if(response.ok)await cache.put(request,response.clone());
+        return response;
+      }catch(error){
+        const fallback=await cache.match(request)||await cache.match(SCOPE+"index.html")||await cache.match(SCOPE);
+        if(fallback)return fallback;
+        throw error;
+      }
+    }
     const cached=await cache.match(request,{ignoreSearch:false})||await cache.match(url.href);
     if(cached)return cached;
     try{const response=await fetch(request);if(response.ok||response.type==="opaque")cache.put(request,response.clone());return response}
-    catch(error){if(request.mode==="navigate"){const fallback=await cache.match(SCOPE+"index.html");if(fallback)return fallback}throw error}
+    catch(error){throw error}
   })());
 });
