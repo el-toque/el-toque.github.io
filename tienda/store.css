@@ -2491,3 +2491,38 @@ body.customer-screen-visible{overflow:hidden}
 /* Catálogo de tienda alineado con pedidos QR: 4 columnas desde 560px y 2 en móviles. */
 @media(min-width:560px){#catalog.catalog{grid-template-columns:repeat(4,minmax(0,1fr))!important;}}
 @media(max-width:559px){#catalog.catalog{grid-template-columns:repeat(2,minmax(0,1fr))!important;}}
+
+
+/* v116 — Tarjetas del catálogo en cuadrícula real: 4 columnas en tablet y 2 en móvil.
+   El render usa .product-row; se anula su presentación horizontal heredada. */
+#catalog.catalog{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  align-items:stretch!important;
+  gap:16px!important;
+}
+#catalog.catalog > .product,
+#catalog.catalog > .product.product-row{
+  display:flex!important;
+  flex-direction:column!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  grid-column:auto!important;
+}
+#catalog.catalog > .product .product-image{
+  order:0!important;
+  width:100%!important;
+  flex:0 0 145px!important;
+}
+#catalog.catalog > .product .product-body{
+  order:1!important;
+  width:100%!important;
+  min-width:0!important;
+}
+@media(max-width:620px){
+  #catalog.catalog{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:11px!important}
+}
+@media(min-width:621px) and (max-width:1100px){
+  #catalog.catalog{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:13px!important}
+}
