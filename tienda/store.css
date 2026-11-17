@@ -2526,3 +2526,25 @@ body.customer-screen-visible{overflow:hidden}
 @media(min-width:621px) and (max-width:1100px){
   #catalog.catalog{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:13px!important}
 }
+
+
+/* v117 — Teléfonos: 2 columnas. Tablets y pantallas mayores: 4 columnas.
+   Se baja el corte a 480px para que tablets compactas en vertical no hereden el diseño móvil. */
+#catalog.catalog{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  align-items:stretch!important;
+}
+#catalog.catalog > .product,
+#catalog.catalog > .product.product-row{
+  display:flex!important;
+  flex-direction:column!important;
+  min-width:0!important;
+  max-width:none!important;
+}
+@media(max-width:480px){
+  #catalog.catalog{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:11px!important}
+}
+@media(min-width:481px){
+  #catalog.catalog{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:13px!important}
+}
