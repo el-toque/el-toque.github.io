@@ -35,12 +35,16 @@ function updateHeaderIndicators(pendingCount=null){
  }
 }
 async function updatePendingBadge(){const queue=await pendingSales(),n=queue.length;updateHeaderIndicators(n);const status=$("offlineStatus");if(status){status.textContent=n?`${n} venta(s) pendiente(s) de sincronizar`:(navigator.onLine?"EN LÍNEA":"SIN CONEXIÓN");status.classList.toggle("pending",n>0);status.classList.toggle("offline",!navigator.onLine);status.classList.toggle("online",navigator.onLine&&n===0);}const syncBtn=$("syncPendingBtn");if(syncBtn){syncBtn.classList.toggle("hidden",n===0);syncBtn.disabled=!navigator.onLine||syncingPending;syncBtn.textContent=syncingPending?"Sincronizando…":"Sincronizar ventas pendientes";}const close=$("closeDaily");if(close){close.disabled=!!activeCloseout||n>0||!navigator.onLine||!workerPermission("can_close_day")||!workerPermission("can_view_own_closeout");close.title=n?"Sincroniza las ventas pendientes antes de cerrar":"";}for(const id of ["exportDaily","exportDailyPdf","refreshDaily"]){const b=$(id);if(b){b.disabled=!navigator.onLine;b.title=navigator.onLine?"":"Necesitas conexión para consultar el cuadre actualizado";}}return n;}
-async function saveOfflineSale(items,method,code,id=crypto.randomUUID()){
+async function saveOfflineSale(items,method,code,id=crypto.randomUUID(),knownContext=null){
  const queue=await pendingSales();
  if(queue.some(x=>x.id===id))return queue.find(x=>x.id===id);
  // Evita consumir dos veces las mismas unidades asignadas mientras no hay servidor.
  for(const line of items){const allocation=workerAllocations.find(a=>a.product_id===line.product_id);if(!allocation||Number(allocation.quantity_remaining)<Number(line.quantity))throw new Error("Existencia local insuficiente para completar la venta.");}
- const turnCtx=navigator.onLine?await ensureTurnContext():(window.IPV_TURN_CONTEXT||JSON.parse(localStorage.getItem("ipv_turn_context_"+user.id)||"null"));
+ let turnCtx=knownContext;
+ if(!turnCtx){
+  if(navigator.onLine)turnCtx=await ensureTurnContext();
+  else{try{turnCtx=window.IPV_TURN_CONTEXT||JSON.parse(localStorage.getItem("ipv_turn_context_"+user.id)||"null");}catch(_){turnCtx=null;}}
+ }
  if(!turnCtx)throw new Error("No se pudo identificar la sesión activa para guardar la venta sin conexión.");
  const entry={id,worker_id:user?.id||null,turn_inventory:true,independent_inventory:!!turnCtx.independent,session_id:turnCtx.sessionId||null,session_no:turnCtx.sessionNo,items:items.map(x=>({product_id:x.product_id,quantity:x.quantity})),payment_method:method,transfer_code:method==="transfer"?code:null,business_date:turnCtx.businessDate,created_at:new Date().toISOString(),status:"pending"};
  queue.push(entry);await localPut("pending_sales",queue);
@@ -76,7 +80,7 @@ const admin=()=>profile?.role==="admin";
 const workerPermission=key=>admin()||profile?.worker_permissions?.[key]!==false;
 function fail(el,msg){$(el).textContent=msg}
 async function init(){
- if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js?v=69",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
+ if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js?v=70",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
  window.addEventListener("online",()=>{updateHeaderIndicators(0);syncPendingSales();});window.addEventListener("offline",()=>{updateHeaderIndicators(0);updatePendingBadge();});window.addEventListener("ipv:turn-context-updated",()=>updateHeaderIndicators(0));
  // Inicializa el indicador visual sin esperar a que termine la recuperación de sesión.
  updateHeaderIndicators(0);
@@ -185,7 +189,7 @@ async function enter(authUser){
  window.IPV_ADMIN_CONTEXT={client,user,profile:data};
  document.body.classList.toggle("admin-mode",data.role!=="worker");document.body.classList.toggle("worker-mode",data.role==="worker");$("adminSidebar")?.classList.remove("hidden");document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.classList.remove("hidden");$("sidebarRoleLabel").textContent=admin()?"ADMINISTRACIÓN":"PUNTO DE VENTA";
  document.body.classList.remove("login-screen");$("loginPanel").classList.add("hidden");$("appPanel").classList.remove("hidden");$("sessionLabel").textContent=admin()?"ADMINISTRADOR":"TRABAJADOR";updateHeaderIndicators(0);$("welcome").textContent=`Hola, ${data.full_name||user.email} · ${data.role}`;
- $("addBtn")?.classList.toggle("hidden",!admin());$("exportInventory")?.classList.toggle("hidden",!admin());$("exportInventoryPdf")?.classList.toggle("hidden",!admin());$("manageCategoriesBtn")?.classList.toggle("hidden",!admin());$("workersNav").classList.toggle("hidden",!admin());$("workerLogoutBtn")?.classList.toggle("hidden",admin());$("logoutBtn")?.classList.toggle("hidden",!admin());$("adminTabs").classList.toggle("hidden",!admin());$("workerTabs").classList.toggle("hidden",admin());if(!admin()){document.querySelector('[data-tab="daily"]').classList.toggle("hidden",!workerPermission("can_view_own_closeout"));$("shopSellBtn").disabled=!workerPermission("can_sell");}
+ $("addBtn")?.classList.toggle("hidden",!admin());$("exportInventory")?.classList.toggle("hidden",!admin());$("exportInventoryPdf")?.classList.toggle("hidden",!admin());$("manageCategoriesBtn")?.classList.toggle("hidden",!admin());$("workersNav").classList.toggle("hidden",!admin());$("workerLogoutBtn")?.classList.toggle("hidden",admin());$("logoutBtn")?.classList.toggle("hidden",!admin());$("adminTabs").classList.toggle("hidden",!admin());$("workerTabs").classList.toggle("hidden",admin());if(!admin()){document.querySelector('[data-tab="daily"]').classList.toggle("hidden",!workerPermission("can_view_own_closeout"));$("shopSellBtn").disabled=!workerPermission("can_sell");$("shopConfirmSaleBtn").disabled=!workerPermission("can_sell");}
  document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
  if(admin()){document.querySelector('[data-tab="dashboard"]').classList.add("active");showSection("dashboard");}else{document.querySelector('[data-tab="shop"]').classList.add("active");showSection("shop");}$("appPanel").classList.remove("hidden");const initialPanel=$(admin()?"dashboardTab":"shopTab");if(initialPanel)initialPanel.classList.remove("hidden");
  // La autenticación ya está confirmada. Los errores de módulos no deben expulsar al usuario.
@@ -389,7 +393,7 @@ let shopBounceProductId=null;
 function renderShopProducts(){const bounceId=shopBounceProductId;shopBounceProductId=null;const q=( $("shopSearch")?.value||"").trim().toLowerCase();const allowed=admin()?products:products.filter(p=>(workerAllocations.find(a=>a.product_id===p.id)?.quantity_remaining||0)>0);const available=allowed.filter(p=>(admin()?p.stock:(workerAllocations.find(a=>a.product_id===p.id)?.quantity_remaining||0))>0);const list=available.filter(p=>(shopCategory==="all"||p.category_id===shopCategory)&&(p.name+" "+(p.sku||"")+" "+(p.description||"")).toLowerCase().includes(q));$("shopProducts").innerHTML=list.map(p=>{const selected=cart.find(i=>i.product_id===p.id)?.quantity||0;return `<article class="shop-card ${selected?"has-selected":""}"><span class="shop-selected-count ${selected?"is-visible":""} ${selected&&bounceId===p.id?"do-bounce":""}" aria-label="${selected} seleccionados">${selected}</span><div class="shop-card-mark">${p.image_url?`<img class="shop-product-image" src="${esc(p.image_url)}" alt="${esc(p.name)}" loading="lazy" onerror="this.remove();this.parentElement.innerHTML='<span>✦</span><small>EL TOQUE</small>'">`:`<span>✦</span><small>EL TOQUE</small>`}</div><div class="shop-card-info"><h3>${esc(p.name)}</h3><p>${esc(p.description||"Disponible para entrega")}</p></div><div class="shop-card-bottom"><strong>${money(p.price)}</strong><span class="shop-stock">${admin()?p.stock:(workerAllocations.find(a=>a.product_id===p.id)?.quantity_remaining||0)} disp.</span></div><button class="primary" data-shop-add="${p.id}">＋ Añadir al pedido</button></article>`}).join("");$("shopEmpty").classList.toggle("hidden",list.length>0);$("shopEmpty").textContent=available.length===0?"No hay productos disponibles en este momento.":"No encontramos productos con esa búsqueda.";}
 $("shopSearch").addEventListener("input",renderShopProducts);
 $("shopProducts").addEventListener("click",e=>{const b=e.target.closest("[data-shop-add]");if(!b)return;const p=products.find(x=>x.id===b.dataset.shopAdd);const available=admin()?p?.stock:(workerAllocations.find(a=>a.product_id===p?.id)?.quantity_remaining||0);if(!p||available<1)return;const line=cart.find(x=>x.product_id===p.id);if(line){if(line.quantity>=available){fail("shopMessage","No hay más unidades disponibles.");return}line.quantity++;}else cart.push({product_id:p.id,quantity:1});fail("shopMessage","");renderShopCart(true);shopBounceProductId=p.id;renderShopProducts();});
-function renderShopCart(animateSelection=false){const count=cart.reduce((n,i)=>n+i.quantity,0),total=cart.reduce((a,i)=>a+(products.find(p=>p.id===i.product_id)?.price||0)*i.quantity,0);$("shopCartCount").textContent=count;$("shopBottomTotal").textContent=money(total);$("shopBottomBar").classList.toggle("hidden",count===0);if(animateSelection&&count>0){const countEl=$("shopCartCount"),totalEl=$("shopBottomTotal");[countEl,totalEl].forEach(el=>{el.classList.remove("do-bounce");void el.offsetWidth;el.classList.add("do-bounce");});}$("shopCartList").innerHTML=cart.map(i=>{const p=products.find(x=>x.id===i.product_id);return `<div class="cart-row"><span>${esc(p?.name||"Producto")} × ${i.quantity}</span><strong>${money((p?.price||0)*i.quantity)}</strong><div class="quantity-actions"><button class="mini-btn" data-shop-minus="${i.product_id}" aria-label="Quitar una unidad">− 1</button><button class="mini-btn danger" data-shop-remove="${i.product_id}">Quitar todo</button></div></div>`}).join("");$("shopCartTotal").textContent=money(total);$("shopOrderEmpty").classList.toggle("hidden",cart.length>0);$("shopSellBtn").disabled=cart.length===0||!workerPermission("can_sell");}
+function renderShopCart(animateSelection=false){const count=cart.reduce((n,i)=>n+i.quantity,0),total=cart.reduce((a,i)=>a+(products.find(p=>p.id===i.product_id)?.price||0)*i.quantity,0);$("shopCartCount").textContent=count;$("shopBottomTotal").textContent=money(total);$("shopBottomBar").classList.toggle("hidden",count===0);if(animateSelection&&count>0){const countEl=$("shopCartCount"),totalEl=$("shopBottomTotal");[countEl,totalEl].forEach(el=>{el.classList.remove("do-bounce");void el.offsetWidth;el.classList.add("do-bounce");});}$("shopCartList").innerHTML=cart.map(i=>{const p=products.find(x=>x.id===i.product_id);return `<div class="cart-row"><span>${esc(p?.name||"Producto")} × ${i.quantity}</span><strong>${money((p?.price||0)*i.quantity)}</strong><div class="quantity-actions"><button class="mini-btn" data-shop-minus="${i.product_id}" aria-label="Quitar una unidad">− 1</button><button class="mini-btn danger" data-shop-remove="${i.product_id}">Quitar todo</button></div></div>`}).join("");$("shopCartTotal").textContent=money(total);$("shopOrderEmpty").classList.toggle("hidden",cart.length>0);$("shopSellBtn").disabled=cart.length===0||!workerPermission("can_sell");$("shopConfirmSaleBtn").disabled=cart.length===0||!workerPermission("can_sell");}
 $("shopCartList").addEventListener("click",e=>{const minus=e.target.closest("[data-shop-minus]"),remove=e.target.closest("[data-shop-remove]");if(minus){const line=cart.find(i=>i.product_id===minus.dataset.shopMinus);if(line){line.quantity--;if(line.quantity<=0)cart=cart.filter(i=>i!==line);}renderShopCart();renderShopProducts();return}if(remove){cart=cart.filter(i=>i.product_id!==remove.dataset.shopRemove);renderShopCart();renderShopProducts();}});
 function showShopOrder(show){$("shopCatalogView").classList.toggle("hidden",show);$("shopOrderView").classList.toggle("hidden",!show);if(show)renderShopCart();}
 $("viewOrderBtn").addEventListener("click",()=>showShopOrder(true));
@@ -421,6 +425,48 @@ $("shopSellBtn").addEventListener("click",async()=>{
  }catch(e){
   fail("shopMessage",e?.message||"No se pudo crear el vale.");
  }finally{btn.disabled=false;renderShopCart();}
+});
+$("shopPaymentMethod")?.addEventListener("change",()=>{
+ const transfer=$("shopPaymentMethod").value==="transfer";
+ $("shopTransferCodeField")?.classList.toggle("hidden",!transfer);
+ if($("shopTransferCode"))$("shopTransferCode").required=transfer;
+});
+$("shopConfirmSaleBtn")?.addEventListener("click",async()=>{
+ if(!cart.length){fail("shopMessage","Agrega al menos un producto al pedido.");return;}
+ if(!workerPermission("can_sell")){fail("shopMessage","Tu cuenta no tiene permiso para registrar ventas.");return;}
+ const method=$("shopPaymentMethod")?.value||"cash";
+ const code=$("shopTransferCode")?.value.trim()||"";
+ if(method==="transfer"&&!code){fail("shopMessage","Introduce el código de operación de la transferencia.");$("shopTransferCode")?.focus();return;}
+ const btn=$("shopConfirmSaleBtn"),items=cart.map(x=>({product_id:x.product_id,quantity:x.quantity})),id=crypto.randomUUID();
+ const networkFailure=e=>!navigator.onLine||e?.status===0||e?.name==="TypeError"||/failed to fetch|networkerror|fetch failed|load failed|network request failed/i.test(e?.message||"");
+ btn.disabled=true;fail("shopMessage","Registrando la venta…");
+ let queued=false,saleId=null;
+ try{
+  let ctx=null;
+  if(navigator.onLine){
+   try{ctx=await ensureTurnContext();}
+   catch(e){if(!networkFailure(e))throw e;try{ctx=window.IPV_TURN_CONTEXT||JSON.parse(localStorage.getItem("ipv_turn_context_"+user.id)||"null");}catch(_){ctx=null;}if(!ctx)throw new Error("No hay un turno guardado para registrar ventas sin conexión. Conéctate una vez y vuelve a intentarlo.");await saveOfflineSale(items,method,code,id,ctx);queued=true;}
+  }else{
+   try{ctx=window.IPV_TURN_CONTEXT||JSON.parse(localStorage.getItem("ipv_turn_context_"+user.id)||"null");}catch(_){ctx=null;}
+   if(!ctx)throw new Error("Para vender sin conexión debes haber iniciado sesión y cargado el inventario en este teléfono anteriormente.");
+   await saveOfflineSale(items,method,code,id,ctx);queued=true;
+  }
+  if(!queued){
+   const payload=items.map(x=>({turn_item_id:x.product_id,quantity:x.quantity}));
+   const result=profile?.ipv_mode==="independent"
+    ? await client.rpc("worker_independent_create_sale",{p_session_id:ctx.sessionId,p_items:payload,p_payment_method:method,p_idempotency_key:id,p_transfer_code:method==="transfer"?code:null})
+    : await client.rpc("worker_turn_create_sale",{p_items:payload,p_payment_method:method,p_idempotency_key:id,p_transfer_code:method==="transfer"?code:null,p_business_date:ctx.businessDate,p_session_no:ctx.sessionNo});
+   if(result.error){
+    if(!networkFailure(result.error))throw result.error;
+    await saveOfflineSale(items,method,code,id,ctx);queued=true;
+   }else saleId=result.data;
+  }
+  cart=[];$("shopTransferCode").value="";$("shopPaymentMethod").value="cash";$("shopTransferCodeField").classList.add("hidden");$("shopTransferCode").required=false;
+  renderShopCart();renderShopProducts();fail("shopMessage","");
+  toast(queued?"Venta guardada en este teléfono. Se sincronizará al recuperar conexión.":"Venta registrada correctamente. Folio: "+saleId);
+  if(navigator.onLine){try{await loadProducts();await loadWorkerAllocations();await loadDailyBillCounts();}catch(e){console.warn("[IPV actualización tras venta]",e);}}
+ }catch(e){fail("shopMessage",e?.message||"No se pudo registrar la venta.");}
+ finally{btn.disabled=false;renderShopCart();}
 });
 let qrAlertTimer=null;
 let qrAudioContext=null;
