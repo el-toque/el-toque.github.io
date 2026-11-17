@@ -540,7 +540,7 @@ function renderVoucherDetail(v){
  if(status==="pending"){
   action='<div class="voucher-pay-form"><h3>Registrar pago</h3><label>Forma de pago<select id="voucherPaymentMethod"><option value="cash">CUP</option><option value="transfer">Transferencia</option></select></label><div id="voucherTransferFields" class="voucher-transfer-fields hidden"><label>Código de transferencia<input id="voucherTransferCode" maxlength="100" autocomplete="off" placeholder="Código del pago" required></label><label>Nombre de quien realiza la transferencia<input id="voucherPayerFirstName" maxlength="60" autocomplete="given-name" placeholder="Nombre" required></label><label>Primer apellido<input id="voucherPayerSurname" maxlength="60" autocomplete="family-name" placeholder="Primer apellido" required></label><label>Número de teléfono<input id="voucherPayerPhone" type="tel" inputmode="tel" maxlength="24" autocomplete="tel" placeholder="Teléfono de quien transfiere" required></label></div><div class="voucher-actions"><button type="button" class="primary" data-voucher-pay="'+esc(v.id)+'">Confirmar pago</button><button type="button" class="secondary danger" data-voucher-cancel="'+esc(v.id)+'">Anular vale</button></div><p id="voucherActionStatus" class="voucher-action-status" role="status" aria-live="polite"></p></div>';
  }else if(status==="paid"){const payer=[v.transfer_payer_first_name,v.transfer_payer_surname].filter(Boolean).join(" ");action='<div class="voucher-payment-result"><strong>Pago confirmado</strong><p>Recibido por: '+esc(v.paid_by_name||"Trabajador")+' · '+(v.paid_at?new Date(v.paid_at).toLocaleString("es-ES"):"")+'</p><p>Forma de pago: '+(v.payment_method==="transfer"?"Transferencia":"CUP")+'</p>'+(v.payment_method==="transfer"?'<p>Código: '+esc(v.transfer_code||"—")+'</p><p>Transfiere: '+esc(payer||"—")+' · '+esc(v.transfer_payer_phone||"—")+'</p>':"")+'</div>';}
- else action='<div class="voucher-payment-result is-cancelled"><strong>Vale anulado</strong><p>'+esc(v.cancel_reason||"Sin motivo indicado")+'</p></div>';
+ else action='<div class="voucher-payment-result is-cancelled"><strong>Vale anulado</strong><p>'+esc(v.cancel_reason||"Sin motivo indicado")+'</p><div class="voucher-actions"><button type="button" class="primary" data-voucher-restore="'+esc(v.id)+'">Recuperar vale</button></div></div>';
  host.innerHTML='<article class="voucher-detail-card"><div class="voucher-detail-head"><div><p class="eyebrow">DETALLE DEL VALE</p><h2>'+esc(voucherCode(v))+'</h2><p>'+esc(v.customer_name||"Cliente")+'</p></div><span class="voucher-status '+esc(status)+'">'+voucherStatusLabel(status)+'</span></div><p class="voucher-detail-meta">Turno '+Number(v.shift_no)+' · Creado por '+esc(v.created_by_name||"Trabajador")+' · '+new Date(v.created_at).toLocaleString("es-ES")+'</p><div class="voucher-items">'+items+'</div><div class="voucher-total"><span>Total del pedido</span><strong>'+money(v.total)+'</strong></div>'+action+'</article>';
 }
 function renderQrOrderDetail(v){
@@ -551,7 +551,7 @@ function renderQrOrderDetail(v){
  else if(status==="preparing")action='<div class="qr-worker-actions"><button type="button" class="primary" data-qr-ready="'+esc(v.id)+'">Marcar como listo</button><button type="button" class="secondary danger" data-qr-cancel="'+esc(v.id)+'">Cancelar pedido</button></div>';
  else if(status==="ready")action='<div class="voucher-pay-form"><h3>Confirmar pago y entrega</h3><label>Forma de pago<select id="qrPaymentMethod"><option value="cash">CUP</option><option value="transfer">Transferencia</option></select></label><label id="qrTransferWrap" class="hidden">Código de operación<input id="qrTransferCode" maxlength="100" placeholder="Código de la transferencia"></label><div class="qr-worker-actions"><button type="button" class="primary" data-qr-pay="'+esc(v.id)+'">Confirmar pago y marcar atendido</button><button type="button" class="secondary danger" data-qr-cancel="'+esc(v.id)+'">Cancelar pedido</button></div><p class="muted small">Al confirmar el pago, la venta se registra y el pedido pasa automáticamente a Atendido.</p></div>';
  else if(status==="attended")action='<div class="voucher-payment-result"><strong>Pedido atendido</strong><p>Finalizado por: '+esc(v.paid_by_name||"Trabajador")+' · Turno '+Number(v.paid_shift_no||0)+'</p><p>Pago: '+(v.payment_method==="transfer"?"Transferencia":"CUP")+'</p>'+(v.payment_method==="transfer"?'<p>Código: '+esc(v.transfer_code||"—")+'</p>':"")+'</div>';
- else action='<div class="voucher-payment-result is-cancelled"><strong>Pedido cancelado</strong></div>';
+ else action='<div class="voucher-payment-result is-cancelled"><strong>Pedido cancelado</strong><p>Podrás recuperarlo si todavía hay existencias suficientes en el turno activo.</p><div class="qr-worker-actions"><button type="button" class="primary" data-qr-restore="'+esc(v.id)+'">Recuperar pedido</button></div></div>';
  const shareLink=v.tracking_token&&(!v.tracking_expires_at||new Date(v.tracking_expires_at)>new Date())?'<button type="button" class="secondary full" data-qr-share="'+esc(v.id)+'">Compartir seguimiento por WhatsApp</button>':"";
  host.innerHTML='<article class="voucher-detail-card qr-detail-card"><div class="voucher-detail-head"><div><p class="eyebrow">PEDIDO POR QR</p><h2>'+esc(qrOrderCode(v))+'</h2><p>'+esc(v.customer_name||"Cliente")+'</p></div><span class="voucher-status '+esc(status)+'">'+voucherStatusLabel(status)+'</span></div><p class="voucher-detail-meta">Turno de origen: '+Number(v.shift_no)+(v.inherited?' · HEREDADO':'')+' · '+new Date(v.created_at).toLocaleString("es-ES")+'</p>'+(v.observations?'<p class="qr-observations"><strong>Observaciones:</strong> '+esc(v.observations)+'</p>':"")+'<div class="voucher-items">'+items+'</div><div class="voucher-total"><span>Total del pedido</span><strong>'+money(v.total)+'</strong></div>'+action+'</article>';
 }
@@ -565,19 +565,20 @@ $("voucherList")?.addEventListener("click",e=>{
 $("voucherDetail")?.addEventListener("change",e=>{if(e.target.id==="qrPaymentMethod")$("qrTransferWrap")?.classList.toggle("hidden",e.target.value!=="transfer")});
 $("voucherDetail")?.addEventListener("click",async e=>{
  const share=e.target.closest("[data-qr-share]");if(share){const order=workerQrOrders.find(x=>x.id===share.dataset.qrShare);if(order?.tracking_token){const url=new URL(location.href);url.search="";url.searchParams.set("seguimiento",order.tracking_token);const message="Seguimiento de tu pedido "+qrOrderCode(order)+": "+url.toString();window.open("https://wa.me/?text="+encodeURIComponent(message),"_blank","noopener")}return}
- const start=e.target.closest("[data-qr-start]"),ready=e.target.closest("[data-qr-ready]"),pay=e.target.closest("[data-qr-pay]"),cancel=e.target.closest("[data-qr-cancel]");
- if(!start&&!ready&&!pay&&!cancel)return;if(voucherActionInProgress)return;if(!navigator.onLine){toast("Necesitas conexión para actualizar un pedido QR.");return}
- const btn=start||ready||pay||cancel,orderId=btn.dataset.qrStart||btn.dataset.qrReady||btn.dataset.qrPay||btn.dataset.qrCancel;
- const buttons=Array.from($("voucherDetail").querySelectorAll("[data-qr-start],[data-qr-ready],[data-qr-pay],[data-qr-cancel]"));
+ const start=e.target.closest("[data-qr-start]"),ready=e.target.closest("[data-qr-ready]"),pay=e.target.closest("[data-qr-pay]"),cancel=e.target.closest("[data-qr-cancel]"),restore=e.target.closest("[data-qr-restore]");
+ if(!start&&!ready&&!pay&&!cancel&&!restore)return;if(voucherActionInProgress)return;if(!navigator.onLine){toast("Necesitas conexión para actualizar un pedido QR.");return}
+ const btn=start||ready||pay||cancel||restore,orderId=btn.dataset.qrStart||btn.dataset.qrReady||btn.dataset.qrPay||btn.dataset.qrCancel||btn.dataset.qrRestore;
+ const buttons=Array.from($("voucherDetail").querySelectorAll("[data-qr-start],[data-qr-ready],[data-qr-pay],[data-qr-cancel],[data-qr-restore]"));
  if(pay&&$("qrPaymentMethod").value==="transfer"&&!$("qrTransferCode").value.trim()){toast("Introduce el código de operación.");return}
- let reason="";if(cancel){const r=prompt("Motivo de cancelación (opcional):");if(r===null)return;reason=r.trim()}
+ let reason="";if(cancel){const r=prompt("Motivo de cancelación (opcional):");if(r===null)return;reason=r.trim()}if(restore&&!confirm("¿Recuperar el pedido y volver a reservar sus existencias?"))return;
  voucherActionInProgress=true;buttons.forEach(b=>b.disabled=true);const old=btn.textContent;btn.textContent="Procesando…";
  try{
   let result;
   if(pay)result=await client.rpc("qr_worker_pay_order",{p_order_id:orderId,p_payment_method:$("qrPaymentMethod").value,p_transfer_code:$("qrPaymentMethod").value==="transfer"?$("qrTransferCode").value.trim():null});
+  else if(restore)result=await client.rpc("qr_worker_restore_order",{p_order_id:orderId});
   else result=await client.rpc("qr_worker_set_status",{p_order_id:orderId,p_status:start?"preparing":ready?"ready":"cancelled",p_reason:reason||null});
   if(result.error)throw result.error;
-  toast(pay?"Pago confirmado. Pedido atendido y venta registrada.":cancel?"Pedido cancelado y reserva liberada.":ready?"Pedido marcado como listo.":"Preparación iniciada.");
+  toast(pay?"Pago confirmado. Pedido atendido y venta registrada.":restore?"Pedido recuperado y existencias reservadas nuevamente.":cancel?"Pedido cancelado y reserva liberada.":ready?"Pedido marcado como listo.":"Preparación iniciada.");
   selectedQrOrderId=orderId;await loadVouchers();const updated=workerQrOrders.find(x=>x.id===orderId);if(updated)renderQrOrderDetail(updated);else $("voucherDialog").close();
   if(pay||cancel)Promise.allSettled([loadProducts(),loadWorkerAllocations()]);
  }catch(err){toast(err.message||"No se pudo actualizar el pedido QR.");buttons.forEach(b=>b.disabled=false);btn.textContent=old}
@@ -596,12 +597,13 @@ $("voucherDetail")?.addEventListener("change",e=>{
 $("voucherDetail")?.addEventListener("click",async e=>{
  const pay=e.target.closest("[data-voucher-pay]");
  const cancel=e.target.closest("[data-voucher-cancel]");
- if(!pay&&!cancel)return;
+ const restore=e.target.closest("[data-voucher-restore]");
+ if(!pay&&!cancel&&!restore)return;
  if(voucherActionInProgress)return;
- if(!navigator.onLine){toast("Necesitas conexión para registrar el pago o anular el vale.");return;}
- const btn=pay||cancel;
+ if(!navigator.onLine){toast("Necesitas conexión para registrar el pago, anular o recuperar el vale.");return;}
+ const btn=pay||cancel||restore;
  const detail=$("voucherDetail");
- const actionButtons=Array.from(detail.querySelectorAll("[data-voucher-pay],[data-voucher-cancel]"));
+ const actionButtons=Array.from(detail.querySelectorAll("[data-voucher-pay],[data-voucher-cancel],[data-voucher-restore]"));
  const status=$("voucherActionStatus");
  if(pay){
   const method=$("voucherPaymentMethod")?.value||"cash";
@@ -616,11 +618,12 @@ $("voucherDetail")?.addEventListener("click",async e=>{
  }
  let reason="";
  if(cancel){const answer=prompt("Motivo de anulación del vale (opcional):");if(answer===null)return;reason=answer.trim();}
+ if(restore&&!confirm("¿Recuperar este vale y volver a reservar sus existencias?"))return;
  voucherActionInProgress=true;
  actionButtons.forEach(b=>{b.disabled=true;b.setAttribute("aria-disabled","true");});
  btn.classList.add("is-processing");
- btn.textContent=pay?"Procesando pago…":"Anulando vale…";
- if(status)status.textContent=pay?"Conectando con el inventario compartido y registrando el pago. No pulses otra vez.":"Registrando la anulación y liberando las existencias…";
+ btn.textContent=pay?"Procesando pago…":restore?"Recuperando vale…":"Anulando vale…";
+ if(status)status.textContent=pay?"Conectando con el inventario compartido y registrando el pago. No pulses otra vez.":restore?"Comprobando existencias y recuperando el vale…":"Registrando la anulación y liberando las existencias…";
  try{
   const ctx=await ensureTurnContext();
   if(pay){
@@ -639,6 +642,10 @@ $("voucherDetail")?.addEventListener("click",async e=>{
    });
    if(error)throw error;
    toast("Pago confirmado. Venta registrada en este turno.");
+  }else if(restore){
+   const {error}=await client.rpc("worker_turn_restore_voucher",{p_voucher_id:restore.dataset.voucherRestore,p_business_date:ctx.businessDate,p_session_no:ctx.sessionNo});
+   if(error)throw error;
+   toast("Vale recuperado y existencias reservadas nuevamente.");
   }else{
    const {error}=await client.rpc("worker_turn_cancel_voucher",{
     p_voucher_id:cancel.dataset.voucherCancel,p_reason:reason,
@@ -653,7 +660,7 @@ $("voucherDetail")?.addEventListener("click",async e=>{
   toast(err?.message||"No se pudo completar la operación.");
   if(status)status.textContent="No se pudo completar. Comprueba la conexión y actualiza los vales antes de volver a intentarlo.";
   actionButtons.forEach(b=>{b.disabled=false;b.removeAttribute("aria-disabled");b.classList.remove("is-processing");});
-  btn.textContent=pay?"Confirmar pago":"Anular vale";
+  btn.textContent=pay?"Confirmar pago":restore?"Recuperar vale":"Anular vale";
  }finally{
   voucherActionInProgress=false;
  }
