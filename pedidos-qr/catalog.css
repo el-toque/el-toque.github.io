@@ -34,3 +34,5 @@ body{padding-bottom:calc(100px + env(safe-area-inset-bottom))}
 .add-button{min-height:42px}
 .submit-button,.cart-bar button{min-height:46px}
 .qty-control button{width:40px;height:40px;min-width:40px;font-size:18px}
+
+.catalog-tracking-access{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:10px 0 22px;padding:15px 16px;border:1px solid #c9d9eb;border-radius:15px;background:#fff;box-shadow:var(--shadow)}.catalog-tracking-access strong{display:block;color:var(--deep);font-size:14px}.catalog-tracking-access p{margin:4px 0 0;color:var(--muted);font-size:12px;line-height:1.4}.catalog-tracking-access button{flex-shrink:0;border:0;border-radius:11px;background:var(--deep);color:#fff;font-weight:850;padding:12px 14px;min-height:44px;font-size:12px}@media(max-width:430px){.catalog-tracking-access{align-items:stretch;flex-direction:column}.catalog-tracking-access button{width:100%}}
