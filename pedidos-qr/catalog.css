@@ -74,3 +74,9 @@ body{background:#f7f3eb}
 .order-total-row{border-top-color:#c7a66c}
 .offline-catalog-notice{background:#fff5df;border-color:#d9bd83;color:#705324}
 @media(max-width:430px){.welcome{padding:25px 19px 23px;margin-top:14px;border-radius:18px}.welcome h1{font-size:32px}}
+
+
+/* Contraste del saludo sobre el panel oscuro de bienvenida. */
+.welcome .eyebrow{color:#f0cf86!important;text-shadow:0 1px 2px #17130d55}
+.welcome h1{color:#fff8e9!important}
+.welcome p:last-child{color:#f0e5d1!important}
