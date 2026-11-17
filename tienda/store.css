@@ -2477,3 +2477,12 @@ body.customer-screen-visible{overflow:hidden}
 /* Catálogo de tienda en línea: 2 columnas en teléfono y 4 en tablet/escritorio */
 @media(min-width:561px){.catalog{grid-template-columns:repeat(4,minmax(0,1fr))!important}}
 @media(max-width:560px){.catalog{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+
+/* Si se muestra la barra flotante de pedido, mantenerla baja y discreta. */
+.view-cart{min-height:48px!important;padding:7px 12px!important;gap:8px!important;border-radius:10px!important;font-size:14px!important;box-shadow:0 5px 16px #0006!important}
+.view-cart .view-cart-summary{gap:7px!important}
+.view-cart .view-cart-count{font-size:12px!important}
+.view-cart .view-cart-count b{min-width:25px!important;height:25px!important;font-size:12px!important}
+.view-cart .view-cart-summary>strong{font-size:17px!important}
+.view-cart .view-cart-label{min-height:36px!important;height:36px!important;padding:0 12px!important;font-size:13px!important;border-radius:8px!important}
+@media(max-width:680px){.view-cart{left:14px!important;right:14px!important;bottom:max(8px,env(safe-area-inset-bottom))!important;width:calc(100% - 28px)!important;min-height:46px!important;padding:6px 10px!important}.view-cart .view-cart-label{min-height:34px!important;height:34px!important;font-size:12px!important}}
