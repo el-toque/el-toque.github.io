@@ -580,7 +580,7 @@ $("voucherDetail")?.addEventListener("click",async e=>{
   if(result.error)throw result.error;
   toast(pay?"Pago confirmado. Pedido atendido y venta registrada.":restore?"Pedido recuperado y existencias reservadas nuevamente.":cancel?"Pedido cancelado y reserva liberada.":ready?"Pedido marcado como listo.":"Preparación iniciada.");
   selectedQrOrderId=orderId;await loadVouchers();const updated=workerQrOrders.find(x=>x.id===orderId);if(updated)renderQrOrderDetail(updated);else $("voucherDialog").close();
-  if(pay||cancel)Promise.allSettled([loadProducts(),loadWorkerAllocations()]);
+  if(pay||cancel||restore)Promise.allSettled([loadProducts(),loadWorkerAllocations()]);
  }catch(err){toast(err.message||"No se pudo actualizar el pedido QR.");buttons.forEach(b=>b.disabled=false);btn.textContent=old}
  finally{voucherActionInProgress=false}
 });
