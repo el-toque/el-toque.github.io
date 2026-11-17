@@ -1410,3 +1410,13 @@ body.login-screen .auth-panel:before{
 /* Catálogos de trabajador: 2 columnas en teléfono y 4 en tablet/escritorio */
 @media(min-width:561px){#shopTab .shop-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}}
 @media(max-width:560px){#shopTab .shop-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+
+/* Barra inferior de pedido más compacta y discreta en la tienda de trabajadores. */
+#shopTab .shop-bottom-bar{width:min(520px,calc(100% - 36px));min-height:54px;gap:10px;padding:8px 11px;border-radius:13px;background:rgba(20,20,19,.96);box-shadow:0 5px 18px #0005}
+#shopTab .shop-bottom-summary{gap:8px}
+#shopTab .shop-bottom-summary>span{min-width:28px;height:28px;padding:0 6px;font-size:.82rem}
+#shopTab .shop-bottom-summary small{font-size:.66rem}
+#shopTab .shop-bottom-summary strong{font-size:.9rem}
+#shopTab .shop-bottom-bar button{padding:8px 13px;font-size:.86rem;border-radius:9px}
+#shopTab .shop-grid{padding-bottom:72px}
+@media(max-width:680px){#shopTab .shop-bottom-bar{width:calc(100% - 28px);min-height:50px;padding:7px 9px;gap:8px;bottom:max(8px,env(safe-area-inset-bottom));border-radius:11px}#shopTab .shop-bottom-summary>span{min-width:26px;height:26px;font-size:.78rem}#shopTab .shop-bottom-bar button{padding:7px 11px;font-size:.82rem}}
