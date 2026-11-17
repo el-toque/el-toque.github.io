@@ -80,3 +80,53 @@ body{background:#f7f3eb}
 .welcome .eyebrow{color:#f0cf86!important;text-shadow:0 1px 2px #17130d55}
 .welcome h1{color:#fff8e9!important}
 .welcome p:last-child{color:#f0e5d1!important}
+
+
+/* Identidad principal El Toque: negro profundo, marfil y oro cálido. */
+:root{--blue:#d6ad55;--deep:#090a0b;--orange:#e6b64f;--ink:#f2eee5;--muted:#aaa397;--line:#34312a;--bg:#0b0c0e;--white:#151617;--shadow:0 12px 32px #0008}
+body{background:#0b0c0e;color:#f2eee5}
+.brand-header{height:78px;background:#08090a;border-bottom:2px solid #c99b3b;box-shadow:0 8px 24px #0008}
+.brand{color:#f4c65c;letter-spacing:-.7px}
+.brand img{filter:drop-shadow(0 0 5px #d5a83f33)}
+.brand-caption{color:#d8b65f}
+.catalog-tracking-button{border:1px solid #65512b;background:#171715;color:#f1cd78}
+.catalog-tracking-button:active{background:#2b2417;border-color:#d2a84b}
+.page{color:#f2eee5}
+.welcome{background:radial-gradient(circle at 86% 12%,#44351d 0,#1a1814 38%,#090a0b 78%);border:1px solid #514126;border-bottom:2px solid #c99b3b;box-shadow:0 15px 38px #0008}
+.welcome:after{border-color:#e5c78345;box-shadow:0 0 0 18px #e5c7830d,0 0 0 38px #e5c78308}
+.welcome .eyebrow{color:#edc96f!important}.welcome h1{color:#fff8e9!important}.welcome p:last-child{color:#d2c9b8!important}
+.promo-banner{border:1px solid #735a2b;background:linear-gradient(110deg,#111214,#342817);color:#f6edda}
+.promo-link{color:#f1cd78}
+.notice,.offline-catalog-notice{background:#241e13;border-color:#6d5428;color:#ead7ad}
+.unavailable,.search,.offer-card,.product-card{background:#151719;border-color:#34312a;color:#f2eee5}
+.unavailable p,.muted,.catalog-tools,.product-desc{color:#aaa397}
+.unavailable-mark{background:#302515;color:#e6b64f}
+.section-heading h2{color:#f4eee2}.section-heading .eyebrow{color:#d5aa4d}.section-heading>a{color:#e4bb62}
+.search{border-color:#494234}.search input{color:#f6f0e5}.search:focus-within{border-color:#d1a54a;box-shadow:0 0 0 3px #d1a54a25}
+.category-chip{background:#17191b;border-color:#403a2d;color:#e8e1d4}.category-chip.active{background:#e6b64f;border-color:#e6b64f;color:#17130b}
+.sort-control select{background:#17191b;border-color:#494234;color:#eee7d9}
+.offer-card,.product-card{box-shadow:0 7px 20px #0006}
+.offer-body h3,.product-info h3{color:#f5efe4}
+.offer-tag,.offer-label{background:#3a2d17;color:#f0c96c}
+.stock-label{background:#292722;color:#e9c36b;border:1px solid #69552d}
+.product-image-wrap{background:#242321}
+.product-price,.new-price{color:#f0c45d}.old-price,.product-old-price{color:#999184}
+.add-button,.submit-button{background:linear-gradient(110deg,#c99a3b,#f0c45d);color:#17130b;border:1px solid #d7a943}
+.add-button:hover,.submit-button:hover{filter:brightness(1.08)}
+.add-button:disabled{background:#393a38;border-color:#393a38;color:#aaa69d}
+.empty{color:#aaa397}
+.cart-bar{background:#101214;border-top:1px solid #514126;box-shadow:0 -9px 28px #0009}
+.cart-bar span{color:#b6ad9d}.cart-bar strong{color:#f0c45d}
+.cart-bar button{background:#e6b64f;color:#17130b;border:1px solid #e6b64f}
+.order-screen,.confirmation-screen,.tracking-screen{background:#101214;color:#f2eee5}
+.order-screen h1,.confirmation-screen h1,.tracking-screen h1{color:#f4eee2}
+.order-tag,.tracking-status{color:#e4bb62}.back-button,.text-button{color:#e4bb62}
+.order-form label{color:#e8e0d2}
+.order-form input,.order-form textarea,.edit-line input{background:#1b1d20;border-color:#494234;color:#f5efe4}
+.order-total-row{border-top-color:#a7833e}.order-total-row strong{color:#f0c45d}
+.cart-line{border-color:#38342b}.cart-line h3{color:#f3ecdf}
+.qty-control button{background:#202225;border-color:#4b4436;color:#f2d184}
+.tracking-card{background:#181a1b;border-color:#49402e}
+.toast{background:#292216;color:#f5d991;border:1px solid #6d5428}
+.whatsapp-button{background:#17271e;border-color:#315c40;color:#a9dfb8}
+@media(max-width:430px){.brand-header{height:72px}.welcome{border-radius:17px}}
