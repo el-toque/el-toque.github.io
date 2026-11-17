@@ -7,7 +7,7 @@
 <meta name="description" content="Explora el catálogo de El Toque y realiza tu pedido por QR.">
 <title>El Toque · Catálogo</title>
 <link rel="icon" href="../icons/logo-transparent.svg">
-<link rel="stylesheet" href="./catalog.css?v=4">
+<link rel="stylesheet" href="./catalog.css?v=5">
 </head>
 <body>
 <header class="brand-header">
@@ -33,6 +33,7 @@
     <span class="unavailable-mark">!</span><h2>Pedidos temporalmente no disponibles</h2>
     <p>En este momento no podemos recibir pedidos. Inténtalo nuevamente más tarde.</p>
   </div>
+  <section id="catalogTrackingAccess" class="catalog-tracking-access hidden" aria-label="Seguimiento de pedido"><div><strong>¿Quieres consultar tu pedido?</strong><p>Revisa su estado actualizado cuando lo necesites.</p></div><button id="catalogTrackingButton" type="button">Consultar mi pedido <span>→</span></button></section>
   <section id="offersSection" class="catalog-section hidden">
     <div class="section-heading"><div><p class="eyebrow">PROMOCIONES</p><h2>Ofertas</h2></div><a href="#catalog">Ver catálogo</a></div>
     <div id="offersCarousel" class="offers-carousel" aria-label="Ofertas"></div>
@@ -82,6 +83,6 @@
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../config.js"></script>
-<script src="./catalog.js?v=6"></script>
+<script src="./catalog.js?v=7"></script>
 </body>
 </html>
