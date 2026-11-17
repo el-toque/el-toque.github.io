@@ -43,6 +43,36 @@
     <p class="muted small ipv-table-instructions">Añade la cantidad en la última columna de un producto existente o completa la fila nueva al final. Cada envío quedará pendiente hasta que el trabajador activo lo apruebe.</p>
     <div class="table-wrap ipv-live-table-wrap"><table class="turn-table ipv-live-table"><thead><tr><th>Producto</th><th>Inicio</th><th>Entrada</th><th>Disponible</th><th>Final</th><th>Vendido</th><th>Precio</th><th>Importe</th></tr></thead><tbody id="adminIPVRows"><tr><td colspan="8" class="muted">Cargando tabla IPV…</td></tr></tbody><tfoot><tr><th colspan="7">TOTAL GENERAL</th><th id="adminIPVTotal">0,00 CUP</th></tr></tfoot></table></div>
     <div class="ipv-live-meta"><span id="adminIPVRowCount">0 productos</span><span id="adminIPVLastUpdate">Esperando datos del turno</span></div>
+
+    <section class="turn-history product-management-section" aria-labelledby="productManagementTitle">
+      <div class="toolbar">
+        <div><p class="eyebrow">INVENTARIO GENERAL</p><h3 id="productManagementTitle">Catálogo de productos</h3><p class="muted small">Registra productos, precios, existencias iniciales, costos y categorías. Los ajustes quedan registrados en el historial de movimientos.</p></div>
+        <div class="qr-admin-toolbar-actions">
+          <button id="addBtn" class="primary" type="button">＋ Añadir producto</button>
+          <button id="manageCategoriesBtn" class="secondary" type="button">Categorías</button>
+        </div>
+      </div>
+      <div class="stats">
+        <article class="stat"><span>Productos registrados</span><strong id="productCount">0</strong></article>
+        <article class="stat"><span>Unidades en almacén</span><strong id="unitCount">0</strong></article>
+        <article class="stat"><span>Valor del inventario</span><strong id="stockValue">0,00 CUP</strong></article>
+      </div>
+      <div class="shop-tools">
+        <label class="shop-search-wrap"><span>⌕</span><input id="search" type="search" placeholder="Buscar por nombre o código…" aria-label="Buscar productos del inventario general"></label>
+        <div class="qr-admin-toolbar-actions">
+          <button id="exportInventory" class="secondary" type="button">Exportar inventario (.xlsx)</button>
+          <button id="exportInventoryPdf" class="secondary" type="button">Exportar inventario a PDF</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Producto</th><th>SKU / Código</th><th>Precio</th><th>Existencias</th><th>Stock mínimo</th><th>Acciones</th></tr></thead>
+          <tbody id="productsBody"><tr><td colspan="6" class="muted">Cargando productos…</td></tr></tbody>
+        </table>
+      </div>
+      <p id="inventoryEmpty" class="empty hidden">Todavía no hay productos registrados. Utiliza «Añadir producto» para comenzar.</p>
+    </section>
+
     <section class="qr-admin-settings" aria-labelledby="qrAdminTitle">
       <div class="toolbar"><div><p class="eyebrow">CATÁLOGO PÚBLICO</p><h3 id="qrAdminTitle">Configuración de pedidos por QR</h3><p class="muted small">Controla la presentación del catálogo que abre el cliente al escanear el código. Los pedidos se gestionan únicamente desde Vale del trabajador.</p></div><div class="qr-admin-toolbar-actions"><a class="secondary" href="/pedidos-qr/imprimir.html" target="_blank" rel="noopener">Imprimir QR permanente</a><button id="refreshQrAdmin" class="secondary" type="button">↻ Actualizar</button></div></div>
       <div class="qr-admin-general">
