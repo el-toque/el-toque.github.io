@@ -80,7 +80,7 @@ const admin=()=>profile?.role==="admin";
 const workerPermission=key=>admin()||profile?.worker_permissions?.[key]!==false;
 function fail(el,msg){$(el).textContent=msg}
 async function init(){
- if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js?v=70",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
+ if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js?v=71",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
  window.addEventListener("online",()=>{updateHeaderIndicators(0);syncPendingSales();});window.addEventListener("offline",()=>{updateHeaderIndicators(0);updatePendingBadge();});window.addEventListener("ipv:turn-context-updated",()=>updateHeaderIndicators(0));
  // Inicializa el indicador visual sin esperar a que termine la recuperación de sesión.
  updateHeaderIndicators(0);
@@ -269,7 +269,7 @@ async function ensureTurnContext(){
  if(error)throw error;
  if(!data?.is_my_turn)throw new Error("Este no es el turno activo. Actualiza IPV o espera el cierre del otro trabajador.");
  const context={businessDate:data.last_business_date||data.business_date||day,sessionNo:Number(data.session_no)||1,shift:Number((user?.email||"").toLowerCase()==="dependiente1@eltoque.com"?1:2)};
- window.IPV_TURN_CONTEXT=context;return context;
+ window.IPV_TURN_CONTEXT=context;localStorage.setItem("ipv_turn_context_"+user.id,JSON.stringify(context));return context;
 }
 async function loadProducts(){
  if(user&&!admin()){
