@@ -514,16 +514,18 @@ function renderVoucherList(){
   if(originFilter==="qr"&&v._kind!=="qr")return false;
   if(originFilter==="conventional"&&v._kind!=="voucher")return false;
   if(originFilter==="inherited"&&!(v._kind==="qr"&&v.inherited))return false;
+  if(statusFilter==="active"&&((v._kind==="voucher"&&v.status==="paid")||(v._kind==="qr"&&v.status==="attended")))return false;
   if(statusFilter==="pending"&&!((v._kind==="voucher"&&v.status==="pending")||(v._kind==="qr"&&["new","preparing","ready"].includes(v.status))))return false;
   if(statusFilter==="new"&&!(v._kind==="qr"&&v.status==="new"))return false;
   if(statusFilter==="preparing"&&!(v._kind==="qr"&&v.status==="preparing"))return false;
   if(statusFilter==="ready"&&!(v._kind==="qr"&&v.status==="ready"))return false;
-  if(statusFilter==="attended"&&!((v._kind==="voucher"&&v.status==="paid")||(v._kind==="qr"&&v.status==="attended")))return false;
+  if((statusFilter==="attended"||statusFilter==="completed")&&!((v._kind==="voucher"&&v.status==="paid")||(v._kind==="qr"&&v.status==="attended")))return false;
   if(statusFilter==="cancelled"&&v.status!=="cancelled")return false;
   if(statusFilter==="history"&&!((v._kind==="voucher"&&["paid","cancelled"].includes(v.status))||(v._kind==="qr"&&["attended","cancelled"].includes(v.status))))return false;
   return true;
  });
- list.sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+ const stageOrder=v=>v.status==="pending"||v.status==="new"?0:v.status==="preparing"?1:v.status==="ready"?2:v.status==="cancelled"?3:4;
+ list.sort((a,b)=>stageOrder(a)-stageOrder(b)||new Date(a.created_at)-new Date(b.created_at));
  if(!list.length){host.innerHTML='<p class="empty">No hay pedidos que coincidan con la búsqueda o los filtros.</p>';return;}
  host.innerHTML=list.map(v=>{
   const status=v.status||"pending",isQr=v._kind==="qr";
