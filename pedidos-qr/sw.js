@@ -1,5 +1,5 @@
 "use strict";
-const CACHE_NAME="el-toque-qr-static-v11";
+const CACHE_NAME="el-toque-qr-static-v12";
 const SCOPE=self.registration.scope;
 const PRECACHE=[
   SCOPE,
