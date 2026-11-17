@@ -1406,3 +1406,7 @@ body.login-screen .auth-panel:before{
 
 /* Ajustes de legibilidad táctil para pedidos QR en pantallas estrechas. */
 @media(max-width:420px){#valesTab .voucher-card-top{align-items:flex-start;justify-content:flex-start;flex-wrap:wrap}#valesTab .voucher-card-top>.voucher-status{margin-left:auto}#valesTab .qr-worker-actions{grid-template-columns:1fr}}
+
+/* Catálogos de trabajador: 2 columnas en teléfono y 4 en tablet/escritorio */
+@media(min-width:561px){#shopTab .shop-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}}
+@media(max-width:560px){#shopTab .shop-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
