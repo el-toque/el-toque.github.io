@@ -130,3 +130,9 @@ body{background:#0b0c0e;color:#f2eee5}
 .toast{background:#292216;color:#f5d991;border:1px solid #6d5428}
 .whatsapp-button{background:#17271e;border-color:#315c40;color:#a9dfb8}
 @media(max-width:430px){.brand-header{height:72px}.welcome{border-radius:17px}}
+
+/* Contador dorado de unidades seleccionadas sobre cada producto del catálogo QR. */
+.product-image-wrap,.offer-image-wrap{position:relative}
+.offer-image-wrap{height:150px;background:#242321}
+.offer-image-wrap>img{display:block;width:100%;height:100%;object-fit:cover}
+.cart-quantity-badge{position:absolute;right:9px;bottom:9px;z-index:3;display:grid;place-items:center;min-width:32px;height:32px;padding:0 8px;border:2px solid #f5dfaa;border-radius:999px;background:#e6b64f;color:#17130b;font-size:15px;font-weight:950;line-height:1;box-shadow:0 3px 12px #0009;pointer-events:none}
