@@ -1,11 +1,11 @@
 "use strict";
-const CACHE_NAME="el-toque-qr-static-v10";
+const CACHE_NAME="el-toque-qr-static-v11";
 const SCOPE=self.registration.scope;
 const PRECACHE=[
   SCOPE,
   SCOPE+"index.html",
-  SCOPE+"catalog.css?v=10",
-  SCOPE+"catalog.js?v=10",
+  SCOPE+"catalog.css?v=11",
+  SCOPE+"catalog.js?v=11",
   new URL("../config.js",SCOPE).href,
   new URL("../icons/logo-transparent.svg",SCOPE).href,
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
