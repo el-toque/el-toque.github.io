@@ -107,7 +107,7 @@ input,select,textarea{background:#1b1e22;border-color:#393c42;color:#f5f0e7}labe
 #shopTab .order-payment-panel label{display:grid;gap:7px;color:#d6cfc2}
 #shopTab .order-payment-panel select,#shopTab .order-payment-panel input{width:100%;background:#1c1f23;border:1px solid #41444a;color:#f5f0e7;border-radius:9px;padding:11px}
 #shopTab .order-payment-panel #shopSellBtn{margin-top:4px;background:linear-gradient(110deg,#e4ad3d,#f4c85e);border-color:#e4ad3d;color:#17130b;font-weight:900}
-#shopTab .order-payment-panel #shopSellBtn:disabled{opacity:.45;cursor:not-allowed}
+#shopTab .order-payment-panel #shopSellBtn:disabled,#shopTab .order-payment-panel #shopConfirmSaleBtn:disabled{opacity:.45;cursor:not-allowed}#shopTab .order-payment-panel #shopConfirmSaleBtn{background:linear-gradient(110deg,#e4ad3d,#f4c85e);border-color:#e4ad3d;color:#17130b;font-weight:900}#shopTab .order-payment-panel hr{width:100%;border:0;border-top:1px solid #34363a;margin:5px 0}#shopTab .checkout-hint{margin:0;color:#aaa39a;font-size:.76rem;line-height:1.45}
 #shopTab .order-items-panel .cart-row{padding:14px 0;border-color:#34363a;color:#eee8dc}
 #shopTab .order-items-panel .cart-row strong{color:#f0c45d}
 #shopTab .order-items-panel .empty{color:#aaa39a}
