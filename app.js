@@ -35,7 +35,7 @@ function updateHeaderIndicators(pendingCount=null){
  }
 }
 async function updatePendingBadge(){const queue=await pendingSales(),n=queue.length;updateHeaderIndicators(n);const status=$("offlineStatus");if(status){status.textContent=n?`${n} venta(s) pendiente(s) de sincronizar`:(navigator.onLine?"EN LÍNEA":"SIN CONEXIÓN");status.classList.toggle("pending",n>0);status.classList.toggle("offline",!navigator.onLine);status.classList.toggle("online",navigator.onLine&&n===0);}const syncBtn=$("syncPendingBtn");if(syncBtn){syncBtn.classList.toggle("hidden",n===0);syncBtn.disabled=!navigator.onLine||syncingPending;syncBtn.textContent=syncingPending?"Sincronizando…":"Sincronizar ventas pendientes";}const close=$("closeDaily");if(close){close.disabled=!!activeCloseout||n>0||!navigator.onLine||!workerPermission("can_close_day")||!workerPermission("can_view_own_closeout");close.title=n?"Sincroniza las ventas pendientes antes de cerrar":"";}for(const id of ["exportDaily","exportDailyPdf","refreshDaily"]){const b=$(id);if(b){b.disabled=!navigator.onLine;b.title=navigator.onLine?"":"Necesitas conexión para consultar el cuadre actualizado";}}return n;}
-async function saveOfflineSale(items,method,code,id=crypto.randomUUID(),knownContext=null){
+async function saveOfflineSale(items,method,code,id=crypto.randomUUID(),knownContext=null,transferPayer=null){
  const queue=await pendingSales();
  if(queue.some(x=>x.id===id))return queue.find(x=>x.id===id);
  // Evita consumir dos veces las mismas unidades asignadas mientras no hay servidor.
@@ -46,7 +46,7 @@ async function saveOfflineSale(items,method,code,id=crypto.randomUUID(),knownCon
   else{try{turnCtx=window.IPV_TURN_CONTEXT||JSON.parse(localStorage.getItem("ipv_turn_context_"+user.id)||"null");}catch(_){turnCtx=null;}}
  }
  if(!turnCtx)throw new Error("No se pudo identificar la sesión activa para guardar la venta sin conexión.");
- const entry={id,worker_id:user?.id||null,turn_inventory:true,independent_inventory:!!turnCtx.independent,session_id:turnCtx.sessionId||null,session_no:turnCtx.sessionNo,items:items.map(x=>({product_id:x.product_id,quantity:x.quantity})),payment_method:method,transfer_code:method==="transfer"?code:null,business_date:turnCtx.businessDate,created_at:new Date().toISOString(),status:"pending"};
+ const entry={id,worker_id:user?.id||null,turn_inventory:true,independent_inventory:!!turnCtx.independent,session_id:turnCtx.sessionId||null,session_no:turnCtx.sessionNo,items:items.map(x=>({product_id:x.product_id,quantity:x.quantity})),payment_method:method,transfer_code:method==="transfer"?code:null,transfer_payer_first_name:method==="transfer"?transferPayer?.firstName||null:null,transfer_payer_surname:method==="transfer"?transferPayer?.surname||null:null,transfer_payer_phone:method==="transfer"?transferPayer?.phone||null:null,business_date:turnCtx.businessDate,created_at:new Date().toISOString(),status:"pending"};
  queue.push(entry);await localPut("pending_sales",queue);
  for(const line of entry.items){const allocation=workerAllocations.find(a=>a.product_id===line.product_id);allocation.quantity_remaining-=line.quantity;}
  await cacheWorkerState();await updatePendingBadge();renderShopProducts();return entry;
@@ -62,9 +62,9 @@ async function syncPendingSales(){
    if(!navigator.onLine)break;
    if(entry.worker_id&&entry.worker_id!==user.id){toast("Hay ventas pendientes de otra cuenta. Entra con la cuenta que las registró para sincronizarlas.");break;}
    const {data,error}=entry.independent_inventory
-    ? await client.rpc("worker_independent_create_sale",{p_session_id:entry.session_id,p_items:entry.items.map(x=>({turn_item_id:x.product_id,quantity:x.quantity})),p_payment_method:entry.payment_method,p_idempotency_key:entry.id,p_transfer_code:entry.transfer_code})
+    ? await client.rpc("worker_independent_create_sale",{p_session_id:entry.session_id,p_items:entry.items.map(x=>({turn_item_id:x.product_id,quantity:x.quantity})),p_payment_method:entry.payment_method,p_idempotency_key:entry.id,p_transfer_code:entry.transfer_code,p_transfer_payer_first_name:entry.transfer_payer_first_name,p_transfer_payer_surname:entry.transfer_payer_surname,p_transfer_payer_phone:entry.transfer_payer_phone})
     : entry.turn_inventory
-      ? await client.rpc("worker_turn_create_sale",{p_items:entry.items.map(x=>({turn_item_id:x.product_id,quantity:x.quantity})),p_payment_method:entry.payment_method,p_idempotency_key:entry.id,p_transfer_code:entry.transfer_code,p_business_date:entry.business_date,p_session_no:Number(entry.session_no)||1})
+      ? await client.rpc("worker_turn_create_sale",{p_items:entry.items.map(x=>({turn_item_id:x.product_id,quantity:x.quantity})),p_payment_method:entry.payment_method,p_idempotency_key:entry.id,p_transfer_code:entry.transfer_code,p_business_date:entry.business_date,p_session_no:Number(entry.session_no)||1,p_transfer_payer_first_name:entry.transfer_payer_first_name,p_transfer_payer_surname:entry.transfer_payer_surname,p_transfer_payer_phone:entry.transfer_payer_phone})
       : await client.rpc("create_sale",{p_items:entry.items,p_payment_method:entry.payment_method,p_idempotency_key:entry.id,p_notes:null,p_transfer_code:entry.transfer_code,p_business_date:entry.business_date});
    if(error){entry.last_error=error.message;entry.status="error";queue=queue.map(x=>x.id===entry.id?entry:x);await localPut("pending_sales",queue);toast("Una venta sigue pendiente: "+error.message);break;}
    queue=queue.filter(x=>x.id!==entry.id);await localPut("pending_sales",queue);if(entry.turn_inventory)window.dispatchEvent(new Event("ipv:turn-inventory-refresh"));toast("Venta pendiente sincronizada. Folio: "+data);
@@ -428,15 +428,20 @@ $("shopSellBtn").addEventListener("click",async()=>{
 });
 $("shopPaymentMethod")?.addEventListener("change",()=>{
  const transfer=$("shopPaymentMethod").value==="transfer";
- $("shopTransferCodeField")?.classList.toggle("hidden",!transfer);
- if($("shopTransferCode"))$("shopTransferCode").required=transfer;
+ $("shopTransferFields")?.classList.toggle("hidden",!transfer);
+ ["shopTransferCode","shopTransferPayerFirstName","shopTransferPayerSurname","shopTransferPayerPhone"].forEach(id=>{const field=$(id);if(field)field.required=transfer;});
 });
 $("shopConfirmSaleBtn")?.addEventListener("click",async()=>{
  if(!cart.length){fail("shopMessage","Agrega al menos un producto al pedido.");return;}
  if(!workerPermission("can_sell")){fail("shopMessage","Tu cuenta no tiene permiso para registrar ventas.");return;}
  const method=$("shopPaymentMethod")?.value||"cash";
  const code=$("shopTransferCode")?.value.trim()||"";
+ const transferPayer={firstName:$("shopTransferPayerFirstName")?.value.trim()||"",surname:$("shopTransferPayerSurname")?.value.trim()||"",phone:$("shopTransferPayerPhone")?.value.trim()||""};
+ const phoneDigits=transferPayer.phone.replace(/[^0-9]/g,"");
  if(method==="transfer"&&!code){fail("shopMessage","Introduce el código de operación de la transferencia.");$("shopTransferCode")?.focus();return;}
+ if(method==="transfer"&&!transferPayer.firstName){fail("shopMessage","Introduce el nombre de quien realizó la transferencia.");$("shopTransferPayerFirstName")?.focus();return;}
+ if(method==="transfer"&&!transferPayer.surname){fail("shopMessage","Introduce el primer apellido de quien realizó la transferencia.");$("shopTransferPayerSurname")?.focus();return;}
+ if(method==="transfer"&&(phoneDigits.length<7||phoneDigits.length>15)){fail("shopMessage","Introduce un teléfono válido (entre 7 y 15 dígitos).");$("shopTransferPayerPhone")?.focus();return;}
  const btn=$("shopConfirmSaleBtn"),items=cart.map(x=>({product_id:x.product_id,quantity:x.quantity})),id=crypto.randomUUID();
  const networkFailure=e=>!navigator.onLine||e?.status===0||e?.name==="TypeError"||/failed to fetch|networkerror|fetch failed|load failed|network request failed/i.test(e?.message||"");
  btn.disabled=true;fail("shopMessage","Registrando la venta…");
@@ -445,7 +450,7 @@ $("shopConfirmSaleBtn")?.addEventListener("click",async()=>{
   let ctx=null;
   if(navigator.onLine){
    try{ctx=await ensureTurnContext();}
-   catch(e){if(!networkFailure(e))throw e;try{ctx=window.IPV_TURN_CONTEXT||JSON.parse(localStorage.getItem("ipv_turn_context_"+user.id)||"null");}catch(_){ctx=null;}if(!ctx)throw new Error("No hay un turno guardado para registrar ventas sin conexión. Conéctate una vez y vuelve a intentarlo.");await saveOfflineSale(items,method,code,id,ctx);queued=true;}
+   catch(e){if(!networkFailure(e))throw e;try{ctx=window.IPV_TURN_CONTEXT||JSON.parse(localStorage.getItem("ipv_turn_context_"+user.id)||"null");}catch(_){ctx=null;}if(!ctx)throw new Error("No hay un turno guardado para registrar ventas sin conexión. Conéctate una vez y vuelve a intentarlo.");await saveOfflineSale(items,method,code,id,ctx,transferPayer);queued=true;}
   }else{
    try{ctx=window.IPV_TURN_CONTEXT||JSON.parse(localStorage.getItem("ipv_turn_context_"+user.id)||"null");}catch(_){ctx=null;}
    if(!ctx)throw new Error("Para vender sin conexión debes haber iniciado sesión y cargado el inventario en este teléfono anteriormente.");
@@ -454,14 +459,14 @@ $("shopConfirmSaleBtn")?.addEventListener("click",async()=>{
   if(!queued){
    const payload=items.map(x=>({turn_item_id:x.product_id,quantity:x.quantity}));
    const result=profile?.ipv_mode==="independent"
-    ? await client.rpc("worker_independent_create_sale",{p_session_id:ctx.sessionId,p_items:payload,p_payment_method:method,p_idempotency_key:id,p_transfer_code:method==="transfer"?code:null})
-    : await client.rpc("worker_turn_create_sale",{p_items:payload,p_payment_method:method,p_idempotency_key:id,p_transfer_code:method==="transfer"?code:null,p_business_date:ctx.businessDate,p_session_no:ctx.sessionNo});
+    ? await client.rpc("worker_independent_create_sale",{p_session_id:ctx.sessionId,p_items:payload,p_payment_method:method,p_idempotency_key:id,p_transfer_code:method==="transfer"?code:null,p_transfer_payer_first_name:method==="transfer"?transferPayer.firstName:null,p_transfer_payer_surname:method==="transfer"?transferPayer.surname:null,p_transfer_payer_phone:method==="transfer"?transferPayer.phone:null})
+    : await client.rpc("worker_turn_create_sale",{p_items:payload,p_payment_method:method,p_idempotency_key:id,p_transfer_code:method==="transfer"?code:null,p_business_date:ctx.businessDate,p_session_no:ctx.sessionNo,p_transfer_payer_first_name:method==="transfer"?transferPayer.firstName:null,p_transfer_payer_surname:method==="transfer"?transferPayer.surname:null,p_transfer_payer_phone:method==="transfer"?transferPayer.phone:null});
    if(result.error){
     if(!networkFailure(result.error))throw result.error;
     await saveOfflineSale(items,method,code,id,ctx);queued=true;
    }else saleId=result.data;
   }
-  cart=[];$("shopTransferCode").value="";$("shopPaymentMethod").value="cash";$("shopTransferCodeField").classList.add("hidden");$("shopTransferCode").required=false;
+  cart=[];["shopTransferCode","shopTransferPayerFirstName","shopTransferPayerSurname","shopTransferPayerPhone"].forEach(id=>{const field=$(id);if(field){field.value="";field.required=false;}});$("shopPaymentMethod").value="cash";$("shopTransferFields").classList.add("hidden");
   renderShopCart();renderShopProducts();fail("shopMessage","");
   toast(queued?"Venta guardada en este teléfono. Se sincronizará al recuperar conexión.":"Venta registrada correctamente. Folio: "+saleId);
   if(navigator.onLine){try{await loadProducts();await loadWorkerAllocations();await loadDailyBillCounts();}catch(e){console.warn("[IPV actualización tras venta]",e);}}
