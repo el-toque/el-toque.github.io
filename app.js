@@ -454,7 +454,7 @@ $("shopConfirmSaleBtn")?.addEventListener("click",async()=>{
   }else{
    try{ctx=window.IPV_TURN_CONTEXT||JSON.parse(localStorage.getItem("ipv_turn_context_"+user.id)||"null");}catch(_){ctx=null;}
    if(!ctx)throw new Error("Para vender sin conexión debes haber iniciado sesión y cargado el inventario en este teléfono anteriormente.");
-   await saveOfflineSale(items,method,code,id,ctx);queued=true;
+   await saveOfflineSale(items,method,code,id,ctx,transferPayer);queued=true;
   }
   if(!queued){
    const payload=items.map(x=>({turn_item_id:x.product_id,quantity:x.quantity}));
@@ -463,7 +463,7 @@ $("shopConfirmSaleBtn")?.addEventListener("click",async()=>{
     : await client.rpc("worker_turn_create_sale",{p_items:payload,p_payment_method:method,p_idempotency_key:id,p_transfer_code:method==="transfer"?code:null,p_business_date:ctx.businessDate,p_session_no:ctx.sessionNo,p_transfer_payer_first_name:method==="transfer"?transferPayer.firstName:null,p_transfer_payer_surname:method==="transfer"?transferPayer.surname:null,p_transfer_payer_phone:method==="transfer"?transferPayer.phone:null});
    if(result.error){
     if(!networkFailure(result.error))throw result.error;
-    await saveOfflineSale(items,method,code,id,ctx);queued=true;
+    await saveOfflineSale(items,method,code,id,ctx,transferPayer);queued=true;
    }else saleId=result.data;
   }
   cart=[];["shopTransferCode","shopTransferPayerFirstName","shopTransferPayerSurname","shopTransferPayerPhone"].forEach(id=>{const field=$(id);if(field){field.value="";field.required=false;}});$("shopPaymentMethod").value="cash";$("shopTransferFields").classList.add("hidden");
