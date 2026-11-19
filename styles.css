@@ -1420,3 +1420,7 @@ body.login-screen .auth-panel:before{
 #shopTab .shop-bottom-bar button{padding:8px 13px;font-size:.86rem;border-radius:9px}
 #shopTab .shop-grid{padding-bottom:72px}
 @media(max-width:680px){#shopTab .shop-bottom-bar{width:calc(100% - 28px);min-height:50px;padding:7px 9px;gap:8px;bottom:max(8px,env(safe-area-inset-bottom));border-radius:11px}#shopTab .shop-bottom-summary>span{min-width:26px;height:26px;font-size:.78rem}#shopTab .shop-bottom-bar button{padding:7px 11px;font-size:.82rem}}
+
+/* Clasificación de pedidos de la tienda en línea. */
+.online-order-filters{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 20px}.online-order-filters button{white-space:nowrap}.online-order-filters button.active{background:var(--primary,#0755a4);color:#fff;border-color:var(--primary,#0755a4)}
+@media(max-width:560px){.online-order-filters{gap:6px}.online-order-filters button{padding:8px 10px;font-size:.82rem}}
