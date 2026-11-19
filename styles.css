@@ -1424,3 +1424,6 @@ body.login-screen .auth-panel:before{
 /* Clasificación de pedidos de la tienda en línea. */
 .online-order-filters{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 20px}.online-order-filters button{white-space:nowrap}.online-order-filters button.active{background:var(--primary,#0755a4);color:#fff;border-color:var(--primary,#0755a4)}
 @media(max-width:560px){.online-order-filters{gap:6px}.online-order-filters button{padding:8px 10px;font-size:.82rem}}
+
+/* Datos completos del titular de transferencia en venta directa del trabajador. */
+#shopTab .shop-transfer-fields{display:grid;gap:10px;margin:4px 0 12px}#shopTab .shop-transfer-fields label{display:grid;gap:5px}
