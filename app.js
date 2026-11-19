@@ -226,8 +226,8 @@ $("loginForm").addEventListener("submit",async e=>{
  finally{loginInProgress=false;if(btn){btn.disabled=false;btn.textContent=original;}}
 });
 const logout=async()=>{try{await client.auth.signOut();showLogin();}catch(error){toast("No se pudo cerrar la sesión: "+(error?.message||"Error inesperado"));}};$("logoutBtn").addEventListener("click",logout);$("workerLogoutBtn")?.addEventListener("click",logout);
-function showSection(tab){const sections=["dashboard","inventory","independent","sales","closeouts","ipvHistory","transfers","workers","shop","vales","daily","onlineStore"];sections.forEach(t=>{const panel=$(t+"Tab");if(panel)panel.classList.toggle("hidden",t!==tab);});const active=$(tab+"Tab");if(active)active.classList.remove("hidden");return !!active;}
-document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(b.dataset.tab==="vales"){$("qrOrderAlert")?.classList.add("hidden");markQrNotificationsSeen();}if(b.closest("#adminTabs")||b.closest("#workerTabs")){document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.setAttribute("aria-expanded","false");}if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","independent","sales","workers","ipvHistory"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailyBillCounts();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="vales")loadVouchers();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="inventory")loadAdminIPV();if(b.dataset.tab==="independent")loadAdminIndependentIPV();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="ipvHistory")loadAdminIPVHistory();if(b.dataset.tab==="transfers")loadAdminTransfers();if(b.dataset.tab==="onlineStore")loadOnlineStoreAdmin();}));
+function showSection(tab){const sections=["dashboard","inventory","independent","sales","closeouts","ipvHistory","transfers","workers","shop","vales","daily","onlineStore","onlineStoreOrders"];sections.forEach(t=>{const panel=$(t+"Tab");if(panel)panel.classList.toggle("hidden",t!==tab);});const active=$(tab+"Tab");if(active)active.classList.remove("hidden");return !!active;}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{if(b.dataset.tab==="vales"){$("qrOrderAlert")?.classList.add("hidden");markQrNotificationsSeen();}if(b.closest("#adminTabs")||b.closest("#workerTabs")){document.body.classList.remove("admin-sidebar-open");$("adminSidebarOverlay")?.classList.add("hidden");$("adminMenuToggle")?.setAttribute("aria-expanded","false");}if((admin()&&["shop","daily"].includes(b.dataset.tab))||(!admin()&&["inventory","independent","sales","workers","ipvHistory"].includes(b.dataset.tab)))return;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));showSection(b.dataset.tab);if(b.dataset.tab==="daily"){loadDailyBillCounts();}if(b.dataset.tab==="shop")loadProducts();if(b.dataset.tab==="vales")loadVouchers();if(b.dataset.tab==="dashboard")loadAdminDashboard();if(b.dataset.tab==="inventory")loadAdminIPV();if(b.dataset.tab==="independent")loadAdminIndependentIPV();if(b.dataset.tab==="closeouts")loadAdminCloseouts();if(b.dataset.tab==="ipvHistory")loadAdminIPVHistory();if(b.dataset.tab==="transfers")loadAdminTransfers();if(b.dataset.tab==="onlineStore")loadOnlineStoreAdmin();if(b.dataset.tab==="onlineStoreOrders")loadOnlineStoreOrdersAdmin();}));
 /* Ocultar el botón del menú bajo el encabezado al desplazar la página hacia abajo. */
 /* Detectar el desplazamiento real tanto de la página como de contenedores internos. */
 let menuToggleLastY=0;
@@ -1088,10 +1088,9 @@ const onlineMoney=n=>new Intl.NumberFormat("es-ES",{minimumFractionDigits:2,maxi
 async function loadOnlineStoreAdmin(){
  if(!admin())return;
  $("onlineStoreProductsMessage").textContent="Cargando catálogo unificado…";
- const [cfgRes,prodRes,ordersRes]=await Promise.all([
+ const [cfgRes,prodRes]=await Promise.all([
   client.from("store_settings").select("whatsapp_number,delivery_information").eq("id",true).maybeSingle(),
-  client.rpc("store_admin_catalog"),
-  client.rpc("store_admin_orders")
+  client.rpc("store_admin_catalog")
  ]);
  if(cfgRes.error){$("onlineStoreSettingsMessage").textContent=cfgRes.error.message;return;}
  $("onlineStoreWhatsapp").value=cfgRes.data?.whatsapp_number||"";
@@ -1099,14 +1098,21 @@ async function loadOnlineStoreAdmin(){
  if(prodRes.error){$("onlineStoreProductsMessage").textContent=prodRes.error.message;return;}
  onlineStoreProducts=(prodRes.data||[]).map(p=>({...p,storeSettings:{published:p.published,store_price:p.store_price,store_image_url:p.store_image_url}}));
  renderOnlineStoreProducts();
- if(ordersRes.error){$("onlineStoreOrders").innerHTML='<p class="form-error">'+esc(ordersRes.error.message)+'</p>';return;}
- onlineStoreOrders=ordersRes.data||[];
+}
+let onlineOrderFilter="all";
+async function loadOnlineStoreOrdersAdmin(){
+ if(!admin())return;
+ $("onlineStoreOrders").innerHTML='<p class="muted small">Cargando pedidos…</p>';
+ const {data,error}=await client.rpc("store_admin_orders");
+ if(error){$("onlineStoreOrders").innerHTML='<p class="form-error">'+esc(error.message)+'</p>';return;}
+ onlineStoreOrders=data||[];
  await Promise.all(onlineStoreOrders.filter(o=>o.status==="pending").map(async o=>{
   const {data,error}=await client.rpc("store_admin_order_sources",{p_order_id:o.id});
   o.supplyItems=error?[]:(data||[]);
  }));
  renderOnlineStoreOrders();
 }
+
 function renderOnlineStoreProducts(){
  const body=$("onlineStoreProductsBody");
  if(!onlineStoreProducts.length){body.innerHTML='<tr><td colspan="7">Todavía no hay productos en los inventarios de trabajadores.</td></tr>';return;}
@@ -1114,8 +1120,9 @@ function renderOnlineStoreProducts(){
 }
 function renderOnlineStoreOrders(){
  const root=$("onlineStoreOrders");
- if(!onlineStoreOrders.length){root.innerHTML='<p class="muted small">Todavía no hay pedidos registrados.</p>';return;}
- root.innerHTML=onlineStoreOrders.map(o=>{
+ const visibleOrders=onlineOrderFilter==="all"?onlineStoreOrders:onlineStoreOrders.filter(o=>o.status===onlineOrderFilter);
+ if(!visibleOrders.length){root.innerHTML='<p class="muted small">Todavía no hay pedidos registrados.</p>';return;}
+ root.innerHTML=visibleOrders.map(o=>{
   const itemHtml=(Array.isArray(o.items)?o.items:[]).map(i=>{
    const supply=(o.supplyItems||[]).find(x=>x.order_item_id===i.id);
    const options=(supply?.sources||[]).map(src=>'<option value="'+esc(src.source_type+'|'+src.source_item_id)+'" '+(supply.source_type===src.source_type&&supply.source_item_id===src.source_item_id?'selected':'')+'>'+esc(src.worker_name)+' · '+esc(src.available_qty)+' disponibles</option>').join("");
@@ -1132,6 +1139,8 @@ function renderOnlineStoreOrders(){
  }).join("");
 }
 $("refreshOnlineStore").addEventListener("click",loadOnlineStoreAdmin);
+ $("refreshOnlineStoreOrders").addEventListener("click",loadOnlineStoreOrdersAdmin);
+ document.querySelectorAll("[data-order-filter]").forEach(btn=>btn.addEventListener("click",()=>{onlineOrderFilter=btn.dataset.orderFilter;document.querySelectorAll("[data-order-filter]").forEach(x=>x.classList.toggle("active",x===btn));renderOnlineStoreOrders();}));
 $("saveOnlineStoreSettings").addEventListener("click",async()=>{
  const b=$("saveOnlineStoreSettings");b.disabled=true;$("onlineStoreSettingsMessage").textContent="Guardando…";
  const {error}=await client.rpc("store_admin_update_settings",{p_whatsapp:$("onlineStoreWhatsapp").value.trim(),p_delivery:$("onlineStoreDelivery").value.trim()});
@@ -1154,15 +1163,15 @@ $("onlineStoreOrders").addEventListener("click",async e=>{
   const saved=await client.rpc("store_admin_set_order_item_source",{p_order_item_id:assign.dataset.supplySave,p_source_type:sourceType,p_source_item_id:sourceItemId});
   assign.disabled=false;
   if(saved.error)toast("Asignación: "+saved.error.message);else toast("Trabajador asignado al producto.");
-  await loadOnlineStoreAdmin();return;
+  await loadOnlineStoreOrdersAdmin();return;
  }
  const c=e.target.closest("[data-order-confirm]"),s=e.target.closest("[data-order-status]"),x=e.target.closest("[data-order-cancel]");let result;
  if(c){c.disabled=true;result=await client.rpc("store_admin_confirm_order",{p_order_id:c.dataset.orderConfirm});}
  else if(s){s.disabled=true;result=await client.rpc("store_admin_set_order_status",{p_order_id:s.dataset.orderId,p_new_status:s.dataset.orderStatus,p_note:null});}
  else if(x){const reason=window.prompt("Motivo de cancelación del pedido:","Cancelado por administración");if(reason===null)return;x.disabled=true;result=await client.rpc("store_admin_set_order_status",{p_order_id:x.dataset.orderCancel,p_new_status:"cancelled",p_note:reason});}
  else return;
- if(result.error){toast("Pedido: "+result.error.message);await loadOnlineStoreAdmin();return;}
- toast("Pedido actualizado correctamente.");await loadOnlineStoreAdmin();await Promise.allSettled([loadProducts(),loadAdminIPV()]);
+ if(result.error){toast("Pedido: "+result.error.message);await loadOnlineStoreOrdersAdmin();return;}
+ toast("Pedido actualizado correctamente.");await loadOnlineStoreOrdersAdmin();await Promise.allSettled([loadOnlineStoreAdmin(),loadProducts(),loadAdminIPV()]);
 });
 
 initPromise=init();
